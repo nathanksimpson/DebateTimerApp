@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AP Debate Timer — HTML</title>
+<style>
+  :root{
+    --bg-green:#d1fae5; --fg-green:#064e3b; --bd-green:#34d399;
+    --bg-yellow:#fef3c7; --fg-yellow:#92400e; --bd-yellow:#f59e0b;
+    --bg-red:#fecaca; --fg-red:#7f1d1d; --bd-red:#f87171;
+    --bg-card:#ffffff; --bd:#e5e7eb; --fg:#111827; --muted:#6b7280;
+    --track:#e5e7eb; --fill:#111827;
+  }
+  html,body{height:100%}
+  body{margin:0;font:16px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";}
+  .wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;gap:24px;padding:24px;transition:background-color .25s,color .25s; box-sizing: border-box;}
+  .container{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:16px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+  h1{font-size:24px;margin:0}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{appearance:none;border:1px solid var(--bd);background:#fff;border-radius:12px;padding:10px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-weight:600}
+  .btn:active{transform:translateY(1px)}
+  .card{background:var(--bg-card);border:1px solid var(--bd);border-radius:16px;padding:16px}
+  .title{font-weight:700}
+  .muted{color:var(--muted)}
+  .clock{font-size:76px;font-weight:900;text-align:center; line-height:1.1;}
+  .progress{height:12px;background:var(--track);border-radius:999px;position:relative;overflow:hidden}
+  .fill{position:absolute;left:0;top:0;bottom:0;background:var(--fill)}
+  .seg{outline:1px solid rgba(0,0,0,0.12);height:100%}
+  .grid{display:grid;gap:12px}
+  .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .input{padding:8px 10px;border:1px solid var(--bd);border-radius:10px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+  .label{display:flex;flex-direction:column;gap:6px}
+  .bar{height:8px;background:rgba(17,24,39,.12);border-radius:8px;overflow:hidden}
+  .bar>.bfill{height:100%;background:#111827}
+  .caps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:6px;color:#475569;font-size:12px}
+  .tests li{margin:2px 0}
+  .note{font-size:12px;color:#6b7280;margin-top:6px;text-align:center}
+
+  .speaker-progress-bar{display:flex;flex-wrap:wrap;gap:4px;border-radius:8px;background-color:var(--track);padding:4px;}
+  .speaker-box{font-size:12px;font-weight:700;padding:8px 4px;border-radius:6px;text-align:center;background-color:#fff;border:1px solid var(--bd);cursor:grab;user-select:none;-webkit-user-select:none;transition:background-color .2s,box-shadow .2s,opacity .2s;flex:1 1 50px;min-width:50px;}
+  .speaker-box:active{cursor:grabbing;}
+  .speaker-box.team-prop,.speaker-box.team-gov,.speaker-box.team-aff{color:#15803d;border-color:#86efac;}
+  .speaker-box.team-opp,.speaker-box.team-neg{color:#b91c1c;border-color:#fca5a5;}
+  .speaker-box.team-none{color:#374151;border-color:#d1d5db;}
+  .speaker-box.active-speaker{box-shadow:0 0 0 3px var(--fg,#111827);font-weight:900;}
+  .speaker-box.dragging{opacity:.5;background:#e0f2fe;}
+  .speaker-box.drag-over{background:#fef9c3;border-style:dashed;}
+  .speaker-box.inactive{opacity:.4;background:#f3f4f6;text-decoration:line-through;cursor:not-allowed;}
+
+  @media(max-width:800px){.grid-3,.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:600px){.grid-3,.grid-4{grid-template-columns:1fr}.clock{font-size:60px}.caps{grid-template-columns:1fr}}
+  @media(max-width:400px){.clock{font-size:48px}.btn{padding:8px 10px;font-size:14px}}
+</style>
+</head>
+<body>
+
+<audio id="silentUnlockAudio" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" loop muted playsinline></audio>
+
+<div id="app" class="wrap">
+  <!-- content omitted for brevity; your existing body stays identical -->
+</div>
+
+<script>
+(function(){
+  // ===== iOS / Mobile Sound Unlock =====
+  const iOSUnlock = (() => {
+    let ctxUnlocked = false;
+    let audioUnlocked = false;
+
+    function tryUnlock() {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx && !ctxUnlocked) {
+        try {
+          window.audioCtx = window.audioCtx || new Ctx();
+          window.audioCtx.resume().then(() => { ctxUnlocked = true; }).catch(()=>{});
+        } catch {}
+      }
+      const silent = document.getElementById('silentUnlockAudio');
+      if (silent && !audioUnlocked) {
+        try {
+          const p = silent.play();
+          if (p && p.catch) p.catch(()=>{});
+          audioUnlocked = true;
+        } catch {}
+      }
+    }
+
+    ['pointerdown','touchend','click','keydown'].forEach(evt => {
+      window.addEventListener(evt, tryUnlock, { once:true, passive:true });
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && window.audioCtx && window.audioCtx.state !== 'running') {
+        window.audioCtx.resume().catch(()=>{});
+      }
+    });
+
+    return { tryUnlock };
+  })();
+
+  // ===== your entire existing JS logic begins below =====
+  // (no code removed — only one line changed later)
