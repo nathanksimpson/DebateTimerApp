@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AP Debate Timer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #f3f4f6;
+      --text-color: #1f2937;
+      --text-muted: #6b7280;
+      --card-bg: #ffffff;
+      --btn-bg: #4f46e5;
+      --btn-text: #ffffff;
+      --btn-hover: #4338ca;
+      --btn-secondary-bg: #e0e7ff;
+      --btn-secondary-text: #3730a3;
+      --btn-secondary-hover: #c7d2fe;
+      --btn-danger-bg: #fee2e2;
+      --btn-danger-text: #b91c1c;
+      --btn-danger-hover: #fecaca;
+      --accent-color: #4f46e5;
+    }
+    .dark-mode {
+      --bg-color: #111827;
+      --text-color: #f9fafb;
+      --text-muted: #9ca3af;
+      --card-bg: #1f2937;
+      --btn-bg: #6366f1;
+      --btn-hover: #4f46e5;
+      --btn-secondary-bg: #312e81;
+      --btn-secondary-text: #c7d2fe;
+      --btn-secondary-hover: #3730a3;
+      --btn-danger-bg: #450a0a;
+      --btn-danger-text: #fecaca;
+      --btn-danger-hover: #7f1d1d;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+    }
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 0.75rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1.25rem;
+      font-size: 1rem;
+      font-weight: 500;
+      border-radius: 0.5rem;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+    .btn-primary {
+      background-color: var(--btn-bg);
+      color: var(--btn-text);
+    }
+    .btn-primary:hover {
+      background-color: var(--btn-hover);
+    }
+    .btn-secondary {
+      background-color: var(--btn-secondary-bg);
+      color: var(--btn-secondary-text);
+    }
+    .btn-secondary:hover {
+      background-color: var(--btn-secondary-hover);
+    }
+    .btn-danger {
+      background-color: var(--btn-danger-bg);
+      color: var(--btn-danger-text);
+    }
+    .btn-danger:hover {
+      background-color: var(--btn-danger-hover);
+    }
+    .btn-icon {
+      padding: 0.75rem;
+      color: var(--text-muted);
+    }
+    .btn-icon:hover {
+      color: var(--text-color);
+      background-color: var(--btn-secondary-bg);
+    }
+    .timer-display {
+      font-size: 6rem;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--accent-color);
+      font-variant-numeric: tabular-nums;
+    }
+    @media (max-width: 640px) {
+      .timer-display {
+        font-size: 4.5rem;
+      }
+    }
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+    .modal-content {
+      width: 100%;
+      max-width: 28rem;
+      margin: 1rem;
+    }
+    .form-input, .form-select {
+      width: 100%;
+      border-radius: 0.5rem;
+      border: 1px solid var(--text-muted);
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      padding: 0.5rem 0.75rem;
+    }
+    .form-input:focus, .form-select:focus {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+      border-color: transparent;
+    }
+    /* SVG Icons */
+    .icon {
+      width: 1.5rem;
+      height: 1.5rem;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+  </style>
+</head>
+<body class="h-full antialiased">
+  
+  <!-- Silent audio element for iOS unlock -->
+  <audio id="silentUnlockAudio" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" preload="auto"></audio>
+
+  <div class="flex flex-col h-full min-h-screen p-4 md:p-8">
+    
+    <!-- Header -->
+    <header class="flex items-center justify-between pb-4">
+      <h1 class="text-2xl font-bold">AP Debate Timer</h1>
+      <div class="flex items-center space-x-2">
+        <button id="enableBtn" class="btn btn-secondary text-sm">Enable Sound</button>
+        <button id="muteBtn" class="btn btn-icon">
+          <!-- Mute/Unmute SVGs will be injected by JS -->
+        </button>
+        <button id="darkModeBtn" class="btn btn-icon">
+          <!-- Dark/Light Mode SVGs will be injected by JS -->
+        </button>
+        <button id="settingsBtn" class="btn btn-icon">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col md:flex-row gap-6 md:gap-8">
+
+      <!-- Left Panel: Timer & Controls -->
+      <div class="w-full md:w-2/3 flex flex-col">
+        <div class="card p-6 md:p-8 flex-1 flex flex-col items-center justify-center text-center">
+          <h2 id="timerLabel" class="text-2xl font-semibold mb-4 text-center">Speech Timer</h2>
+          <div id="timerDisplay" class="timer-display mb-6">1:00</div>
+          
+          <div class="w-full max-w-md">
+            <!-- Progress Bar -->
+            <div class="w-full h-2 rounded-full mb-6" style="background-color: var(--bg-color);">
+              <div id="progressBar" class="h-2 rounded-full" style="width: 100%; background-color: var(--accent-color); transition: width 0.1s linear;"></div>
+            </div>
+
+            <!-- Main Controls -->
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <button id="startBtn" class="btn btn-primary h-16 text-xl">Start</button>
+              <button id="resetBtn" class="btn btn-secondary h-16 text-xl">Reset</button>
+            </div>
+            
+            <!-- Manual Bells -->
+            <div class="grid grid-cols-2 gap-4">
+              <button id="singleBtn" class="btn btn-secondary">Single Bell</button>
+              <button id="doubleBtn" class="btn btn-secondary">Double Bell</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Presets & Prep -->
+      <div class="w-full md:w-1/3 flex flex-col gap-6">
+        
+        <!-- Prep Timer -->
+        <div class="card p-6">
+          <h3 class="text-lg font-semibold mb-4">Prep Timer</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <button id="prepStart" class="btn btn-secondary">Start (1:00)</button>
+            <button id="prepReset" class="btn btn-secondary">Reset</button>
+          </div>
+        </div>
+
+        <!-- Presets -->
+        <div class="card p-6 flex-1">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">Presets</h3>
+            <button id="profileBtn" class="btn btn-secondary btn-sm text-sm !p-2">Profiles</button>
+          </div>
+          <div id="presetList" class="space-y-3">
+            <!-- Presets will be loaded here -->
+            <p class="text-sm" style="color: var(--text-muted);">Loading default presets...</p>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal-backdrop">
+    <div class="card modal-content p-6">
+      <h2 class="text-xl font-semibold mb-6">Settings</h2>
+      
+      <div class="space-y-4">
+        <div>
+          <label for="bellType" class="block text-sm font-medium mb-1">Bell Sound</label>
+          <select id="bellType" class="form-select">
+            <option value="synth">Synth Ding</option>
+            <option value="wav">WAV File</option>
+          </select>
+        </div>
+        
+        <div id="wavSettings" class="hidden space-y-4">
+          <div>
+            <label for="bellUrl" class="block text-sm font-medium mb-1">Bell WAV URL</label>
+            <select id="bellUrl" class="form-select">
+              <option value="">Built-in Ding</option>
+              <!-- Uploaded sounds go here -->
+            </select>
+          </div>
+          <div>
+            <label for="bellFile" class="block text-sm font-medium mb-1">Upload WAV</label>
+            <input id="bellFile" type="file" accept=".wav,audio/wav" class="form-input !p-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+            <p class="text-xs mt-1" style="color: var(--text-muted);">Sound will be saved to your browser's local storage.</p>
+          </div>
+        </div>
+
+        <div>
+          <label for="prepTime" class="block text-sm font-medium mb-1">Prep Time (seconds)</label>
+          <input type="number" id="prepTime" class="form-input" min="1" value="60">
+        </div>
+
+        <div class="pt-4 flex justify-end space-x-3">
+          <button id="settingsClose" class="btn btn-secondary">Close</button>
+          <button id="settingsSave" class="btn btn-primary">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Manager Modal -->
+  <div id="profileModal" class="modal-backdrop">
+    <div class="card modal-content p-6">
+      <h2 class="text-xl font-semibold mb-6">Manage Profiles</h2>
+      
+      <div class="space-y-4">
+        <div>
+          <label for="profileSelect" class="block text-sm font-medium mb-1">Current Profile</label>
+          <div class="flex gap-2">
+            <select id="profileSelect" class="form-select"></select>
+            <button id="profileDelete" class="btn btn-danger !p-2">
+              <svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label for="profileName" class="block text-sm font-medium mb-1">Profile Name</label>
+          <input type="text" id="profileName" class="form-input" placeholder="e.g., 'AP Pro Con'">
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <button id="profileLoad" class="btn btn-secondary">Load Profile</button>
+          <button id="profileSave" class="btn btn-primary">Save Current as New</button>
+        </div>
+        
+        <div class="pt-4 border-t" style="border-color: var(--bg-color);">
+          <label for="profileImportExport" class="block text-sm font-medium mb-1">Export/Import</label>
+          <textarea id="profileImportExport" rows="3" class="form-input" placeholder="Paste profile data here to import..."></textarea>
+          <div class="grid grid-cols-2 gap-4 mt-2">
+            <button id="profileImport" class="btn btn-secondary">Import</button>
+            <button id="profileExport" class="btn btn-primary">Export Current</button>
+          </div>
+        </div>
+
+        <div class="pt-4 flex justify-end">
+          <button id="profileClose" class="btn btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    // ===== SVG Icons =====
+    const ICONS = {
+      sun: `<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`,
+      moon: `<svg class="icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`,
+      volume2: `<svg class="icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`,
+      volumeX: `<svg class="icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>`,
+    };
+
+    // ===== DOM Elements =====
+    const $ = document.getElementById.bind(document);
+    // Timer
+    const timerLabel = $('timerLabel');
+    const timerDisplay = $('timerDisplay');
+    const progressBar = $('progressBar');
+    const startBtn = $('startBtn');
+    const resetBtn = $('resetBtn');
+    // Header
+    const enableBtn = $('enableBtn');
+    const muteBtn = $('muteBtn');
+    const darkModeBtn = $('darkModeBtn');
+    const settingsBtn = $('settingsBtn');
+    // Presets
+    const presetList = $('presetList');
+    // Prep
+    const prepStart = $('prepStart');
+    const prepReset = $('prepReset');
+    // Manual Bells
+    const singleBtn = $('singleBtn');
+    const doubleBtn = $('doubleBtn');
+    // Settings Modal
+    const settingsModal = $('settingsModal');
+    const settingsClose = $('settingsClose');
+    const settingsSave = $('settingsSave');
+    const bellType = $('bellType');
+    const wavSettings = $('wavSettings');
+    const bellUrl = $('bellUrl');
+    const bellFile = $('bellFile');
+    const prepTime = $('prepTime');
+    // Profile Modal
+    const profileBtn = $('profileBtn');
+    const profileModal = $('profileModal');
+    const profileClose = $('profileClose');
+    const profileSelect = $('profileSelect');
+    const profileDelete = $('profileDelete');
+    const profileName = $('profileName');
+    const profileLoad = $('profileLoad');
+    const profileSave = $('profileSave');
+    const profileImportExport = $('profileImportExport');
+    const profileImport = $('profileImport');
+    const profileExport = $('profileExport');
+
+    // ===== Audio =====
+    const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
+    const BUILT_IN_DING_WAV = 'data:audio/wav;base64,UklGRigCAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQCAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAhICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICGZGF0YQQCAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg';
+
+    let uploadedSounds = []; // { name: string, url: string }
+    
+    let audioCtx = null;
+    let unlocked = false;
+
+    // Simplified, direct unlock function
+    function unlockAudio() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        // Play the silent <audio> tag
+        const silentAudio = document.getElementById('silentUnlockAudio');
+        if (silentAudio) {
+          silentAudio.play().catch(e => console.warn('Silent audio play failed, but unlock might still work.', e));
+        }
+
+        unlocked = true;
+        enableBtn.style.display = 'none'; // Hide the button on success
+      } catch (e) {
+        console.error('Audio unlock failed:', e);
+        // We still hide the button to prevent repeated clicks,
+        // as the state is now unrecoverable.
+        unlocked = true; // Set to true to prevent further attempts
+        enableBtn.style.display = 'none';
+      }
+    }
+
+    // Simplified playBell function
+    function playBell(count) {
+      if (!unlocked || state.muted) return;
+
+      const soundType = state.settings.bellType;
+      const soundUrl = state.settings.bellUrl;
+
+      count = count || 1;
+
+      if (soundType === 'synth' && audioCtx) {
+        try {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.frequency.value = 880; // A simple 'ding'
+          gain.gain.setValueAtTime(0, audioCtx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.01);
+          gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.25);
+
+          if (count > 1) {
+            osc.onended = () => {
+              setTimeout(() => playBell(count - 1), 100); // Recurse with delay
+            };
+          }
+        } catch (e) {
+          console.error('Synth bell failed:', e);
+        }
+      } else if (soundType === 'wav') {
+        try {
+          const audio = new Audio(soundUrl || BUILT_IN_DING_WAV);
+          audio.play().catch(e => console.error('WAV play failed:', e));
+          if (count > 1) {
+            audio.onended = () => {
+              setTimeout(() => playBell(count - 1), 100); // Recurse with delay
+            };
+          }
+        } catch (e) {
+          console.error('WAV bell failed:', e);
+        }
+      }
+    }
+
+    // ===== App State =====
+    let timerId = null; // interval ID
+    let remaining = 60; // seconds
+    let timerSnapshot = { main: 60, first: 0, second: 0, prep: 60, label: 'Speech Timer' };
+    let fired = { first: false, second: false };
+    let isPrep = false;
+
+    // Main state object
+    let state = {
+      darkMode: false,
+      muted: false,
+      settings: {
+        bellType: 'synth', // 'synth' or 'wav'
+        bellUrl: '', // URL or base64 string
+        prepTime: 60,
+      },
+      profiles: {},
+      currentProfile: 'default',
+    };
+    
+    // Default presets
+    const DEFAULT_PROFILES = {
+      'default': [
+        { "label": "Opening", "main": 60, "first": 0, "second": 0 },
+        { "label": "Rebuttal", "main": 120, "first": 60, "second": 90 },
+        { "label": "Closing", "main": 90, "first": 0, "second": 60 }
+      ],
+      'AP Pro Con': [
+        { "label": "Pro Opening", "main": 180, "first": 0, "second": 150 },
+        { "label": "Con Opening", "main": 180, "first": 0, "second": 150 },
+        { "label": "Crossfire (All)", "main": 180, "first": 0, "second": 150 },
+        { "label": "Pro Rebuttal", "main": 120, "first": 0, "second": 90 },
+        { "label": "Con Rebuttal", "main": 120, "first": 0, "second": 90 },
+        { "label": "Crossfire (1&2)", "main": 180, "first": 0, "second": 150 },
+        { "label": "Pro Summary", "main": 120, "first": 0, "second": 90 },
+        { "label": "Con Summary", "main": 120, "first": 0, "second": 90 },
+        { "label": "Grand Crossfire", "main": 180, "first": 0, "second": 150 },
+        { "label": "Pro Final", "main": 120, "first": 0, "second": 90 },
+        { "label": "Con Final", "main": 120, "first": 0, "second": 90 }
+      ],
+      'Simple Format': [
+        { "label": "Constructive", "main": 240, "first": 0, "second": 210 },
+        { "label": "Cross-Exam", "main": 180, "first": 0, "second": 150 },
+        { "label": "Rebuttal", "main": 120, "first": 0, "second": 90 }
+      ]
+    };
+
+    // ===== Timer Logic =====
+
+    // Format seconds into MM:SS
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    // Update the UI
+    function updateUI() {
+      timerDisplay.textContent = formatTime(remaining);
+      const percent = (remaining / timerSnapshot.main) * 100;
+      progressBar.style.width = `${Math.max(0, percent)}%`;
+      
+      if (isPrep) {
+        timerLabel.textContent = `Prep Time (${timerSnapshot.label})`;
+        progressBar.style.backgroundColor = 'var(--btn-secondary-text)';
+        timerDisplay.style.color = 'var(--btn-secondary-text)';
+      } else {
+        timerLabel.textContent = timerSnapshot.label;
+        progressBar.style.backgroundColor = 'var(--accent-color)';
+        timerDisplay.style.color = 'var(--accent-color)';
+      }
+    }
+
+    // Stop the timer
+    function stopTimer() {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+      startBtn.textContent = 'Start';
+      prepStart.textContent = `Start (${formatTime(state.settings.prepTime)})`;
+    }
+
+    // Reset the timer
+    function resetTimer(toPreset) {
+      stopTimer();
+      isPrep = false;
+      
+      if (toPreset) {
+        timerSnapshot.main = toPreset.main;
+        timerSnapshot.first = toPreset.first;
+        timerSnapshot.second = toPreset.second;
+        timerSnapshot.label = toPreset.label;
+      }
+      
+      remaining = timerSnapshot.main;
+      fired = { first: false, second: false };
+      updateUI();
+    }
+    
+    // Reset prep timer
+    function resetPrep() {
+      stopTimer();
+      isPrep = true;
+      remaining = state.settings.prepTime;
+      timerSnapshot.main = state.settings.prepTime; // Set main snapshot for progress bar
+      timerSnapshot.first = 0;
+      timerSnapshot.second = 0;
+      updateUI();
+    }
+
+    // Fire bells as elapsed passes markers
+    function checkBells(){
+      const elapsed = timerSnapshot.main - remaining;
+      if(!fired.first && timerSnapshot.first>0 && elapsed>=timerSnapshot.first){ playBell(1); fired.first=true; }
+      if(!fired.second && timerSnapshot.second>0 && elapsed>=timerSnapshot.second){ playBell(1); fired.second=true; }
+    }
+
+    // Main timer tick
+    function tick() {
+      if (remaining > 0) {
+        remaining--;
+        checkBells();
+        updateUI();
+      } else {
+        stopTimer();
+        remaining = 0;
+        updateUI();
+        playBell(2); // Double bell at end
+      }
+    }
+
+    // Start the timer
+    function startTimer() {
+      if (timerId) {
+        stopTimer();
+      } else {
+        if (isPrep) {
+          prepStart.textContent = 'Pause';
+        } else {
+          startBtn.textContent = 'Pause';
+        }
+        // Ensure UI updates immediately
+        if (remaining === timerSnapshot.main) {
+           checkBells();
+           updateUI();
+        }
+        timerId = setInterval(tick, 1000);
+      }
+    }
+
+    // ===== Profile Management =====
+
+    function loadPresets(profileName) {
+      presetList.innerHTML = '';
+      const presets = state.profiles[profileName] || [];
+      
+      if (presets.length === 0) {
+        presetList.innerHTML = `<p class="text-sm" style="color: var(--text-muted);">No presets in this profile. Go to Profiles to add some.</p>`;
+        return;
+      }
+      
+      presets.forEach((preset) => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-secondary w-full !justify-start';
+        btn.textContent = `${preset.label} (${formatTime(preset.main)})`;
+        btn.onclick = () => {
+          resetTimer(preset);
+        };
+        presetList.appendChild(btn);
+      });
+      
+      // Load first preset by default
+      if (presets.length > 0) {
+        resetTimer(presets[0]);
+      }
+    }
+    
+    function loadProfileOptions() {
+      profileSelect.innerHTML = '';
+      Object.keys(state.profiles).forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        if (name === state.currentProfile) {
+          option.selected = true;
+        }
+        profileSelect.appendChild(option);
+      });
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem('debateTimerState', JSON.stringify(state));
+      } catch (e) {
+        console.error("Failed to save state:", e);
+      }
+    }
+    
+    function loadState() {
+      let savedState = null;
+      try {
+        savedState = localStorage.getItem('debateTimerState');
+      } catch(e) {
+        console.error("Failed to load state:", e);
+      }
+
+      if (savedState) {
+        try {
+          const parsedState = JSON.parse(savedState);
+          // Merge saved state with defaults to ensure all keys exist
+          state = { ...state, ...parsedState };
+          state.settings = { ...state.settings, ...(parsedState.settings || {}) };
+          
+          // Ensure default profiles exist if no profiles are loaded
+          if (!state.profiles || Object.keys(state.profiles).length === 0) {
+            state.profiles = DEFAULT_PROFILES;
+            state.currentProfile = 'default';
+          }
+
+        } catch(e) {
+          console.error("Failed to parse saved state:", e);
+          state.profiles = DEFAULT_PROFILES; // Fallback
+        }
+      } else {
+        // No saved state, use defaults
+        state.profiles = DEFAULT_PROFILES;
+      }
+      
+      // Load sounds from legacy storage if they exist
+      try {
+        const legacySounds = localStorage.getItem('debateTimerSounds');
+        if (legacySounds) {
+          uploadedSounds = JSON.parse(legacySounds);
+          localStorage.removeItem('debateTimerSounds'); // Remove legacy
+          saveState(); // Save to new state object (will be handled by settings)
+        }
+      } catch(e) {
+        console.error("Failed to migrate legacy sounds:", e);
+      }
+      
+      // Apply loaded state
+      timerSnapshot.prep = state.settings.prepTime;
+      prepStart.textContent = `Start (${formatTime(state.settings.prepTime)})`;
+    }
+
+    // ===== Settings & Sound Management =====
+    
+    function loadSoundOptions() {
+      bellUrl.innerHTML = '<option value="">Built-in Ding</option>';
+      uploadedSounds.forEach(sound => {
+        const option = document.createElement('option');
+        option.value = sound.url;
+        option.textContent = sound.name;
+        bellUrl.appendChild(option);
+      });
+      // Set select to current setting
+      bellUrl.value = state.settings.bellUrl;
+    }
+    
+    function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const newSound = {
+          name: file.name,
+          url: e.target.result
+        };
+        // Avoid duplicates
+        uploadedSounds = uploadedSounds.filter(s => s.name !== newSound.name);
+        uploadedSounds.push(newSound);
+        
+        loadSoundOptions();
+        // Automatically select the new sound
+        bellUrl.value = newSound.url;
+        // Auto-save this, but settings modal save will get the rest
+        saveState(); 
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    function applySettings() {
+      state.settings.bellType = bellType.value;
+      state.settings.bellUrl = bellUrl.value;
+      state.settings.prepTime = parseInt(prepTime.value, 10) || 60;
+      
+      timerSnapshot.prep = state.settings.prepTime;
+      prepStart.textContent = `Start (${formatTime(state.settings.prepTime)})`;
+      
+      wavSettings.classList.toggle('hidden', state.settings.bellType !== 'wav');
+      
+      saveState();
+    }
+
+    // ===== UI Initialization =====
+    function initUI() {
+      // Dark Mode
+      darkModeBtn.innerHTML = state.darkMode ? ICONS.sun : ICONS.moon;
+      document.documentElement.classList.toggle('dark-mode', state.darkMode);
+      
+      // Mute
+      muteBtn.innerHTML = state.muted ? ICONS.volumeX : ICONS.volume2;
+      
+      // Settings
+      bellType.value = state.settings.bellType;
+      prepTime.value = state.settings.prepTime;
+      wavSettings.classList.toggle('hidden', state.settings.bellType !== 'wav');
+      loadSoundOptions();
+      
+      // Profiles
+      loadProfileOptions();
+      loadPresets(state.currentProfile);
+      
+      // Audio Unlock
+      enableBtn.onclick = unlockAudio;
+      // Check if context is already unlocked (e.g., autoplay allowed)
+      try {
+        const ac = new (window.AudioContext || window.webkitAudioContext)();
+        if (ac.state === 'running') {
+          audioCtx = ac;
+          unlocked = true;
+          enableBtn.style.display = 'none';
+        }
+        ac.close();
+      } catch(e) {
+        // This will fail in browsers that don't allow it, which is fine.
+      }
+    }
+
+    // ===== Event Listeners =====
+    
+    // Timer Controls
+    startBtn.onclick = () => {
+      if (isPrep) { // Don't start main timer if prep is active
+        resetTimer(); // Reset main timer to its snapshot
+      }
+      isPrep = false;
+      startTimer();
+    };
+    resetBtn.onclick = () => resetTimer();
+    
+    // Prep Controls
+    prepStart.onclick = () => {
+      if (!isPrep) { // If starting prep timer from scratch
+        resetPrep();
+      }
+      startTimer();
+    };
+    prepReset.onclick = resetPrep;
+
+    // Manual Bells
+    singleBtn.onclick = () => playBell(1);
+    doubleBtn.onclick = () => playBell(2);
+    
+    // Header
+    darkModeBtn.onclick = () => {
+      state.darkMode = !state.darkMode;
+      darkModeBtn.innerHTML = state.darkMode ? ICONS.sun : ICONS.moon;
+      document.documentElement.classList.toggle('dark-mode', state.darkMode);
+      saveState();
+    };
+    
+    muteBtn.onclick = () => {
+      state.muted = !state.muted;
+      muteBtn.innerHTML = state.muted ? ICONS.volumeX : ICONS.volume2;
+      saveState();
+    };
+    
+    settingsBtn.onclick = () => settingsModal.style.display = 'flex';
+    settingsClose.onclick = () => settingsModal.style.display = 'none';
+    settingsSave.onclick = () => {
+      applySettings();
+      settingsModal.style.display = 'none';
+    };
+    
+    // Settings Controls
+    bellType.onchange = () => {
+      wavSettings.classList.toggle('hidden', bellType.value !== 'wav');
+    };
+    bellFile.onchange = handleFileUpload;
+    
+    // Profile Modal Controls
+    profileBtn.onclick = () => profileModal.style.display = 'flex';
+    profileClose.onclick = () => profileModal.style.display = 'none';
+    
+    profileLoad.onclick = () => {
+      const profileName = profileSelect.value;
+      if (profileName) {
+        state.currentProfile = profileName;
+        loadPresets(profileName);
+        saveState();
+        profileModal.style.display = 'none';
+      }
+    };
+    
+    profileDelete.onclick = () => {
+      const profileName = profileSelect.value;
+      if (profileName === 'default') {
+        alert('Cannot delete the default profile.'); // Using alert here for simplicity, replace with modal if needed
+        return;
+      }
+      if (Object.keys(state.profiles).length <= 1) {
+        alert('Cannot delete the last profile.');
+        return;
+      }
+      
+      if (confirm(`Are you sure you want to delete the profile "${profileName}"?`)) {
+        delete state.profiles[profileName];
+        state.currentProfile = 'default'; // Revert to default
+        loadProfileOptions();
+        loadPresets(state.currentProfile);
+        saveState();
+      }
+    };
+    
+    profileSave.onclick = () => {
+      const name = profileName.value.trim();
+      if (!name) {
+        alert('Please enter a profile name.');
+        return;
+      }
+      if (state.profiles[name]) {
+        if (!confirm(`A profile named "${name}" already exists. Overwrite it?`)) {
+          return;
+        }
+      }
+      // Get current presets from the 'default' profile if it's the active one and empty
+      // This is a bit of a hack, assumes user is editing 'default'
+      let currentPresets = state.profiles[state.currentProfile] || [];
+      if (state.currentProfile === 'default' && (!currentPresets || currentPresets.length === 0)) {
+         currentPresets = DEFAULT_PROFILES['default'];
+      }
+      
+      state.profiles[name] = [...currentPresets]; // Save a copy
+      state.currentProfile = name;
+      loadProfileOptions();
+      loadPresets(name);
+      profileName.value = '';
+      saveState();
+    };
+    
+    profileExport.onclick = () => {
+      const presets = state.profiles[state.currentProfile];
+      if (presets) {
+        profileImportExport.value = JSON.stringify(presets, null, 2);
+        profileImportExport.select();
+      }
+    };
+    
+    profileImport.onclick = () => {
+      try {
+        const presets = JSON.parse(profileImportExport.value);
+        if (!Array.isArray(presets)) throw new Error('Not an array.');
+        
+        const name = profileName.value.trim() || `Imported ${new Date().toLocaleDateString()}`;
+        state.profiles[name] = presets;
+        state.currentProfile = name;
+        loadProfileOptions();
+        loadPresets(name);
+        profileName.value = '';
+        profileImportExport.value = '';
+        saveState();
+        profileModal.style.display = 'none';
+      } catch (e) {
+        alert('Invalid profile data. Please paste a valid JSON array of presets.');
+        console.error('Import failed:', e);
+      }
+    };
+
+    // ===== App Initialization =====
+    loadState();
+    initUI();
+    
+  </script>
+</body>
+</html>
+
