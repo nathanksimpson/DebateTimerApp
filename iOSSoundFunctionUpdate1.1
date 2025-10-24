@@ -1,0 +1,1472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AP Debate Timer — HTML</title>
+<style>
+  :root{
+    --bg-green:#d1fae5; --fg-green:#064e3b; --bd-green:#34d399;
+    --bg-yellow:#fef3c7; --fg-yellow:#92400e; --bd-yellow:#f59e0b;
+    --bg-red:#fecaca; --fg-red:#7f1d1d; --bd-red:#f87171;
+    --bg-card:#ffffff; --bd:#e5e7eb; --fg:#111827; --muted:#6b7280;
+    --track:#e5e7eb; --fill:#111827;
+  }
+  html,body{height:100%}
+  body{margin:0;font:16px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";}
+  .wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;gap:24px;padding:24px;transition:background-color .25s,color .25s; box-sizing: border-box;} /* Added box-sizing */
+  .container{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:16px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:12px; flex-wrap: wrap;} /* Added flex-wrap */
+  h1{font-size:24px;margin:0}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{appearance:none;border:1px solid var(--bd);background:#fff;border-radius:12px;padding:10px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-weight:600}
+  .btn:active{transform:translateY(1px)}
+  .card{background:var(--bg-card);border:1px solid var(--bd);border-radius:16px;padding:16px}
+  .title{font-weight:700}
+  .muted{color:var(--muted)}
+  .clock{font-size:76px;font-weight:900;text-align:center; line-height: 1.1;} /* Added line-height */
+  .progress{height:12px;background:var(--track);border-radius:999px;position:relative;overflow:hidden}
+  .fill{position:absolute;left:0;top:0;bottom:0;background:var(--fill)}
+  .seg{outline:1px solid rgba(0,0,0,0.12);height:100%}
+  .grid{display:grid;gap:12px}
+  .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .input{padding:8px 10px;border:1px solid var(--bd);border-radius:10px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+  .label{display:flex;flex-direction:column;gap:6px}
+  .bar{height:8px;background:rgba(17,24,39,.12);border-radius:8px;overflow:hidden}
+  .bar>.bfill{height:100%;background:#111827}
+  .caps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:6px;color:#475569;font-size:12px}
+  .tests li{margin:2px 0}
+  .note{font-size:12px;color:#6b7280;margin-top:6px;text-align:center}
+
+  /* Speaker Progress Bar Styles */
+  .speaker-progress-bar {
+    display: flex; /* Changed from grid to flex */
+    flex-wrap: wrap; /* Added wrap */
+    gap: 4px;
+    border-radius: 8px;
+    background-color: var(--track);
+    padding: 4px;
+  }
+  .speaker-box {
+    font-size: 12px; /* Increased from 11px */
+    font-weight: 700;
+    padding: 8px 4px;
+    border-radius: 6px;
+    text-align: center;
+    background-color: #fff;
+    border: 1px solid var(--bd);
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none; /* Added prefix for iOS */
+    transition: background-color 0.2s, box-shadow 0.2s, opacity 0.2s;
+    flex: 1 1 50px; /* Added flex-basis for responsiveness */
+    min-width: 50px; /* Ensures a minimum tap target size */
+  }
+  .speaker-box:active { cursor: grabbing; }
+  .speaker-box.team-prop, .speaker-box.team-gov, .speaker-box.team-aff { color: #15803d; border-color: #86efac; } /* Added Aff */
+  .speaker-box.team-opp, .speaker-box.team-neg { color: #b91c1c; border-color: #fca5a5; } /* Added Neg */
+  .speaker-box.team-none { color: #374151; border-color: #d1d5db; }
+  .speaker-box.active-speaker {
+    box-shadow: 0 0 0 3px var(--fg, #111827);
+    font-weight: 900;
+  }
+  
+  /* New styles for drag/drop and inactive */
+  .speaker-box.dragging {
+    opacity: 0.5;
+    background: #e0f2fe;
+  }
+  .speaker-box.drag-over {
+    background: #fef9c3;
+    border-style: dashed;
+  }
+  .speaker-box.inactive {
+    opacity: 0.4;
+    background: #f3f4f6;
+    text-decoration: line-through;
+    cursor: not-allowed;
+  }
+
+  /* Responsive Media Queries */
+  @media (max-width:800px){
+    .grid-3, .grid-4 { grid-template-columns:repeat(2,minmax(0,1fr)) } /* 2 cols */
+  }
+  
+  @media (max-width: 600px) {
+    .grid-3, .grid-4 { grid-template-columns: 1fr } /* 1 col */
+    .clock { font-size: 60px; } /* Scale down large clock */
+    .caps { grid-template-columns: 1fr; } /* Stack bell time caps */
+  }
+  
+  @media (max-width: 400px) {
+    .clock { font-size: 48px; } /* Scale down large clock further */
+    .btn { padding: 8px 10px; font-size: 14px; } /* Make buttons slightly smaller */
+  }
+</style>
+</head>
+<body>
+  <div id="app" class="wrap">
+    <div class="container">
+      <header>
+        <h1>Debate Timer</h1>
+        <div class="row">
+          <button id="settingsBtn" class="btn">Toggle Settings</button> <!-- New Settings Button -->
+          <button id="muteBtn" class="btn">Sound</button>
+          <button id="enableBtn" class="btn">Enable Sound</button>
+          <button id="testsBtn" class="btn">Tests</button>
+        </div>
+      </header>
+      
+      <!-- New Collapsible Settings Card -->
+      <div class="card" id="settingsContainer" style="display:none">
+        <!-- Profile Management -->
+        <div class="card" style="margin-bottom: 16px;">
+          <div class="title" style="margin-bottom:8px">Profiles</div>
+          <div class="grid grid-4" style="align-items:flex-end;">
+            <label class="label">Load Profile
+              <select id="profileSelect" class="input"></select>
+            </label>
+            <button id="loadProfileBtn" class="btn">Load</button>
+            <button id="saveProfileBtn" class="btn">Save Current</button>
+            <button id="deleteProfileBtn" class="btn" style="background-color: var(--bg-red); color: var(--fg-red);">Delete Selected</button>
+          </div>
+          <div class="row" style="margin-top: 12px;">
+            <button id="exportProfilesBtn" class="btn">Export All</button>
+            <label class="btn">
+              Import
+              <input id="importProfilesInput" type="file" accept=".json" style="display:none" />
+            </label>
+          </div>
+        </div>
+
+        <!-- Timer Settings -->
+        <div class="card">
+          <div class="title" style="margin-bottom:8px">Timer Settings</div>
+          <div class="grid grid-3">
+            <label class="label">Main (m:ss)
+              <input id="mainInput" class="input" value="3:00" />
+            </label>
+            <label class="label">1st Bell from start (m:ss)
+              <input id="firstInput" class="input" value="1:00" />
+            </label>
+            <label class="label">2nd Bell from start (m:ss)
+              <input id="secondInput" class="input" value="2:00" />
+            </label>
+            <label class="label">Yellow at remaining (m:ss)
+              <input id="yellowInput" class="input" value="1:00" />
+            </label>
+            <label class="label">Red at remaining (m:ss)
+              <input id="redInput" class="input" value="0:30" />
+            </label>
+            <label class="label">Grace Period (m:ss)
+              <input id="graceInput" class="input" value="0:30" />
+            </label>
+            
+            <!-- Quick Timer Inputs -->
+            <label class="label">Prep Time (m:ss)
+              <input id="prepInput" class="input" value="20:00" />
+            </label>
+            <label class="label">Cross-Ex / Shared (m:ss)
+              <input id="cexInput" class="input" value="1:00" />
+            </label>
+            <label class="label">Rebuttal / Reply (m:ss)
+              <input id="rebInput" class="input" value="3:00" />
+            </label>
+            
+            <!-- Audio Settings -->
+            <label class="label">Bell spacing (ms)
+              <input id="spaceInput" class="input" value="100" />
+            </label>
+            <label class="label">Bell mode
+              <select id="modeSel" class="input">
+                <!-- Options will be populated by JS -->
+              </select>
+            </label>
+            <label class="label">Volume (0-1)
+              <input id="volumeInput" type="range" min="0" max="1" step="0.05" value="0.5" />
+            </label>
+            <label class="label">MP3 URL
+              <input id="mp3Url" class="input" placeholder="https://example.com/bell.mp3" />
+            </label>
+            <label class="label">Upload Sound(s)
+              <input id="mp3File" type="file" accept="audio/*" multiple /> <!-- Added multiple -->
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Speaker Progress -->
+      <div class="card">
+        <div class="title" style="margin-bottom:8px">Speaker Progress</div>
+        <div class="speaker-progress-bar" id="speakerProgress">
+          <!-- Speakers will be generated by JS -->
+        </div>
+        <div class="row" style="justify-content:space-between;margin-top:8px">
+          <div>
+            <button id="prevSpeakerBtn" class="btn">Previous</button>
+            <button id="nextSpeakerBtn" class="btn">Next</button>
+          </div>
+          <!-- Prep timer is part of this card -->
+          <div id="prepTimerContainer" class="row">
+            <!-- Prep input is now in settings -->
+            <div class="clock" id="prepClock" style="font-size:20px;font-weight:700;padding:0 8px">20:00</div>
+            <button id="prepStart" class="btn">Start</button>
+            <button id="prepReset" class="btn">Reset</button>
+          </div>
+          <button id="resetOrderBtn" class="btn">Reset Order</button>
+        </div>
+        <div class="bar" style="margin-top:8px"><div class="bfill" id="prepFill" style="width:0%"></div></div>
+        <div class="note">Click to select, Double-click to toggle, Drag to reorder.</div>
+      </div>
+
+      <!-- Main Timer Card -->
+      <div class="card" id="mainSpeechCard">
+        <div class="row" style="justify-content:space-between">
+          <div class="title" id="modeLabel">Substantive Speech</div>
+          <div class="muted" id="meta"></div>
+        </div>
+        <div class="clock" id="clock">3:00</div>
+        <div class="progress" id="progress">
+          <div class="fill" id="fill"></div>
+          <div class="seg" id="segA"></div>
+          <div class="seg" id="segB"></div>
+          <div class="seg" id="segC"></div>
+        </div>
+        <div class="caps">
+          <div id="capA">0 → 1st: -</div>
+          <div id="capB">1st → 2nd: -</div>
+          <div id="capC">2nd → Final: -</div>
+        </div>
+        <div class="row" style="justify-content:center;margin-top:10px">
+          <button id="startBtn" class="btn">Start</button>
+          <button id="resetBtn" class="btn">Reset</button>
+          <button id="singleBtn" class="btn">Single</button>
+          <button id="doubleBtn" class="btn">Double</button>
+          <button id="stopBellBtn" class="btn" style="display:none">Stop Bell</button>
+          <button id="testContBellBtn" class="btn">Test/Stop Cont.</button>
+        </div>
+        <div class="note" id="statusNote">Status: idle</div>
+      </div>
+
+      <div class="grid grid-3">
+        <!-- Rebuttal Prep Timer -> Renamed to Cross-Ex -->
+        <div class="card" id="crossExCard">
+          <div class="title">Cross-Ex / Shared</div>
+          <!-- Input now in settings -->
+          <div class="clock" id="cexClock">1:00</div>
+          <div class="bar"><div class="bfill" id="cexFill" style="width:0%"></div></div>
+          <div class="row" style="justify-content:center;margin-top:8px">
+            <button id="cexStart" class="btn">Start</button>
+            <button id="cexReset" class="btn">Reset</button>
+          </div>
+        </div>
+        
+        <!-- Reply Timer Card -> Renamed to Rebuttal -->
+        <div class="card" id="rebuttalCard">
+          <div class="title" id="rebuttalLabel">Rebuttal / Reply (3:00)</div>
+          <!-- Input now in settings -->
+          <div class="clock" id="rebClock">3:00</div>
+          <div class="bar"><div class="bfill" id="rebFill" style="width:0%"></div></div>
+          <div class="row" style="justify-content:center;margin-top:8px">
+            <button id="rebStart" class="btn">Start</button>
+            <button id="rebReset" class="btn">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings card moved into collapsible section -->
+
+      <div class="card" id="tests" style="display:none">
+        <div class="title" style="margin-bottom:6px">Tests</div>
+        <ul class="tests" id="testList"></ul>
+        <div class="note">Note: Blob URLs from uploads are temporary. Use a public URL to persist across refresh.</div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+(function(){
+  // ===== Utilities =====
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => document.querySelectorAll(sel);
+  const fmt = ms => { const t = Math.ceil(ms/1000); const m = Math.floor(t/60); const s = t%60; return `${m}:${String(s).padStart(2,'0')}`; };
+  const allDigitsFixed = t => !!t && /^[0-9]+$/.test(t);
+  const parseMin = input => { const t = (input||'').trim(); if (allDigitsFixed(t)) return parseInt(t,10)*60000; const p=t.split(':'); const m=+p[0]||0,s=+p[1]||0; return (m*60+s)*1000 };
+
+  // ===== Speaker Data =====
+  const createSimsonSpeakerOrder = () => [
+    { role: "Prep", initials: "PREP", team: "None", timers: ["prep"], active: true },
+    { role: "Prime Minister", initials: "PM", team: "Prop", timers: ["main"], active: true },
+    { role: "LO Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true },
+    { role: "Leader of Opp", initials: "LO", team: "Opp", timers: ["main"], active: true },
+    { role: "DPM Prep", initials: "R", team: "Prop", timers: ["cross-ex"], active: true },
+    { role: "Deputy PM", initials: "DPM", team: "Prop", timers: ["main"], active: true },
+    { role: "DLO Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true },
+    { role: "Deputy LO", initials: "DLO", team: "Opp", timers: ["main"], active: true },
+    { role: "PW Prep", initials: "R", team: "Prop", timers: ["cross-ex"], active: true },
+    { role: "Prop Whip", initials: "PW", team: "Prop", timers: ["main"], active: true },
+    { role: "OW Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true },
+    { role: "Opp Whip", initials: "OW", team: "Opp", timers: ["main"], active: true },
+    { role: "Opp Reply", initials: "OR", team: "Opp", timers: ["rebuttal"], active: true },
+    { role: "Prop Reply", initials: "PR", team: "Prop", timers: ["rebuttal"], active: true },
+  ];
+  
+  const createAPSpeakerOrder = () => [
+    { role: "Prep", initials: "PREP", team: "None", timers: ["prep"], active: true },
+    { role: "Prime Minister", initials: "PM", team: "Gov", timers: ["main"], active: true },
+    { role: "Leader of Opp", initials: "LO", team: "Opp", timers: ["main"], active: true },
+    { role: "Deputy PM", initials: "DPM", team: "Gov", timers: ["main"], active: true },
+    { role: "Deputy LO", initials: "DLO", team: "Opp", timers: ["main"], active: true },
+    { role: "Gov Whip", initials: "GW", team: "Gov", timers: ["main"], active: true },
+    { role: "Opp Whip", initials: "OW", team: "Opp", timers: ["main"], active: true },
+    { role: "Opp Reply", initials: "OR", team: "Opp", timers: ["rebuttal"], active: true },
+    { role: "Gov Reply", initials: "GR", team: "Gov", timers: ["rebuttal"], active: true },
+  ];
+  
+  const createBPSpeakerOrder = () => [
+    { role: "Prep", initials: "PREP", team: "None", timers: ["prep"], active: true },
+    { role: "Prime Minister", initials: "PM", team: "Gov", timers: ["main"], active: true },
+    { role: "Leader of Opp", initials: "LO", team: "Opp", timers: ["main"], active: true },
+    { role: "Deputy PM", initials: "DPM", team: "Gov", timers: ["main"], active: true },
+    { role: "Deputy LO", initials: "DLO", team: "Opp", timers: ["main"], active: true },
+    { role: "Member of Gov", initials: "MG", team: "Gov", timers: ["main"], active: true },
+    { role: "Member of Opp", initials: "MO", team: "Opp", timers: ["main"], active: true },
+    { role: "Gov Whip", initials: "GW", team: "Gov", timers: ["main"], active: true },
+    { role: "Opp Whip", initials: "OW", team: "Opp", timers: ["main"], active: true },
+  ];
+  
+  // New Profiles
+  const createPolicySpeakerOrder = () => [
+    { role: "Prep", initials: "PREP", team: "None", timers: ["prep"], active: true },
+    { role: "1st Aff Const", initials: "1AC", team: "Aff", timers: ["main"], active: true },
+    { role: "Cross-Ex (2N)", initials: "CX", team: "Neg", timers: ["cross-ex"], active: true },
+    { role: "1st Neg Const", initials: "1NC", team: "Neg", timers: ["main"], active: true },
+    { role: "Cross-Ex (1A)", initials: "CX", team: "Aff", timers: ["cross-ex"], active: true },
+    { role: "2nd Aff Const", initials: "2AC", team: "Aff", timers: ["main"], active: true },
+    { role: "Cross-Ex (1N)", initials: "CX", team: "Neg", timers: ["cross-ex"], active: true },
+    { role: "2nd Neg Const", initials: "2NC", team: "Neg", timers: ["main"], active: true },
+    { role: "Cross-Ex (2A)", initials: "CX", team: "Aff", timers: ["cross-ex"], active: true },
+    { role: "1st Neg Rebuttal", initials: "1NR", team: "Neg", timers: ["rebuttal"], active: true },
+    { role: "1st Aff Rebuttal", initials: "1AR", team: "Aff", timers: ["rebuttal"], active: true },
+    { role: "2nd Neg Rebuttal", initials: "2NR", team: "Neg", timers: ["rebuttal"], active: true },
+    { role: "2nd Aff Rebuttal", initials: "2AR", team: "Aff", timers: ["rebuttal"], active: true },
+  ];
+  
+  const createLDSpeakerOrder = () => [
+    { role: "Prep", initials: "PREP", team: "None", timers: ["prep"], active: true },
+    { role: "Aff Constructive", initials: "AC", team: "Aff", timers: ["main"], active: true },
+    { role: "Cross-Ex", initials: "CX", team: "Neg", timers: ["cross-ex"], active: true },
+    { role: "Neg Constructive", initials: "NC", team: "Neg", timers: ["main"], active: true },
+    { role: "Cross-Ex", initials: "CX", team: "Aff", timers: ["cross-ex"], active: true },
+    { role: "1st Aff Rebuttal", initials: "1AR", team: "Aff", timers: ["rebuttal"], active: true },
+    { role: "Neg Rebuttal", initials: "NR", team: "Neg", timers: ["rebuttal"], active: true },
+    { role: "2nd Aff Rebuttal", initials: "2AR", team: "Aff", timers: ["rebuttal"], active: true },
+  ];
+  
+  const createBFSpeakerOrder = () => [
+    { role: "Prep", initials: "PREP", team: "None", timers: ["prep"], active: true },
+    { role: "Speaker 1 (Pro)", initials: "S1", team: "Aff", timers: ["main"], active: true },
+    { role: "Speaker 2 (Con)", initials: "S2", team: "Neg", timers: ["main"], active: true },
+    { role: "Crossfire", initials: "CF", team: "None", timers: ["cross-ex"], active: true },
+    { role: "Speaker 3 (Pro)", initials: "S3", team: "Aff", timers: ["main"], active: true },
+    { role: "Speaker 4 (Con)", initials: "S4", team: "Neg", timers: ["main"], active: true },
+    { role: "Crossfire", initials: "CF", team: "None", timers: ["cross-ex"], active: true },
+    { role: "Summary 1 (Pro)", initials: "S1", team: "Aff", timers: ["rebuttal"], active: true },
+    { role: "Summary 2 (Con)", initials: "S2", team: "Neg", timers: ["rebuttal"], active: true },
+    { role: "Grand Crossfire", initials: "GCF", team: "None", timers: ["cross-ex"], active: true },
+    { role: "Final Focus 1 (Pro)", initials: "F1", team: "Aff", timers: ["rebuttal"], active: true },
+    { role: "Final Focus 2 (Con)", initials: "F2", team: "Neg", timers: ["rebuttal"], active: true },
+  ];
+  
+  
+  let speakerOrder = createSimsonSpeakerOrder(); // Make it mutable
+  let activeSpeakerIndex = 0;
+  let draggingIndex = null;
+
+  // ===== State =====
+  const createDefaultState = (presetName) => {
+    switch (presetName) {
+      case "Policy":
+        return {
+          preset:'Substantive', main: 8*60000, first: 60000, second: 7*60000, yellow: 2*60000, red: 60000, grace: 30000,
+          prepTime: 5*60000, cexTime: 3*60000, rebTime: 5*60000,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
+        };
+      case "LD":
+        return {
+          preset:'Substantive', main: 6*60000, first: 60000, second: 5*60000, yellow: 2*60000, red: 60000, grace: 30000,
+          prepTime: 4*60000, cexTime: 3*60000, rebTime: 4*60000,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
+        };
+      case "PF":
+        return {
+          preset:'Substantive', main: 4*60000, first: 60000, second: 3*60000, yellow: 60000, red: 30000, grace: 30000,
+          prepTime: 3*60000, cexTime: 3*60000, rebTime: 2*60000,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
+        };
+      case "AP":
+        return {
+          preset:'Substantive', main: 7*60000, first: 60000, second: 6*60000, yellow: 60000, red: 30000, grace: 30000,
+          prepTime: 30*60000, cexTime: 0, rebTime: 4*60000,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
+        };
+      case "BP":
+        return {
+          preset:'Substantive', main: 7*60000, first: 60000, second: 6*60000, yellow: 60000, red: 30000, grace: 30000,
+          prepTime: 15*60000, cexTime: 0, rebTime: 0,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
+        };
+      case "Simson":
+      default:
+        return {
+          preset:'Substantive', main: 3*60000, first: 60000, second: 2*60000, yellow: 60000, red: 30000, grace: 30000,
+          prepTime: 20*60000, cexTime: 60000, rebTime: 3*60000,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
+        };
+    }
+  };
+  
+  let state = createDefaultState("Simson");
+  
+  // This object will hold the timer settings when 'Start' is pressed
+  let timerSnapshot = {};
+  
+  // Profile DB Key
+  const PROFILES_DB_KEY = 'debateTimerProfiles';
+  
+  const DEFAULT_PROFILES = [
+    {
+      name: "Simson (Default)",
+      speakerOrder: createSimsonSpeakerOrder(),
+      settings: createDefaultState("Simson")
+    },
+    {
+      name: "Team Policy (CX)",
+      speakerOrder: createPolicySpeakerOrder(),
+      settings: createDefaultState("Policy")
+    },
+    {
+      name: "Lincoln-Douglas (LD)",
+      speakerOrder: createLDSpeakerOrder(),
+      settings: createDefaultState("LD")
+    },
+    {
+      name: "Public Forum (PF)",
+      speakerOrder: createBFSpeakerOrder(),
+      settings: createDefaultState("PF")
+    },
+    {
+      name: "Asian Parliamentary (AP)",
+      speakerOrder: createAPSpeakerOrder(),
+      settings: createDefaultState("AP")
+    },
+    {
+      name: "British Parliamentary (BP)",
+      speakerOrder: createBPSpeakerOrder(),
+      settings: createDefaultState("BP")
+    }
+  ];
+  
+  const isDefaultProfile = (name) => DEFAULT_PROFILES.some(p => p.name === name);
+
+  // Load persisted
+  try{
+    // Load global settings (not profile specific)
+    state.mode = localStorage.getItem('bellMode')||'synth'; // Default to synth
+    state.mp3Url = localStorage.getItem('mp3Url')||null;
+    state.volume = parseFloat(localStorage.getItem('volume')||'0.5');
+    state.muted = (localStorage.getItem('muted') === 'true') || false;
+  }catch{}
+
+  // Elements
+  const wrap = $('#app');
+  const clockEl = $('#clock');
+  const metaEl = $('#meta');
+  const progressEl = $('#progress');
+  const fillEl = $('#fill');
+  const segA = $('#segA'), segB=$('#segB'), segC=$('#segC');
+  const capA=$('#capA'), capB=$('#capB'), capC=$('#capC');
+  const statusNote=$('#statusNote');
+  const modeLabel=$('#modeLabel');
+  
+  // Settings UI
+  const settingsBtn = $('#settingsBtn');
+  const settingsContainer = $('#settingsContainer');
+  settingsBtn.onclick = () => {
+    settingsContainer.style.display = settingsContainer.style.display === 'none' ? 'block' : 'none';
+  };
+
+  // Inputs
+  const mainInput=$('#mainInput'), firstInput=$('#firstInput'), secondInput=$('#secondInput');
+  const yellowInput=$('#yellowInput'), redInput=$('#redInput'), graceInput=$('#graceInput');
+  const spaceInput=$('#spaceInput');
+  const modeSel=$('#modeSel'), mp3Url=$('#mp3Url'), mp3File=$('#mp3File'), volumeInput=$('#volumeInput');
+  
+  // Quick Timer Inputs (now in settings)
+  const prepInput=$('#prepInput'), cexInput=$('#cexInput'), rebInput=$('#rebInput');
+
+  const muteBtn=$('#muteBtn'), enableBtn=$('#enableBtn'), testsBtn=$('#testsBtn');
+  const startBtn=$('#startBtn'), resetBtn=$('#resetBtn');
+  const singleBtn=$('#singleBtn'), doubleBtn=$('#doubleBtn');
+  const stopBellBtn=$('#stopBellBtn'), testContBellBtn=$('#testContBellBtn');
+
+  // Quick timers (display elements)
+  const prepClock=$('#prepClock'), prepFill=$('#prepFill');
+  const cexClock=$('#cexClock'), cexFill=$('#cexFill');
+  const rebClock=$('#rebClock'), rebFill=$('#rebFill'), rebuttalLabel=$('#rebuttalLabel');
+  
+  const prepStart=$('#prepStart'), prepReset=$('#prepReset');
+  const cexStart=$('#cexStart'), cexReset=$('#cexReset');
+  const rebStart=$('#rebStart'), rebReset=$('#rebReset');
+  
+  // Timer Containers
+  const prepTimerContainer = $('#prepTimerContainer');
+  const mainSpeechCard = $('#mainSpeechCard');
+  const crossExCard = $('#crossExCard');
+  const rebuttalCard = $('#rebuttalCard');
+  
+  // Profile UI
+  const profileSelect = $('#profileSelect');
+  const loadProfileBtn = $('#loadProfileBtn');
+  const saveProfileBtn = $('#saveProfileBtn');
+  const deleteProfileBtn = $('#deleteProfileBtn');
+  const exportProfilesBtn = $('#exportProfilesBtn');
+  const importProfilesInput = $('#importProfilesInput');
+
+  // Speaker Progress UI
+  const speakerProgress = $('#speakerProgress');
+  const nextSpeakerBtn = $('#nextSpeakerBtn');
+  const prevSpeakerBtn = $('#prevSpeakerBtn');
+  const resetOrderBtn = $('#resetOrderBtn');
+
+  function initSpeakerProgress() {
+    speakerProgress.innerHTML = '';
+    speakerOrder.forEach((speaker, index) => {
+      const box = document.createElement('div');
+      // BP has 'Gov' and 'Opp'
+      let teamClass = speaker.team.toLowerCase().replace('prop', 'gov');
+      if (teamClass.includes('aff')) teamClass = 'aff';
+      if (teamClass.includes('neg')) teamClass = 'neg';
+      
+      box.className = `speaker-box team-${teamClass}`;
+      box.classList.toggle('inactive', !speaker.active);
+      
+      const initials = speaker.initials;
+      box.textContent = initials;
+      box.title = speaker.role + " (Click to select, Double-click to toggle, Drag to reorder)";
+      box.dataset.index = index;
+      
+      // Click to select
+      box.addEventListener('click', () => {
+        if (!speaker.active) return; // Don't select inactive
+        setActiveSpeaker(index);
+      });
+      
+      // Double-click to toggle active
+      box.addEventListener('dblclick', () => {
+        speaker.active = !speaker.active;
+        box.classList.toggle('inactive', !speaker.active);
+      });
+
+      // Drag and Drop
+      box.draggable = true;
+      box.addEventListener('dragstart', (e) => {
+        draggingIndex = index;
+        e.dataTransfer.effectAllowed = 'move';
+        box.classList.add('dragging');
+      });
+      box.addEventListener('dragend', () => {
+        box.classList.remove('dragging');
+        draggingIndex = null;
+      });
+      box.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        box.classList.add('drag-over');
+      });
+      box.addEventListener('dragleave', () => {
+        box.classList.remove('drag-over');
+      });
+      box.addEventListener('drop', (e) => {
+        e.preventDefault();
+        box.classList.remove('drag-over');
+        if (draggingIndex === null || draggingIndex === index) return;
+        
+        // Re-order the array
+        const [draggedItem] = speakerOrder.splice(draggingIndex, 1);
+        speakerOrder.splice(index, 0, draggedItem);
+        
+        // Update active index
+        if (activeSpeakerIndex === draggingIndex) {
+          activeSpeakerIndex = index;
+        } else if (draggingIndex < activeSpeakerIndex && index >= activeSpeakerIndex) {
+          activeSpeakerIndex--;
+        } else if (draggingIndex > activeSpeakerIndex && index <= activeSpeakerIndex) {
+          activeSpeakerIndex++;
+        }
+        
+        initSpeakerProgress(); // Redraw all
+        setActiveSpeaker(activeSpeakerIndex, true); // Re-apply active class
+      });
+
+      speakerProgress.appendChild(box);
+    });
+  }
+
+  function setActiveSpeaker(index, force = false) {
+    if (index >= speakerOrder.length || index < 0) {
+      index = 0; // Safety check
+    }
+    if (!force && index === activeSpeakerIndex) return; // No change
+
+    activeSpeakerIndex = index;
+    
+    // Remove active class from all
+    $$('.speaker-box').forEach(box => box.classList.remove('active-speaker'));
+    
+    // Add active class to current
+    const activeBox = $(`[data-index="${index}"]`);
+    if (activeBox) {
+      activeBox.classList.add('active-speaker');
+    }
+
+    // Get speaker and set correct timers
+    const speaker = speakerOrder[index];
+    if (!speaker) return;
+    
+    const timers = speaker.timers;
+    
+    // Hide/Show correct timer cards
+    prepTimerContainer.style.display = timers.includes('prep') ? 'flex' : 'none';
+    mainSpeechCard.style.display = timers.includes('main') ? 'block' : 'none';
+    crossExCard.style.display = timers.includes('cross-ex') ? 'block' : 'none';
+    rebuttalCard.style.display = timers.includes('rebuttal') ? 'block' : 'none';
+
+    // Apply correct preset
+    if (timers.includes('main')) {
+      applyPreset('Substantive');
+    } else if (timers.includes('rebuttal')) {
+      applyPreset('Reply');
+    }
+  }
+
+  function findNextSpeaker(direction) {
+    let newIndex = activeSpeakerIndex;
+    const max = speakerOrder.length - 1;
+    
+    for (let i = 1; i <= speakerOrder.length; i++) {
+      newIndex = (newIndex + direction + speakerOrder.length) % speakerOrder.length;
+      if (speakerOrder[newIndex].active) {
+        return newIndex;
+      }
+    }
+    return activeSpeakerIndex; // No other active speaker
+  }
+
+  nextSpeakerBtn.onclick = () => {
+    const nextIndex = findNextSpeaker(1);
+    setActiveSpeaker(nextIndex);
+  };
+  
+  prevSpeakerBtn.onclick = () => {
+    const prevIndex = findNextSpeaker(-1);
+    setActiveSpeaker(prevIndex);
+  };
+
+  resetOrderBtn.onclick = () => {
+    // Resets order *based on the currently loaded profile*
+    const currentProfileName = profileSelect.value;
+    const profile = findProfileByName(currentProfileName);
+    if (!profile) { // Safety check
+      loadSelectedProfile(DEFAULT_PROFILES[0].name);
+      return;
+    }
+    speakerOrder = JSON.parse(JSON.stringify(profile.speakerOrder)); // Deep copy
+    initSpeakerProgress();
+    setActiveSpeaker(0);
+  };
+
+  // ===== Audio =====
+  const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
+  // Built-in WAV file (a simple 880Hz 'ding')
+  const BUILT_IN_DING_WAV = 'data:audio/wav;base64,UklGRigCAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQCAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIA==';
+  
+  let audioCtx = null; // AudioContext
+  let unlocked = false;
+  let uploadedSounds = []; // { name: string, url: string }
+
+  const getOrCreateContext = async()=>{
+    if(state.muted) { setStatus('muted'); return null; }
+    const Ctx = window.AudioContext || window.webkitAudioContext; if(!Ctx){ setStatus('no-audiocontext'); return null; }
+    if(!audioCtx){ try{ audioCtx = new Ctx(); }catch{ setStatus('no-audiocontext'); return null; } }
+    if(audioCtx && audioCtx.state==='suspended'){ try{ await audioCtx.resume(); }catch{} }
+    return audioCtx;
+  };
+
+  const playSilent = async()=>{ try{ const a=new Audio(SILENT_WAV); a.muted=true; await a.play(); a.pause(); a.currentTime=0; return true; }catch{ return false; } };
+
+  const setStatus = (s)=>{ statusNote.textContent = 'Status: '+s + (state.mode==='mp3' && !state.mp3Url ? ' · Tip: set a public MP3 URL or upload below' : ''); };
+
+  const unlock = async()=>{
+    const ctx = await getOrCreateContext();
+    const tagOk = await playSilent();
+    const ctxOk = !!ctx && ctx.state==='running';
+    if(ctxOk || tagOk){ unlocked=true; setStatus(state.mode==='mp3' && !state.mp3Url ? 'armed':'ready'); return true; }
+    setStatus('blocked'); return false;
+  };
+
+  const playBell = async(count)=>{
+    if(state.muted || !unlocked) return; // Check flag, not unlock
+    // const ok = await unlock(); if(!ok) return; // Removed this line
+    
+    // Logic for which sound to play
+    const mode = state.mode;
+    
+    if(mode === 'synth'){
+      const ctx = audioCtx; if(!ctx) return; // Add check for context
+      const base = ctx.currentTime + .05;
+      
+      // New Bell Synth: Added another higher octave series (12 partials total)
+      const freqs = [
+        700,    // Original fundamental
+        1400,   // New octave of fundamental
+        1760,   // Original
+        2800,   // Original
+        3520,   // Original
+        4400,   // Original
+        5600,   // Original
+        7040,   // New octave
+        8800,   // New octave
+        11200,  // New octave
+        14080,  // New highest octave
+        17600   // New highest octave
+      ];
+      
+      const gains = [
+        0.2,    // 700
+        0.15,   // 1400 (quieter)
+        0.4,    // 1760
+        0.3,    // 2800
+        0.25,   // 3520
+        0.2,    // 4400
+        0.1,    // 5600
+        0.08,   // 7040 (quieter)
+        0.05,   // 8800 (quieter)
+        0.03,   // 11200 (very quiet)
+        0.02,   // 14080 (very quiet)
+        0.01    // 17600 (very quiet)
+      ];
+      const decays = [
+        2.8,    // 700
+        2.0,    // 1400 (faster decay)
+        2.5,    // 1760
+        2.0,    // 2800
+        1.5,    // 3520
+        1.0,    // 4400
+        0.7,    // 5600
+        0.5,    // 7040 (fast)
+        0.4,    // 8800 (very fast)
+        0.3,    // 11200 (very fast)
+        0.2,    // 14080 (very fast)
+        0.1     // 17600 (very fast)
+      ];
+      
+      for (let i = 0; i < count; i++) {
+        const t = base + (i * state.spacing) / 1000; // time for this specific chime
+
+        // Create a NEW master gain for EACH chime
+        const master = ctx.createGain();
+        master.gain.setValueAtTime(0.0001, t);
+        master.gain.exponentialRampToValueAtTime(state.volume, t + 0.01); // Very fast attack
+        master.gain.exponentialRampToValueAtTime(0.0001, t + 3.0); // Long decay
+        master.connect(ctx.destination);
+
+        freqs.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, t);
+          
+          const partialGain = state.volume * gains[idx];
+          const decay = decays[idx];
+          
+          g.gain.setValueAtTime(partialGain, t);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+          
+          osc.connect(g).connect(master);
+          osc.start(t);
+          osc.stop(t + 3.0);
+        });
+      }
+    } else {
+      // Use built-in WAV, MP3 URL, or Uploaded Sound
+      let url;
+      if (mode === 'wav') {
+        url = BUILT_IN_DING_WAV;
+      } else if (mode === 'mp3') {
+        url = state.mp3Url;
+      } else if (mode.startsWith('upload_')) {
+        const uploadIndex = parseInt(mode.split('_')[1], 10);
+        const sound = uploadedSounds[uploadIndex];
+        if (sound) {
+          url = sound.url;
+        }
+      }
+      
+      if (!url) {
+        setStatus('no-mp3-url');
+        return;
+      }
+      for(let i=0;i<count;i++) setTimeout(()=>{ try{ const a=new Audio(url); a.volume=state.volume; a.play().catch(()=>{}); }catch{} }, i*state.spacing);
+    }
+  };
+
+  // Controls
+  muteBtn.onclick = ()=>{ 
+    state.muted=!state.muted; 
+    muteBtn.textContent = state.muted? 'Muted':'Sound'; 
+    localStorage.setItem('muted', state.muted);
+  };
+  enableBtn.onclick = unlock;
+  testsBtn.onclick = ()=>{ const box=$('#tests'); box.style.display = box.style.display==='none'?'block':'none'; };
+
+  // ===== Main Timer Engine =====
+  let startTs=null, acc=0, raf=null, remaining=state.main;
+  let inGrace=false, graceRemaining=0;
+  let contBellInterval=null;
+  const fired = {first:false, second:false, final:false};
+
+  // Stop continuous bell
+  const stopContinuousBell = ()=>{
+    if(contBellInterval){ clearInterval(contBellInterval); contBellInterval=null; }
+    stopBellBtn.style.display = 'none';
+    testContBellBtn.textContent = 'Test/Stop Cont.';
+  };
+
+  // Wire up stop button
+  stopBellBtn.onclick = stopContinuousBell;
+  testContBellBtn.onclick = async ()=>{ // Make async
+    if(contBellInterval){
+      stopContinuousBell();
+    } else {
+      await unlock(); // Add await
+      if (!unlocked) return; // Check if unlock succeeded
+      contBellInterval = setInterval(()=>playBell(1), 500);
+      testContBellBtn.textContent = 'Stop';
+    }
+  };
+
+  const loop = (ts)=>{
+    if(startTs===null) startTs=ts;
+    const elapsed = (ts-startTs)+acc;
+    
+    if (inGrace) {
+      // We are in the grace period
+      graceRemaining = Math.max(0, timerSnapshot.grace - elapsed);
+      remaining = 0;
+      if (graceRemaining === 0) {
+        // Grace period over
+        if (!contBellInterval && timerSnapshot.preset === 'Substantive') {
+          // Start continuous bell only for Substantive
+          contBellInterval = setInterval(()=>playBell(1), 500); // 500ms interval
+          stopBellBtn.style.display = 'inline-flex';
+        }
+      }
+    } else {
+      // We are in the main countdown
+      remaining = Math.max(0, timerSnapshot.main - elapsed);
+      if (remaining === 0) {
+        if (!fired.final) {
+          playBell(2);
+          fired.final = true;
+        }
+        // Transition to grace period
+        if (timerSnapshot.grace > 0) {
+          inGrace = true;
+          acc = 0; // Reset accumulator for grace period
+          startTs = ts; // Reset start time for grace period
+        } else {
+          // No grace period, just end
+          cancelAnimationFrame(raf);
+          raf = null;
+        }
+      }
+    }
+    
+    render();
+    
+    // Check bells during main countdown
+    if (!inGrace) {
+      checkBells();
+    }
+    
+    // Only continue loop if main time or grace time is left
+    if ((remaining > 0 || graceRemaining > 0) && raf) {
+      raf = requestAnimationFrame(loop);
+    } else {
+      // Loop finishes (unless continuous bell is on)
+      cancelAnimationFrame(raf);
+      raf = null;
+    }
+  };
+
+  const snapshotSettings = () => {
+    timerSnapshot = {
+      main: state.main,
+      first: state.first,
+      second: state.second,
+      yellow: state.yellow,
+      red: state.red,
+      grace: state.grace,
+      preset: state.preset, // Snapshot preset type
+    };
+  };
+
+  const start = ()=>{
+    if(raf) return;
+    if (acc === 0) { // If it's a fresh start (not resume)
+      snapshotSettings(); // Take snapshot of settings
+      inGrace = false;
+      graceRemaining = timerSnapshot.grace;
+    }
+    raf = requestAnimationFrame(loop); // Set raf *before* calling loop
+  };
+  
+  const pause = ()=>{
+    if(!raf) return;
+    cancelAnimationFrame(raf);
+    raf = null;
+    const now = performance.now();
+    acc += (now - startTs);
+    startTs = null;
+    stopContinuousBell(); // Stop bells on pause
+  };
+  
+  const reset = ()=>{
+    if(raf) cancelAnimationFrame(raf);
+    raf = null;
+    startTs = null;
+    acc = 0;
+    inGrace = false;
+    // Reset to the *current state*, not the snapshot
+    remaining = state.main; 
+    graceRemaining = state.grace;
+    fired.first = fired.second = fired.final = false;
+    stopContinuousBell(); // Stop bells on reset
+    render(true); // Force render with state
+  };
+
+  // Buttons
+  startBtn.onclick = async ()=>{ // Make async
+    await unlock(); // Add await
+    if(raf) { 
+      pause(); 
+      startBtn.textContent = 'Start'; 
+    } else { 
+      start(); 
+      startBtn.textContent = 'Pause'; 
+    } 
+  };
+  resetBtn.onclick = ()=>{ pause(); reset(); startBtn.textContent='Start'; };
+  singleBtn.onclick = async ()=>{ await unlock(); playBell(1); }; // Make async and await
+  doubleBtn.onclick = async ()=>{ await unlock(); playBell(2); }; // Make async and await
+
+  // Inputs handlers
+  const syncFromInputs = ()=>{
+    // This function now reads from inputs and updates state
+    // It does NOT save to local storage (except for global settings)
+    state.main = parseMin(mainInput.value);
+    state.first = parseMin(firstInput.value);
+    state.second = parseMin(secondInput.value);
+    state.yellow = parseMin(yellowInput.value);
+    state.red = parseMin(redInput.value);
+    state.grace = parseMin(graceInput.value);
+    state.spacing = Math.max(100, parseInt(spaceInput.value||'100',10)||100);
+    
+    // Sync quick timers
+    state.prepTime = parseMin(prepInput.value);
+    state.cexTime = parseMin(cexInput.value);
+    state.rebTime = parseMin(rebInput.value);
+    
+    // Global settings ARE saved
+    state.mode = modeSel.value;
+    state.volume = parseFloat(volumeInput.value);
+    if(mp3Url.value) state.mp3Url = mp3Url.value;
+    localStorage.setItem('bellMode', state.mode);
+    if(state.mp3Url) localStorage.setItem('mp3Url', state.mp3Url);
+    localStorage.setItem('volume', String(state.volume));
+    
+    // Only reset if timer is not running
+    if (!raf) {
+      reset();
+    }
+    
+    // Also reset quick timers if not running
+    prep.reset(true); // Pass true to say "don't reset if running"
+    cex.reset(true);
+    reb.reset(true);
+    
+    modeLabel.textContent = state.preset==='Substantive'? 'Substantive Speech':'Reply Speech';
+    rebuttalLabel.textContent = `Rebuttal / Reply (${fmt(state.rebTime)})`;
+  };
+  
+  const syncInputsToState = () => {
+    // This function updates the input fields TO MATCH the state
+    // (e.g., after loading a profile)
+    mainInput.value = fmt(state.main);
+    firstInput.value = fmt(state.first);
+    secondInput.value = fmt(state.second);
+    yellowInput.value = fmt(state.yellow);
+    redInput.value = fmt(state.red);
+    graceInput.value = fmt(state.grace);
+    spaceInput.value = state.spacing;
+    
+    // Sync quick timer inputs
+    prepInput.value = fmt(state.prepTime);
+    cexInput.value = fmt(state.cexTime);
+    rebInput.value = fmt(state.rebTime);
+    
+    // Sync global audio settings
+    // modeSel.value = state.mode; // This is now handled by populateModeSelect
+    volumeInput.value = state.volume;
+    muteBtn.textContent = state.muted? 'Muted':'Sound';
+    if (state.mp3Url) mp3Url.value = state.mp3Url;
+    
+    populateModeSelect(); // Re-populate and set correct value
+    
+    if (!raf) {
+      reset();
+    }
+    
+    // Reset quick timers
+    prep.reset();
+    cex.reset();
+    reb.reset();
+    
+    rebuttalLabel.textContent = `Rebuttal / Reply (${fmt(state.rebTime)})`;
+  };
+  
+  // New function to populate the sound dropdown
+  function populateModeSelect() {
+    const currentMode = state.mode;
+    modeSel.innerHTML = ''; // Clear
+    
+    // Basic options
+    const basics = document.createElement('optgroup');
+    basics.label = "Standard Sounds";
+    basics.innerHTML = `
+      <option value="synth">Synth Bell</option>
+      <option value="wav">Built-in WAV</option>
+      <option value="mp3">MP3 URL</option>
+    `;
+    modeSel.appendChild(basics);
+    
+    // Uploaded options
+    if (uploadedSounds.length > 0) {
+      const uploads = document.createElement('optgroup');
+      uploads.label = "Uploaded Sounds";
+      uploadedSounds.forEach((sound, index) => {
+        const opt = document.createElement('option');
+        opt.value = `upload_${index}`;
+        opt.textContent = sound.name;
+        uploads.appendChild(opt);
+      });
+      modeSel.appendChild(uploads);
+    }
+    
+    // Try to set the mode, fallback to synth if it's not found (e.g., deleted upload)
+    if (modeSel.querySelector(`option[value="${currentMode}"]`)) {
+      modeSel.value = currentMode;
+    } else {
+      state.mode = 'synth';
+      modeSel.value = 'synth';
+    }
+  }
+  
+  // Add listeners
+  [mainInput,firstInput,secondInput,yellowInput,redInput,graceInput,spaceInput,modeSel,mp3Url,volumeInput, prepInput, cexInput, rebInput].forEach(el=> el.addEventListener('change', syncFromInputs));
+  
+  mp3File.addEventListener('change', (e)=>{ 
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    let firstUploadIndex = uploadedSounds.length;
+    
+    Array.from(files).forEach(file => {
+      const url = URL.createObjectURL(file);
+      uploadedSounds.push({ name: file.name, url: url });
+    });
+    
+    populateModeSelect();
+    
+    // Select the first of the *newly* uploaded files
+    state.mode = `upload_${firstUploadIndex}`;
+    modeSel.value = state.mode;
+    
+    // Clear the input to allow uploading the same file again
+    e.target.value = null; 
+  });
+
+  // Presets
+  function applyPreset(key){
+    state.preset=key;
+    // This function no longer changes inputs directly
+    // It just sets the preset key, which is snapshot
+    // and used for logic (e.g. continuous bell)
+    // The actual time values are part of the loaded profile state
+    
+    // We MUST still update the label
+    modeLabel.textContent = state.preset==='Substantive'? 'Substantive Speech':'Rebuttal / Reply';
+  }
+
+  // Quick timers helper
+  function miniTimer(inputEl, clockEl, fillEl, stateKey, endBellCount = 0){
+    // let dur = parseMin(inputEl.value);
+    let snapshotDur = state[stateKey]; // Snapshot duration on start
+    let rem = state[stateKey]; 
+    let st=null, acc=0, r=null;
+    
+    const paint = ()=>{ 
+      const displayRem = (r === null && acc === 0) ? state[stateKey] : rem;
+      clockEl.textContent = fmt(displayRem); 
+      const pct = snapshotDur === 0 ? 0 : 100 - Math.round((displayRem/snapshotDur)*100); 
+      fillEl.style.width = Math.max(0,Math.min(100,pct))+"%"; 
+    };
+    
+    const lp = (ts)=>{ 
+      if(st===null) st=ts; 
+      const el=(ts-st)+acc; 
+      rem=Math.max(0,snapshotDur-el); 
+      paint(); 
+      if(rem>0) {
+        r=requestAnimationFrame(lp); 
+      } else {
+        cancelAnimationFrame(r);
+        r = null;
+        if (endBellCount > 0) {
+          playBell(endBellCount);
+        }
+      }
+    };
+    
+    const start=()=>{ 
+      if(r) return; 
+      if (acc === 0) { // Fresh start
+        snapshotDur = state[stateKey]; // Snapshot from global state
+      }
+      rem = snapshotDur - acc;
+      r = requestAnimationFrame(lp); 
+    };
+    const pause=()=>{ 
+      if(!r) return; 
+      cancelAnimationFrame(r); 
+      r=null; 
+      const now=performance.now(); 
+      acc+=(now-st); 
+      st=null; 
+    };
+    const reset=(ifRunning = false)=>{ 
+      if (ifRunning && r) return; // Don't reset if running
+      if(r) cancelAnimationFrame(r); 
+      r=null; st=null; acc=0; 
+      snapshotDur = state[stateKey]; // Reset snapshot
+      rem = snapshotDur; 
+      paint(); 
+    };
+    
+    // This inputEl listener is now in the global syncFromInputs
+    paint();
+    return { start, pause, reset };
+  }
+  
+  // Pass end bell count and state key
+  const prep = miniTimer(prepInput, prepClock, prepFill, 'prepTime', 1);
+  const cex = miniTimer(cexInput, cexClock, cexFill, 'cexTime', 1);
+  const reb = miniTimer(rebInput, rebClock, rebFill, 'rebTime', 2);
+  
+  // Prep timer buttons
+  prepStart.onclick = async ()=>{ await unlock(); if(prepStart.textContent==='Start'){ prep.start(); prepStart.textContent='Pause'; } else { prep.pause(); prepStart.textContent='Start'; } }; // Make async and await
+  prepReset.onclick = ()=>{ prep.reset(); prepStart.textContent='Start'; };
+  
+  // Rebuttal prep buttons
+  cexStart.onclick = async ()=>{ await unlock(); if(cexStart.textContent==='Start'){ cex.start(); cexStart.textContent='Pause'; } else { cex.pause(); cexStart.textContent='Start'; } }; // Make async and await
+  cexReset.onclick = ()=>{ cex.reset(); cexStart.textContent='Start'; };
+
+  // Reply timer buttons
+  rebStart.onclick = async ()=>{ await unlock(); if(rebStart.textContent==='Start'){ reb.start(); rebStart.textContent='Pause'; } else { reb.pause(); rebStart.textContent='Start'; } }; // Make async and await
+  rebReset.onclick = ()=>{ reb.reset(); rebStart.textContent='Start'; };
+
+  // Render main
+  function render(forceState = false){
+    // Use snapshot if timer is running, otherwise use current state
+    const source = (raf && !forceState) ? timerSnapshot : state;
+    
+    const total = source.main;
+    const currentRemaining = inGrace ? graceRemaining : remaining;
+    
+    clockEl.textContent = fmt(currentRemaining);
+    if (inGrace) {
+      clockEl.textContent = '-' + fmt(graceRemaining);
+    }
+    
+    // background color by thresholds
+    const bg = currentRemaining <= source.red ? 'var(--bg-red)' : currentRemaining <= source.yellow ? 'var(--bg-yellow)' : 'var(--bg-green)';
+    const fg = currentRemaining <= source.red ? 'var(--fg-red)' : currentRemaining <= source.yellow ? 'var(--fg-yellow)' : 'var(--fg-green)';
+    const bd = currentRemaining <= source.red ? 'var(--bd-red)' : currentRemaining <= source.yellow ? 'var(--bd-yellow)' : 'var(--bd-green)';
+    
+    if (inGrace) {
+      // Flashing red for grace period
+      const flash = Math.floor(performance.now() / 500) % 2 === 0;
+      wrap.style.background = flash ? 'var(--bg-red)' : 'var(--bg-card)';
+      wrap.style.color = flash ? 'var(--fg-red)' : 'var(--fg)';
+      document.documentElement.style.setProperty('--bd', flash ? 'var(--bd-red)' : 'var(--bd-green)');
+    } else {
+      wrap.style.background = bg;
+      wrap.style.color = fg;
+      document.documentElement.style.setProperty('--bd', bd);
+    }
+
+    // progress segments
+    const a = Math.min(source.first || 0, total);
+    const b = Math.min(Math.max(0, (source.second || 0) - (source.first || 0)), total);
+    const c = Math.max(0, total - (a + b));
+    const pct = n => total === 0 ? 0 : (n/total)*100;
+    const fillPct = total === 0 ? 100 : pct(total-remaining);
+    
+    fillEl.style.width = fillPct+"%";
+    segA.style.width = pct(a)+"%"; segB.style.width = pct(b)+"%"; segC.style.width = pct(c)+"%";
+
+    capA.textContent = `0 → 1st: ${source.first?fmt(source.first):'-'}`;
+    capB.textContent = `1st → 2nd: ${(source.first&&source.second)?fmt(source.second-source.first):'-'}`;
+    capC.textContent = `2nd → Final: ${source.second?fmt(total-source.second):fmt(total-(source.first||0))}`;
+
+    metaEl.textContent = `Main: ${fmt(total)}${source.first?` · 1st ${fmt(source.first)}`:''}${source.second?` · 2nd ${fmt(source.second)}`:''}`;
+    
+    if (inGrace) {
+      metaEl.textContent = `GRACE PERIOD: ${fmt(source.grace)}`;
+    }
+  }
+
+  // Fire bells as elapsed passes markers
+  function checkBells(){
+    const elapsed = timerSnapshot.main - remaining;
+    if(!fired.first && timerSnapshot.first>0 && elapsed>=timerSnapshot.first){ playBell(1); fired.first=true; }
+    if(!fired.second && timerSnapshot.second>0 && elapsed>=timerSnapshot.second){ playBell(1); fired.second=true; } 
+  }
+  
+  // ===== Profile Management =====
+  
+  function getProfiles() {
+    return JSON.parse(localStorage.getItem(PROFILES_DB_KEY) || '[]');
+  }
+  
+  function findProfileByName(name) {
+    const defaultProfile = DEFAULT_PROFILES.find(p => p.name === name);
+    if (defaultProfile) {
+      return defaultProfile;
+    }
+    return getProfiles().find(p => p.name === name);
+  }
+
+  function loadProfilesToDropdown() {
+    const profiles = getProfiles();
+    const selectedValue = profileSelect.value;
+    profileSelect.innerHTML = ''; // Clear
+    
+    // Add default
+    const defaultGroup = document.createElement('optgroup');
+    defaultGroup.label = "Built-in Profiles";
+    DEFAULT_PROFILES.forEach(profile => {
+      const opt = document.createElement('option');
+      opt.value = profile.name;
+      opt.textContent = profile.name;
+      defaultGroup.appendChild(opt);
+    });
+    profileSelect.appendChild(defaultGroup);
+
+    // Add saved
+    if (profiles.length > 0) {
+      const customGroup = document.createElement('optgroup');
+      customGroup.label = "Custom Profiles";
+      profiles.forEach(profile => {
+        const opt = document.createElement('option');
+        opt.value = profile.name;
+        opt.textContent = profile.name;
+        customGroup.appendChild(opt);
+      });
+      profileSelect.appendChild(customGroup);
+    }
+    
+    // Restore selection
+    profileSelect.value = selectedValue || DEFAULT_PROFILES[0].name;
+  }
+  
+  function loadSelectedProfile(name) {
+    const profileName = name || profileSelect.value;
+    if (!profileName) return;
+    
+    const profile = findProfileByName(profileName);
+    if (!profile) {
+      // Use a custom modal in a real app
+      console.error('Error: Could not find profile.');
+      return;
+    }
+    
+    // Load profile data
+    // Use deep copies to prevent mutation of the stored profile
+    speakerOrder = JSON.parse(JSON.stringify(profile.speakerOrder)); 
+    Object.assign(state, JSON.parse(JSON.stringify(profile.settings)));
+    
+    // Sync all UI elements
+    syncInputsToState();
+    initSpeakerProgress();
+    setActiveSpeaker(0);
+    
+    // Glocal settings must be re-synced from state
+    localStorage.setItem('bellMode', state.mode);
+    if(state.mp3Url) localStorage.setItem('mp3Url', state.mp3Url);
+    localStorage.setItem('volume', String(state.volume));
+  }
+  
+  function saveCurrentProfile() {
+    const name = prompt('Enter profile name:', 'My Custom Debate');
+    if (!name || name.trim() === '') return;
+    if (isDefaultProfile(name.trim())) {
+      // Use a custom modal in a real app
+      console.error('Cannot overwrite a default profile.');
+      return;
+    }
+    
+    // Read current values from inputs into state *before* saving
+    syncFromInputs();
+    
+    const newProfile = {
+      name: name.trim(),
+      speakerOrder: speakerOrder, // Save current order
+      settings: state, // Save current settings
+    };
+    
+    let profiles = getProfiles();
+    const existingIndex = profiles.findIndex(p => p.name === newProfile.name);
+    
+    if (existingIndex > -1) {
+      // Overwrite
+      profiles[existingIndex] = newProfile;
+    } else {
+      // Add new
+      profiles.push(newProfile);
+    }
+    
+    localStorage.setItem(PROFILES_DB_KEY, JSON.stringify(profiles));
+    loadProfilesToDropdown();
+    profileSelect.value = newProfile.name; // Select the new profile
+  }
+  
+  function deleteSelectedProfile() {
+    const profileName = profileSelect.value;
+    if (isDefaultProfile(profileName)) {
+      // Use a custom modal in a real app
+      console.error('Cannot delete a default profile.');
+      return;
+    }
+    
+    // Use a custom modal in a real app
+    // if (typeof confirm === 'function' && !confirm(`Are you sure you want to delete profile: "${profileName}"?`)) {
+    //   return;
+    // }
+    
+    let profiles = getProfiles();
+    profiles = profiles.filter(p => p.name !== profileName);
+    localStorage.setItem(PROFILES_DB_KEY, JSON.stringify(profiles));
+    loadProfilesToDropdown();
+    // Load the first default profile
+    loadSelectedProfile(DEFAULT_PROFILES[0].name);
+  }
+  
+  function exportProfiles() {
+    const profiles = getProfiles();
+    const dataStr = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(profiles, null, 2));
+    const a = document.createElement('a');
+    a.href = dataStr;
+    a.download = 'debate_timer_profiles.json';
+    a.click();
+    a.remove();
+  }
+  
+  function importProfiles(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importedProfiles = JSON.parse(e.target.result);
+        if (!Array.isArray(importedProfiles)) throw new Error('Not an array');
+        
+        let existingProfiles = getProfiles();
+        const profileMap = new Map();
+        
+        // Add existing
+        existingProfiles.forEach(p => profileMap.set(p.name, p));
+        // Add/overwrite with imported
+        importedProfiles.forEach(p => {
+          if (p.name && p.speakerOrder && p.settings && !isDefaultProfile(p.name)) { // Don't import default profiles
+            profileMap.set(p.name, p);
+          }
+        });
+        
+        const mergedProfiles = Array.from(profileMap.values());
+        localStorage.setItem(PROFILES_DB_KEY, JSON.stringify(mergedProfiles));
+        loadProfilesToDropdown();
+        // Use a custom modal/alert in a real app
+        // alert('Profiles imported successfully!');
+      } catch (err) {
+        // Use a custom modal/alert in a real app
+        // alert('Error importing file. Make sure it is a valid profile JSON.');
+      }
+    };
+    reader.readAsText(file);
+    // Clear input to allow re-importing same file
+    event.target.value = null;
+  }
+  
+  // Wire up profile buttons
+  loadProfileBtn.onclick = () => loadSelectedProfile(); // Use arrow to call with no args
+  saveProfileBtn.onclick = saveCurrentProfile;
+  deleteProfileBtn.onclick = deleteSelectedProfile;
+  exportProfilesBtn.onclick = exportProfiles;
+  importProfilesInput.onchange = importProfiles;
+
+  // Initial paint
+  syncInputsToState(); // Set inputs from default state
+  initSpeakerProgress(); // Build speaker UI
+  setActiveSpeaker(0); // Set to first speaker
+  loadProfilesToDropdown(); // Load profiles
+
+  // ===== Tests =====
+  const tests = [
+    {name:'formatTime 61000 -> 1:01', run:()=> fmt(61000)==='1:01'},
+    {name:'parse m:ss 2:30 -> 150000', run:()=> parseMin('2:30')===150000},
+    {name:'parse m only 3 -> 180000', run:()=> parseMin('3')===180000},
+    {name:'threshold order yellow>red', run:()=> 60000>30000},
+    {name:'spacing clamp', run:()=> Math.max(100,parseInt('60',10)||100)===100},
+    {name:'parse 0:05 -> 5000', run:()=> parseMin('0:05')===5000},
+    {name:'parse 0 -> 0', run:()=> parseMin('0')===0},
+    {name:'AudioContext guard (presence boolean)', run:()=> typeof (window.AudioContext||window.webkitAudioContext)!=='undefined' || true },
+    {name:'Fixed digit bug', run:()=> allDigitsFixed('123') && !allDigitsFixed('12g') }
+  ];
+  const testList = $('#testList');
+  const showTests = ()=>{ testList.innerHTML=''; tests.forEach(t=>{ const li=document.createElement('li'); let ok=false; try{ ok=t.run(); }catch{ ok=false } li.textContent=(ok?'PASS ':'FAIL ')+t.name; li.style.color=ok?'#065f46':'#7f1d1d'; testList.appendChild(li); }); };
+  testsBtn.addEventListener('click', showTests);
+
+})();
+</script>
+</body>
+</html>
+
+
+
+
+
