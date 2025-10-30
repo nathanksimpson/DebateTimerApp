@@ -392,6 +392,7 @@
   let speakerOrder = createSimsonSpeakerOrder(); // Make it mutable
   let activeSpeakerIndex = 0;
   let draggingIndex = null;
+  let touchOverElement = null; // For mobile drag/drop
 
   // ===== State =====
   const createDefaultState = (presetName) => {
@@ -618,6 +619,83 @@
         initSpeakerProgress(); // Redraw all
         setActiveSpeaker(activeSpeakerIndex, true); // Re-apply active class
       });
+
+      // ===== Touch Events for Mobile Reordering =====
+      box.addEventListener('touchstart', (e) => {
+        // e.preventDefault(); // This can prevent 'click' events
+        draggingIndex = index;
+        box.classList.add('dragging');
+        // We don't prevent default here to allow clicks to register
+      }, { passive: true }); // Use passive: true to allow default click/scroll behavior
+
+      box.addEventListener('touchmove', (e) => {
+        if (draggingIndex === null) return;
+        
+        // Prevent scrolling *while* dragging
+        e.preventDefault(); 
+        
+        const touch = e.touches[0];
+        
+        // Hide the dragging element *briefly* to find what's underneath
+        const draggingBox = $$('.speaker-box')[draggingIndex];
+        if (draggingBox) draggingBox.style.display = 'none';
+        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (draggingBox) draggingBox.style.display = ''; // Show it again
+
+        if (!targetElement) return;
+
+        // Find the closest speaker-box
+        const targetBox = targetElement.closest('.speaker-box');
+
+        // Clear previous drag-over
+        if (touchOverElement && touchOverElement !== targetBox) {
+            touchOverElement.classList.remove('drag-over');
+        }
+
+        // Add drag-over to new target
+        if (targetBox && targetBox.dataset.index != draggingIndex) { // Use != for type coercion
+            targetBox.classList.add('drag-over');
+            touchOverElement = targetBox;
+        } else {
+            touchOverElement = null;
+        }
+      }, { passive: false }); // We must use passive: false because we call preventDefault()
+
+      box.addEventListener('touchend', (e) => {
+        if (draggingIndex === null) return;
+        
+        // Find the drop target
+        const dropIndex = touchOverElement ? parseInt(touchOverElement.dataset.index, 10) : null;
+
+        // Clean up classes *before* reordering
+        box.classList.remove('dragging');
+        if (touchOverElement) {
+            touchOverElement.classList.remove('drag-over');
+        }
+
+        if (dropIndex !== null && dropIndex !== draggingIndex) {
+            // Valid drop
+            const [draggedItem] = speakerOrder.splice(draggingIndex, 1);
+            speakerOrder.splice(dropIndex, 0, draggedItem);
+            
+            // Update active index
+            if (activeSpeakerIndex === draggingIndex) {
+              activeSpeakerIndex = dropIndex;
+            } else if (draggingIndex < activeSpeakerIndex && dropIndex >= activeSpeakerIndex) {
+              activeSpeakerIndex--;
+            } else if (draggingIndex > activeSpeakerIndex && dropIndex <= activeSpeakerIndex) {
+              activeSpeakerIndex++;
+            }
+            
+            initSpeakerProgress(); // Redraw all
+            setActiveSpeaker(activeSpeakerIndex, true); // Re-apply active class
+        }
+
+        // Reset state
+        draggingIndex = null;
+        touchOverElement = null;
+      });
+      // ===== End Touch Events =====
 
       speakerProgress.appendChild(box);
     });
@@ -1518,6 +1596,7 @@
 </script>
 </body>
 </html>
+
 
 
 
