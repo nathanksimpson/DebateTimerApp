@@ -106,6 +106,12 @@
 </style>
 </head>
 <body>
+  <!-- 
+    NEW: Added a persistent, silent <audio> tag.
+    This is the key to unlocking audio on iOS, as per your suggestion.
+  -->
+  <audio id="silentUnlockAudio" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" loop muted playsinline></audio>
+
   <div id="app" class="wrap">
     <div class="container">
       <header>
@@ -309,8 +315,10 @@
     { role: "Prop Whip", initials: "PW", team: "Prop", timers: ["main"], active: true },
     { role: "OW Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true },
     { role: "Opp Whip", initials: "OW", team: "Opp", timers: ["main"], active: true },
-    { role: "Opp Reply", initials: "OR", team: "Opp", timers: ["rebuttal"], active: true },
-    { role: "Prop Reply", initials: "PR", team: "Prop", timers: ["rebuttal"], active: true },
+    { role: "Prop Reply Prep", initials: "R", team: "Prop", timers: ["cross-ex"], active: true }, // New
+    { role: "Prop Reply", initials: "PR", team: "Prop", timers: ["rebuttal"], active: true }, // Swapped
+    { role: "Opp Reply Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true }, // New
+    { role: "Opp Reply", initials: "OR", team: "Opp", timers: ["rebuttal"], active: true }, // Swapped
   ];
   
   const createAPSpeakerOrder = () => [
@@ -697,24 +705,66 @@
   let unlocked = false;
   let uploadedSounds = []; // { name: string, url: string }
 
-  const getOrCreateContext = async()=>{
-    if(state.muted) { setStatus('muted'); return null; }
-    const Ctx = window.AudioContext || window.webkitAudioContext; if(!Ctx){ setStatus('no-audiocontext'); return null; }
-    if(!audioCtx){ try{ audioCtx = new Ctx(); }catch{ setStatus('no-audiocontext'); return null; } }
-    if(audioCtx && audioCtx.state==='suspended'){ try{ await audioCtx.resume(); }catch{} }
-    return audioCtx;
-  };
-
-  const playSilent = async()=>{ try{ const a=new Audio(SILENT_WAV); a.muted=true; await a.play(); a.pause(); a.currentTime=0; return true; }catch{ return false; } };
+  // DELETING the getOrCreateContext and playSilent functions,
+  // as they will be inlined into the new 'unlock' function.
 
   const setStatus = (s)=>{ statusNote.textContent = 'Status: '+s + (state.mode==='mp3' && !state.mp3Url ? ' · Tip: set a public MP3 URL or upload below' : ''); };
 
-  const unlock = async()=>{
-    const ctx = await getOrCreateContext();
-    const tagOk = await playSilent();
-    const ctxOk = !!ctx && ctx.state==='running';
-    if(ctxOk || tagOk){ unlocked=true; setStatus(state.mode==='mp3' && !state.mp3Url ? 'armed':'ready'); return true; }
-    setStatus('blocked'); return false;
+  const unlock = ()=>{
+    // This function is now "bulletproof" and based on your suggestion.
+    // It will ALWAYS hide the button, even if audio fails.
+    
+    let synthUnlocked = false;
+    let audioTagUnlocked = false;
+
+    // 1. Try to unlock Web Audio (for Synth bell)
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) {
+        if (!audioCtx) {
+          audioCtx = new Ctx(); 
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          // Fire-and-forget resume.
+          audioCtx.resume().catch(()=>{ setStatus('resume-fail'); });
+        }
+        synthUnlocked = true;
+      }
+    } catch (e) {
+      setStatus('synth-unlock-err');
+    }
+
+    // 2. Try to unlock <audio> tag (for WAV/MP3 bells)
+    //    This uses your suggested method of playing an *existing* element.
+    try {
+      const silentAudio = $('#silentUnlockAudio'); // Get the new element
+      if (silentAudio) {
+        const p = silentAudio.play(); // Play the existing element
+        if (p && p.catch) {
+          p.catch(() => { setStatus('audio-play-fail'); });
+        }
+        audioTagUnlocked = true;
+      }
+    } catch (e) {
+      setStatus('audio-unlock-err');
+    }
+
+    // 3. THIS IS THE CRITICAL PART
+    // This code will now run no matter what.
+    unlocked = true; 
+    enableBtn.style.display = 'none';
+    
+    if (synthUnlocked && audioTagUnlocked) {
+      setStatus('Sound ready.');
+    } else if (synthUnlocked) {
+      setStatus('Synth ready (MP3/WAV may fail)');
+    } else if (audioTagUnlocked) {
+      setStatus('MP3/WAV ready (Synth may fail)');
+    } else {
+      setStatus('Sound failed. Please refresh.');
+    }
+    
+    return true; // Return value doesn't matter, but good practice.
   };
 
   const playBell = async(count)=>{
@@ -847,12 +897,15 @@
 
   // Wire up stop button
   stopBellBtn.onclick = stopContinuousBell;
-  testContBellBtn.onclick = async ()=>{ // Make async
+  testContBellBtn.onclick = ()=>{ // No longer async
     if(contBellInterval){
       stopContinuousBell();
     } else {
-      await unlock(); // Add await
-      if (!unlocked) return; // Check if unlock succeeded
+      // await unlock(); // REMOVED
+      if (!unlocked) { // Check if unlock succeeded
+        setStatus('Please click "Enable Sound" first');
+        return; 
+      }
       contBellInterval = setInterval(()=>playBell(1), 500);
       testContBellBtn.textContent = 'Stop';
     }
@@ -959,8 +1012,8 @@
   };
 
   // Buttons
-  startBtn.onclick = async ()=>{ // Make async
-    await unlock(); // Add await
+  startBtn.onclick = ()=>{ // No longer async
+    // await unlock(); // REMOVED
     if(raf) { 
       pause(); 
       startBtn.textContent = 'Start'; 
@@ -970,8 +1023,8 @@
     } 
   };
   resetBtn.onclick = ()=>{ pause(); reset(); startBtn.textContent='Start'; };
-  singleBtn.onclick = async ()=>{ await unlock(); playBell(1); }; // Make async and await
-  doubleBtn.onclick = async ()=>{ await unlock(); playBell(2); }; // Make async and await
+  singleBtn.onclick = ()=>{ playBell(1); }; // No longer async, removed await
+  doubleBtn.onclick = ()=>{ playBell(2); }; // No longer async, removed await
 
   // Inputs handlers
   const syncFromInputs = ()=>{
@@ -1187,15 +1240,15 @@
   const reb = miniTimer(rebInput, rebClock, rebFill, 'rebTime', 2);
   
   // Prep timer buttons
-  prepStart.onclick = async ()=>{ await unlock(); if(prepStart.textContent==='Start'){ prep.start(); prepStart.textContent='Pause'; } else { prep.pause(); prepStart.textContent='Start'; } }; // Make async and await
+  prepStart.onclick = ()=>{ if(prepStart.textContent==='Start'){ prep.start(); prepStart.textContent='Pause'; } else { prep.pause(); prepStart.textContent='Start'; } }; // No longer async, removed await
   prepReset.onclick = ()=>{ prep.reset(); prepStart.textContent='Start'; };
   
   // Rebuttal prep buttons
-  cexStart.onclick = async ()=>{ await unlock(); if(cexStart.textContent==='Start'){ cex.start(); cexStart.textContent='Pause'; } else { cex.pause(); cexStart.textContent='Start'; } }; // Make async and await
+  cexStart.onclick = ()=>{ if(cexStart.textContent==='Start'){ cex.start(); cexStart.textContent='Pause'; } else { cex.pause(); cexStart.textContent='Start'; } }; // No longer async, removed await
   cexReset.onclick = ()=>{ cex.reset(); cexStart.textContent='Start'; };
 
   // Reply timer buttons
-  rebStart.onclick = async ()=>{ await unlock(); if(rebStart.textContent==='Start'){ reb.start(); rebStart.textContent='Pause'; } else { reb.pause(); rebStart.textContent='Start'; } }; // Make async and await
+  rebStart.onclick = ()=>{ if(rebStart.textContent==='Start'){ reb.start(); rebStart.textContent='Pause'; } else { prep.pause(); prepStart.textContent='Start'; } }; // No longer async, removed await
   rebReset.onclick = ()=>{ reb.reset(); rebStart.textContent='Start'; };
 
   // Render main
@@ -1465,6 +1518,14 @@
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
 
 
 
