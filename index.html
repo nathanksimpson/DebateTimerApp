@@ -144,7 +144,6 @@
     This is the key to unlocking audio on iOS, as per your suggestion.
   -->
   <audio id="silentUnlockAudio" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" loop muted playsinline></audio>
-<audio id="deskBell" src="small_desk_bell.wav" preload="auto" playsinline></audio>
 
   <div id="app" class="wrap">
     <div class="container">
@@ -1325,13 +1324,111 @@
     return true; // Return value doesn't matter, but good practice.
   };
 
-  const playBell = (count=1)=>{
-  if(state.muted || !unlocked) return;
-  const bell=document.getElementById('deskBell');
-  for(let i=0;i<count;i++){
-    setTimeout(()=>{ bell.currentTime=0; bell.play(); }, i*150);
-  }
-};
+  const playBell = async(count)=>{
+    if(state.muted || !unlocked) return; // Check flag, not unlock
+    // const ok = await unlock(); if(!ok) return; // Removed this line
+    
+    // Logic for which sound to play
+    const mode = state.mode;
+    
+    if(mode === 'synth'){
+      const ctx = audioCtx; if(!ctx) return; // Add check for context
+      const base = ctx.currentTime + .05;
+      
+      // New Bell Synth: Added another higher octave series (12 partials total)
+      const freqs = [
+        700,    // Original fundamental
+        1400,   // New octave of fundamental
+        1760,   // Original
+        2800,   // Original
+        3520,   // Original
+        4400,   // Original
+        5600,   // Original
+        7040,   // New octave
+        8800,   // New octave
+        11200,  // New octave
+        14080,  // New highest octave
+        17600   // New highest octave
+      ];
+      
+      const gains = [
+        0.2,    // 700
+        0.15,   // 1400 (quieter)
+        0.4,    // 1760
+        0.3,    // 2800
+        0.25,   // 3520
+        0.2,    // 4400
+        0.1,    // 5600
+        0.08,   // 7040 (quieter)
+        0.05,   // 8800 (quieter)
+        0.03,   // 11200 (very quiet)
+        0.02,   // 14080 (very quiet)
+        0.01    // 17600 (very quiet)
+      ];
+      const decays = [
+        2.8,    // 700
+        2.0,    // 1400 (faster decay)
+        2.5,    // 1760
+        2.0,    // 2800
+        1.5,    // 3520
+        1.0,    // 4400
+        0.7,    // 5600
+        0.5,    // 7040 (fast)
+        0.4,    // 8800 (very fast)
+        0.3,    // 11200 (very fast)
+        0.2,    // 14080 (very fast)
+        0.1     // 17600 (very fast)
+      ];
+      
+      for (let i = 0; i < count; i++) {
+        const t = base + (i * state.spacing) / 1000; // time for this specific chime
+
+        // Create a NEW master gain for EACH chime
+        const master = ctx.createGain();
+        master.gain.setValueAtTime(0.0001, t);
+        master.gain.exponentialRampToValueAtTime(state.volume, t + 0.01); // Very fast attack
+        master.gain.exponentialRampToValueAtTime(0.0001, t + 3.0); // Long decay
+        master.connect(ctx.destination);
+
+        freqs.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, t);
+          
+          const partialGain = state.volume * gains[idx];
+          const decay = decays[idx];
+          
+          g.gain.setValueAtTime(partialGain, t);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+          
+          osc.connect(g).connect(master);
+          osc.start(t);
+          osc.stop(t + 3.0);
+        });
+      }
+    } else {
+      // Use built-in WAV, MP3 URL, or Uploaded Sound
+      let url;
+      if (mode === 'wav') {
+        url = BUILT_IN_DING_WAV;
+      } else if (mode === 'mp3') {
+        url = state.mp3Url;
+      } else if (mode.startsWith('upload_')) {
+        const uploadIndex = parseInt(mode.split('_')[1], 10);
+        const sound = uploadedSounds[uploadIndex];
+        if (sound) {
+          url = sound.url;
+        }
+      }
+      
+      if (!url) {
+        setStatus('no-mp3-url');
+        return;
+      }
+      for(let i=0;i<count;i++) setTimeout(()=>{ try{ const a=new Audio(url); a.volume=state.volume; a.play().catch(()=>{}); }catch{} }, i*state.spacing);
+    }
+  };
 
   // Controls
   muteBtn.onclick = ()=>{ 
@@ -1366,8 +1463,7 @@
         setStatus('Please click "Enable Sound" first');
         return; 
       }
-      const spacing=parseInt(document.getElementById('bellSpacing').value)||100;
-          contBellInterval = setInterval(()=>playBell(1), spacing);
+      contBellInterval = setInterval(()=>playBell(1), 500);
       testContBellBtn.textContent = translations[currentLang].stopBell; // 'Stop'
     }
   };
@@ -1384,8 +1480,7 @@
         // Grace period over
         if (!contBellInterval && timerSnapshot.preset === 'Substantive') {
           // Start continuous bell only for Substantive
-          const spacing=parseInt(document.getElementById('bellSpacing').value)||100;
-          contBellInterval = setInterval(()=>playBell(1), spacing); // 500ms interval
+          contBellInterval = setInterval(()=>playBell(1), 500); // 500ms interval
           stopBellBtn.style.display = 'inline-flex';
         }
       }
