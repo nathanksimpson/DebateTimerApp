@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="en"> <!-- Set initial lang -->
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AP Debate Timer — HTML</title>
+<title data-lang-title="pageTitle">AP Debate Timer — HTML</title> <!-- Added data-lang-title -->
 <style>
   :root{
     --bg-green:#d1fae5; --fg-green:#064e3b; --bd-green:#34d399;
@@ -25,19 +25,24 @@
   .title{font-weight:700}
   .muted{color:var(--muted)}
   .clock{font-size:76px;font-weight:900;text-align:center; line-height: 1.1;} /* Added line-height */
-  .progress{height:12px;background:var(--track);border-radius:999px;position:relative;overflow:hidden}
-  .fill{position:absolute;left:0;top:0;bottom:0;background:var(--fill)}
-  .seg{outline:1px solid rgba(0,0,0,0.12);height:100%}
-  .grid{display:grid;gap:12px}
-  .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
-  .input{padding:8px 10px;border:1px solid var(--bd);border-radius:10px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
-  .label{display:flex;flex-direction:column;gap:6px}
-  .bar{height:8px;background:rgba(17,24,39,.12);border-radius:8px;overflow:hidden}
-  .bar>.bfill{height:100%;background:#111827}
-  .caps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:6px;color:#475569;font-size:12px}
-  .tests li{margin:2px 0}
-  .note{font-size:12px;color:#6b7280;margin-top:6px;text-align:center}
+  
+  /* Main Progress Bar */
+  .progress{
+    height:12px;
+    background:var(--track);
+    border-radius:999px;
+    position:relative;
+    overflow:hidden;
+    display: flex; /* <-- ADDED: This lays out the bell segments horizontally */
+    cursor: pointer; /* NEW: Add pointer cursor */
+  }
+  .fill{
+    position:absolute;
+    left:0;
+    top:0; /* Added */
+    bottom:0; /* Added */
+    background:var(--fill); /* Added */
+  } /* <-- THIS BRACE WAS MISSING */
 
   /* Speaker Progress Bar Styles */
   .speaker-progress-bar {
@@ -88,6 +93,44 @@
     cursor: not-allowed;
   }
 
+  /* New Help Modal Styles */
+  #helpModal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 100;
+  }
+  #helpModal .card {
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  #helpModal h2 {
+    margin: 0 0 12px 0;
+    font-size: 20px;
+  }
+  #helpModal p, #helpModal ul {
+    margin: 8px 0;
+    line-height: 1.6;
+  }
+  #helpModal li {
+    margin-bottom: 6px;
+  }
+  #helpModal .row {
+    justify-content: flex-end;
+    margin-top: 16px;
+  }
+
+  /* NEW: Add cursor to mini-timer bars */
+  .bar {
+    cursor: pointer;
+  }
+
   /* Responsive Media Queries */
   @media (max-width:800px){
     .grid-3, .grid-4 { grid-template-columns:repeat(2,minmax(0,1fr)) } /* 2 cols */
@@ -106,15 +149,42 @@
 </style>
 </head>
 <body>
+  <!-- 
+    NEW: Added a persistent, silent <audio> tag.
+    This is the key to unlocking audio on iOS, as per your suggestion.
+  -->
+  <audio id="silentUnlockAudio" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" loop muted playsinline></audio>
+
   <div id="app" class="wrap">
     <div class="container">
       <header>
-        <h1>Debate Timer</h1>
+        <h1><span data-lang="appTitle">Debate Timer</span></h1>
         <div class="row">
-          <button id="settingsBtn" class="btn">Toggle Settings</button> <!-- New Settings Button -->
-          <button id="muteBtn" class="btn">Sound</button>
-          <button id="enableBtn" class="btn">Enable Sound</button>
-          <button id="testsBtn" class="btn">Tests</button>
+          <!-- New Help and Lang buttons -->
+          <button id="helpBtn" class="btn" data-lang="help">Help</button>
+          <button id="langToggleBtn" class="btn">한국어</button>
+          <button id="settingsBtn" class="btn" data-lang="toggleSettings">Toggle Settings</button> <!-- New Settings Button -->
+          
+          <!-- UPDATED Mute Button -->
+          <button id="muteBtn" class="btn"> <!-- data-lang="sound" removed -->
+            <!-- NEW: Speaker Icons -->
+            <svg id="muteIconOn" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 20px; height: 20px; stroke-width: 2; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round;">
+              <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+            <svg id="muteIconOff" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 20px; height: 20px; stroke-width: 2; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; display: none;">
+              <path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"></path>
+            </svg>
+            <!-- Text "Sound" removed -->
+          </button>
+          
+          <button id="enableBtn" class="btn" data-lang="enableSound">Initialize Sound</button>
+          <button id="testsBtn" class="btn" data-lang="tests">Tests</button>
+          
+          <!-- NEW: Moved Volume Slider Here -->
+          <label class="label" style="flex-direction: row; align-items: center; gap: 8px; margin-left: 8px;">
+            <span data-lang="volume" style="font-weight: 600;">Volume</span>
+            <input id="volumeInput" type="range" min="0" max="1" step="0.05" value="0.5" style="width: 80px;" />
+          </label>
         </div>
       </header>
       
@@ -122,19 +192,19 @@
       <div class="card" id="settingsContainer" style="display:none">
         <!-- Profile Management -->
         <div class="card" style="margin-bottom: 16px;">
-          <div class="title" style="margin-bottom:8px">Profiles</div>
+          <div class="title" style="margin-bottom:8px" data-lang="profiles">Profiles</div>
           <div class="grid grid-4" style="align-items:flex-end;">
-            <label class="label">Load Profile
+            <label class="label"><span data-lang="loadProfile">Load Profile</span>
               <select id="profileSelect" class="input"></select>
             </label>
-            <button id="loadProfileBtn" class="btn">Load</button>
-            <button id="saveProfileBtn" class="btn">Save Current</button>
-            <button id="deleteProfileBtn" class="btn" style="background-color: var(--bg-red); color: var(--fg-red);">Delete Selected</button>
+            <button id="loadProfileBtn" class="btn" data-lang="load">Load</button>
+            <button id="saveProfileBtn" class="btn" data-lang="saveCurrent">Save Current</button>
+            <button id="deleteProfileBtn" class="btn" style="background-color: var(--bg-red); color: var(--fg-red);" data-lang="deleteSelected">Delete Selected</button>
           </div>
           <div class="row" style="margin-top: 12px;">
-            <button id="exportProfilesBtn" class="btn">Export All</button>
+            <button id="exportProfilesBtn" class="btn" data-lang="exportAll">Export All</button>
             <label class="btn">
-              Import
+              <span data-lang="import">Import</span>
               <input id="importProfilesInput" type="file" accept=".json" style="display:none" />
             </label>
           </div>
@@ -142,54 +212,52 @@
 
         <!-- Timer Settings -->
         <div class="card">
-          <div class="title" style="margin-bottom:8px">Timer Settings</div>
+          <div class="title" style="margin-bottom:8px" data-lang="timerSettings">Timer Settings</div>
           <div class="grid grid-3">
-            <label class="label">Main (m:ss)
+            <label class="label"><span data-lang="mainTime">Main (m:ss)</span>
               <input id="mainInput" class="input" value="3:00" />
             </label>
-            <label class="label">1st Bell from start (m:ss)
+            <label class="label"><span data-lang="firstBell">1st Bell from start (m:ss)</span>
               <input id="firstInput" class="input" value="1:00" />
             </label>
-            <label class="label">2nd Bell from start (m:ss)
+            <label class="label"><span data-lang="secondBell">2nd Bell from start (m:ss)</span>
               <input id="secondInput" class="input" value="2:00" />
             </label>
-            <label class="label">Yellow at remaining (m:ss)
+            <label class="label"><span data-lang="yellowTime">Yellow at remaining (m:ss)</span>
               <input id="yellowInput" class="input" value="1:00" />
             </label>
-            <label class="label">Red at remaining (m:ss)
+            <label class="label"><span data-lang="redTime">Red at remaining (m:ss)</span>
               <input id="redInput" class="input" value="0:30" />
             </label>
-            <label class="label">Grace Period (m:ss)
+            <label class="label"><span data-lang="gracePeriod">Grace Period (m:ss)</span>
               <input id="graceInput" class="input" value="0:30" />
             </label>
             
             <!-- Quick Timer Inputs -->
-            <label class="label">Prep Time (m:ss)
+            <label class="label"><span data-lang="prepTime">Prep Time (m:ss)</span>
               <input id="prepInput" class="input" value="20:00" />
             </label>
-            <label class="label">Cross-Ex / Shared (m:ss)
+            <label class="label"><span data-lang="cexTime">Cross-Ex / Shared (m:ss)</span>
               <input id="cexInput" class="input" value="1:00" />
             </label>
-            <label class="label">Rebuttal / Reply (m:ss)
+            <label class="label"><span data-lang="rebTime">Rebuttal / Reply (m:ss)</span>
               <input id="rebInput" class="input" value="3:00" />
             </label>
             
             <!-- Audio Settings -->
-            <label class="label">Bell spacing (ms)
+            <label class="label"><span data-lang="bellSpacing">Bell spacing (ms)</span>
               <input id="spaceInput" class="input" value="100" />
             </label>
-            <label class="label">Bell mode
+            <label class="label"><span data-lang="bellMode">Bell mode</span>
               <select id="modeSel" class="input">
                 <!-- Options will be populated by JS -->
               </select>
             </label>
-            <label class="label">Volume (0-1)
-              <input id="volumeInput" type="range" min="0" max="1" step="0.05" value="0.5" />
-            </label>
-            <label class="label">MP3 URL
+            <!-- MOVED: Volume slider was here -->
+            <label class="label"><span data-lang="mp3Url">MP3 URL</span>
               <input id="mp3Url" class="input" placeholder="https://example.com/bell.mp3" />
             </label>
-            <label class="label">Upload Sound(s)
+            <label class="label"><span data-lang="uploadSounds">Upload Sound(s)</span>
               <input id="mp3File" type="file" accept="audio/*" multiple /> <!-- Added multiple -->
             </label>
           </div>
@@ -198,32 +266,32 @@
 
       <!-- Speaker Progress -->
       <div class="card">
-        <div class="title" style="margin-bottom:8px">Speaker Progress</div>
+        <div class="title" style="margin-bottom:8px" data-lang="speakerProgress">Speaker Progress</div>
         <div class="speaker-progress-bar" id="speakerProgress">
           <!-- Speakers will be generated by JS -->
         </div>
         <div class="row" style="justify-content:space-between;margin-top:8px">
           <div>
-            <button id="prevSpeakerBtn" class="btn">Previous</button>
-            <button id="nextSpeakerBtn" class="btn">Next</button>
+            <button id="prevSpeakerBtn" class="btn" data-lang="previous">Previous</button>
+            <button id="nextSpeakerBtn" class="btn" data-lang="next">Next</button>
           </div>
           <!-- Prep timer is part of this card -->
           <div id="prepTimerContainer" class="row">
             <!-- Prep input is now in settings -->
             <div class="clock" id="prepClock" style="font-size:20px;font-weight:700;padding:0 8px">20:00</div>
-            <button id="prepStart" class="btn">Start</button>
-            <button id="prepReset" class="btn">Reset</button>
+            <button id="prepStart" class="btn" data-lang="start">Start</button>
+            <button id="prepReset" class="btn" data-lang="reset">Reset</button>
           </div>
-          <button id="resetOrderBtn" class="btn">Reset Order</button>
+          <button id="resetOrderBtn" class="btn" data-lang="resetOrder">Reset Order</button>
         </div>
         <div class="bar" style="margin-top:8px"><div class="bfill" id="prepFill" style="width:0%"></div></div>
-        <div class="note">Click to select, Double-click to toggle, Drag to reorder.</div>
+        <div class="note" data-lang="speakerNote">Click to select, Double-click to toggle, Drag to reorder.</div>
       </div>
 
       <!-- Main Timer Card -->
       <div class="card" id="mainSpeechCard">
         <div class="row" style="justify-content:space-between">
-          <div class="title" id="modeLabel">Substantive Speech</div>
+          <div class="title" id="modeLabel" data-lang="substantiveSpeech">Substantive Speech</div>
           <div class="muted" id="meta"></div>
         </div>
         <div class="clock" id="clock">3:00</div>
@@ -239,38 +307,38 @@
           <div id="capC">2nd → Final: -</div>
         </div>
         <div class="row" style="justify-content:center;margin-top:10px">
-          <button id="startBtn" class="btn">Start</button>
-          <button id="resetBtn" class="btn">Reset</button>
-          <button id="singleBtn" class="btn">Single</button>
-          <button id="doubleBtn" class="btn">Double</button>
-          <button id="stopBellBtn" class="btn" style="display:none">Stop Bell</button>
-          <button id="testContBellBtn" class="btn">Test/Stop Cont.</button>
+          <button id="startBtn" class="btn" data-lang="start">Start</button>
+          <button id="resetBtn" class="btn" data-lang="reset">Reset</button>
+          <button id="singleBtn" class="btn" data-lang="single">Single</button>
+          <button id="doubleBtn" class="btn" data-lang="double">Double</button>
+          <button id="stopBellBtn" class="btn" style="display:none" data-lang="stopBell">Stop Bell</button>
+          <button id="testContBellBtn" class="btn" data-lang="testStopCont">Test/Stop Cont.</button>
         </div>
-        <div class="note" id="statusNote">Status: idle</div>
+        <div class="note" id="statusNote"><span data-lang="statusPrefix">Status:</span> <span data-lang-status="idle">idle</span></div>
       </div>
 
       <div class="grid grid-3">
         <!-- Rebuttal Prep Timer -> Renamed to Cross-Ex -->
         <div class="card" id="crossExCard">
-          <div class="title">Cross-Ex / Shared</div>
+          <div class="title" data-lang="cexTitle">Cross-Ex / Shared</div>
           <!-- Input now in settings -->
           <div class="clock" id="cexClock">1:00</div>
           <div class="bar"><div class="bfill" id="cexFill" style="width:0%"></div></div>
           <div class="row" style="justify-content:center;margin-top:8px">
-            <button id="cexStart" class="btn">Start</button>
-            <button id="cexReset" class="btn">Reset</button>
+            <button id="cexStart" class="btn" data-lang="start">Start</button>
+            <button id="cexReset" class="btn" data-lang="reset">Reset</button>
           </div>
         </div>
         
         <!-- Reply Timer Card -> Renamed to Rebuttal -->
         <div class="card" id="rebuttalCard">
-          <div class="title" id="rebuttalLabel">Rebuttal / Reply (3:00)</div>
+          <div class="title" id="rebuttalLabel" data-lang="rebTitle">Rebuttal / Reply (3:00)</div>
           <!-- Input now in settings -->
           <div class="clock" id="rebClock">3:00</div>
           <div class="bar"><div class="bfill" id="rebFill" style="width:0%"></div></div>
           <div class="row" style="justify-content:center;margin-top:8px">
-            <button id="rebStart" class="btn">Start</button>
-            <button id="rebReset" class="btn">Reset</button>
+            <button id="rebStart" class="btn" data-lang="start">Start</button>
+            <button id="rebReset" class="btn" data-lang="reset">Reset</button>
           </div>
         </div>
       </div>
@@ -278,22 +346,430 @@
       <!-- Settings card moved into collapsible section -->
 
       <div class="card" id="tests" style="display:none">
-        <div class="title" style="margin-bottom:6px">Tests</div>
+        <div class="title" style="margin-bottom:6px" data-lang="tests">Tests</div>
         <ul class="tests" id="testList"></ul>
-        <div class="note">Note: Blob URLs from uploads are temporary. Use a public URL to persist across refresh.</div>
+        <div class="note" data-lang="testNote">Note: Blob URLs from uploads are temporary. Use a public URL to persist across refresh.</div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- New Help Modal -->
+  <div id="helpModal" style="display:none">
+    <div class="card">
+      <h2 data-lang="helpTitle">Help</h2>
+      <p data-lang="helpIntro">This is a flexible timer for various debate formats.</p>
+      
+      <h3 data-lang="helpProfilesTitle" style="margin-top:16px;margin-bottom:8px;">Profiles</h3>
+      <ul data-lang-list="helpProfilesList">
+        <li>Load a built-in profile (like Simson, AP, Policy) or save your own.</li>
+        <li>"Save Current" saves all timer settings and the current speaker order as a new custom profile.</li>
+      </ul>
+
+      <h3 data-lang="helpSpeakersTitle" style="margin-top:16px;margin-bottom:8px;">Speaker Progress</h3>
+      <ul data-lang-list="helpSpeakersList">
+        <li>Click a speaker to select them. This will show the correct timer card (Main, Prep, etc.).</li>
+        <li>Double-click a speaker to toggle them active/inactive. Inactive speakers are skipped by "Next"/"Previous".</li>
+        <li>Drag and drop (or tap and drag on mobile) to reorder speakers.</li>
+        <li>"Reset Order" restores the profile's default speaker order.</li>
+      </ul>
+
+      <h3 data-lang="helpTimersTitle" style="margin-top:16px;margin-bottom:8px;">Timers</h3>
+      <ul data-lang-list="helpTimersList">
+        <li>The main timer card (e.g., "Substantive Speech") changes based on the selected speaker.</li>
+        <li>"Substantive" speeches (from "Main" time) have 1st/2nd bells and grace periods.</li>
+        <li>"Reply" speeches (from "Rebuttal" time) are simpler timers with a final double bell.</li>
+        <li>"Cross-Ex" and "Prep" timers are separate mini-timers.</li>
+      </ul>
+
+      <div class="row">
+        <button id="closeHelpBtn" class="btn" data-lang="close">Close</button>
+      </div>
     </div>
   </div>
 
 <script>
 (function(){
   // ===== Utilities =====
-  const $ = sel => document.querySelector(sel);
-  const $$ = sel => document.querySelectorAll(sel);
-  const fmt = ms => { const t = Math.ceil(ms/1000); const m = Math.floor(t/60); const s = t%60; return `${m}:${String(s).padStart(2,'0')}`; };
-  const allDigitsFixed = t => !!t && /^[0-9]+$/.test(t);
+  const $ = (s, o = document) => o.querySelector(s);
+  const $$ = (s, o = document) => o.querySelectorAll(s);
+  
+  const allDigitsFixed = t => !!t && /^[0-D]+$/.test(t);
   const parseMin = input => { const t = (input||'').trim(); if (allDigitsFixed(t)) return parseInt(t,10)*60000; const p=t.split(':'); const m=+p[0]||0,s=+p[1]||0; return (m*60+s)*1000 };
+
+  // ADDED: Missing format function
+  const fmt = (ms)=>{ 
+    if(ms===null || isNaN(ms)) return '-:--'; 
+    const t = Math.abs(Math.round(ms/1000)); 
+    const m = Math.floor(t/60); 
+    const s = t%60; 
+    return m+':'+(s<10?'0':'')+s; 
+  };
+
+  // ===== Language =====
+  let currentLang = 'en';
+  const translations = {
+    en: {
+      // Header
+      pageTitle: "AP Debate Timer — HTML",
+      appTitle: "Debate Timer",
+      help: "Help",
+      toggleSettings: "Toggle Settings",
+      sound: "Sound",
+      muted: "Muted",
+      enableSound: "Initialize Sound", // CHANGED
+      tests: "Tests",
+      // Settings - Profiles
+      profiles: "Profiles",
+      loadProfile: "Load Profile",
+      load: "Load",
+      saveCurrent: "Save Current",
+      deleteSelected: "Delete Selected",
+      exportAll: "Export All",
+      import: "Import",
+      profilePrompt: "Enter profile name:",
+      cannotDeleteDefault: "Cannot delete a default profile.",
+      cannotOverwriteDefault: "Cannot overwrite a default profile.",
+      // Settings - Timers
+      timerSettings: "Timer Settings",
+      mainTime: "Main (m:ss)",
+      firstBell: "1st Bell from start (m:ss)",
+      secondBell: "2nd Bell from start (m:ss)",
+      yellowTime: "Yellow at remaining (m:ss)",
+      redTime: "Red at remaining (m:ss)",
+      gracePeriod: "Grace Period (m:ss)",
+      prepTime: "Prep Time (m:ss)",
+      cexTime: "Cross-Ex / Shared (m:ss)",
+      rebTime: "Rebuttal / Reply (m:ss)",
+      // Settings - Audio
+      bellSpacing: "Bell spacing (ms)",
+      bellMode: "Bell mode",
+      volume: "Volume", // CHANGED
+      mp3Url: "MP3 URL",
+      uploadSounds: "Upload Sound(s)",
+      // Speaker Progress
+      speakerProgress: "Speaker Progress",
+      previous: "Previous",
+      next: "Next",
+      resetOrder: "Reset Order",
+      speakerNote: "Click to select, Double-click to toggle, Drag to reorder.",
+      speakerBoxTitle: " (Click to select, Double-click to toggle, Drag to reorder)",
+      // Main Timer
+      substantiveSpeech: "Substantive Speech",
+      replySpeech: "Reply Speech",
+      start: "Start",
+      pause: "Pause",
+      reset: "Reset",
+      single: "Single",
+      double: "Double",
+      stopBell: "Stop Bell",
+      testStopCont: "Test/Stop Cont.",
+      statusPrefix: "Status:",
+      gracePeriodLabel: "GRACE PERIOD:",
+      // Mini Timers
+      cexTitle: "Cross-Ex / Shared",
+      rebTitle: "Rebuttal / Reply",
+      // Tests
+      testNote: "Note: Blob URLs from uploads are temporary. Use a public URL to persist across refresh.",
+      // Help Modal
+      helpTitle: "Help",
+      helpIntro: "This is a flexible timer for various debate formats.",
+      helpProfilesTitle: "Profiles",
+      helpProfilesList: [
+        "Load a built-in profile (like Simson, AP, Policy) or save your own.",
+        '"Save Current" saves all timer settings and the current speaker order as a new custom profile.',
+      ],
+      helpSpeakersTitle: "Speaker Progress",
+      helpSpeakersList: [
+        "Click a speaker to select them. This will show the correct timer card (Main, Prep, etc.).",
+        'Double-click a speaker to toggle them active/inactive. Inactive speakers are skipped by "Next"/"Previous".',
+        "Drag and drop (or tap and drag on mobile) to reorder speakers.",
+        '"Reset Order" restores the profile\'s default speaker order.',
+      ],
+      helpTimersTitle: "Timers",
+      helpTimersList: [
+        'The main timer card (e.g., "Substantive Speech") changes based on the selected speaker.',
+        '"Substantive" speeches (from "Main" time) have 1st/2nd bells and grace periods.',
+        '"Reply" speeches (from "Rebuttal" time) are simpler timers with a final double bell.',
+        '"Cross-Ex" and "Prep" timers are separate mini-timers.',
+        '"Initialize Sound" must be clicked once to allow the browser to play audio. This is a security requirement for most browsers, especially on mobile.' // ADDED
+      ],
+      close: "Close",
+      // Audio / Status
+      idle: "idle",
+      'resume-fail': "resume-fail",
+      'synth-unlock-err': "synth-unlock-err",
+      'audio-play-fail': "audio-play-fail",
+      'audio-unlock-err': "audio-unlock-err",
+      'Sound ready.': "Sound ready.",
+      'Synth ready (MP3/WAV may fail)': "Synth ready (MP3/WAV may fail)",
+      'MP3/WAV ready (Synth may fail)': "MP3/WAV ready (Synth may fail)",
+      'Sound failed. Please refresh.': "Sound failed. Please refresh.",
+      'no-mp3-url': "no-mp3-url",
+      'Please click "Enable Sound" first': 'Please click "Enable Sound" first',
+      // Sound Dropdown
+      standardSounds: "Standard Sounds",
+      uploadedSounds: "Uploaded Sounds",
+      synthBell: "Synth Bell",
+      builtInWAV: "Built-in WAV",
+      mp3URLOpt: "MP3 URL",
+      // Profile Dropdown
+      builtInProfiles: "Built-in Profiles",
+      customProfiles: "Custom Profiles",
+      // Speaker Role Translations
+      "Prep": "Prep",
+      "Prime Minister": "Prime Minister",
+      "LO Prep": "LO Prep",
+      "Leader of Opp": "Leader of Opp",
+      "DPM Prep": "DPM Prep",
+      "Deputy PM": "Deputy PM",
+      "DLO Prep": "DLO Prep",
+      "Deputy LO": "Deputy LO",
+      "PW Prep": "PW Prep",
+      "Prop Whip": "Prop Whip",
+      "OW Prep": "OW Prep",
+      "Opp Whip": "Opp Whip",
+      "Prop Reply Prep": "Prop Reply Prep",
+      "Prop Reply": "Prop Reply",
+      "Opp Reply Prep": "Opp Reply Prep",
+      "Opp Reply": "Opp Reply",
+      "Gov Whip": "Gov Whip",
+      "Gov Reply": "Gov Reply",
+      "Member of Gov": "Member of Gov",
+      "Member of Opp": "Member of Opp",
+      "1st Aff Const": "1st Aff Const",
+      "Cross-Ex (2N)": "Cross-Ex (2N)",
+      "1st Neg Const": "1st Neg Const",
+      "Cross-Ex (1A)": "Cross-Ex (1A)",
+      "2nd Aff Const": "2nd Aff Const",
+      "Cross-Ex (1N)": "Cross-Ex (1N)",
+      "2nd Neg Const": "2nd Neg Const",
+      "Cross-Ex (2A)": "Cross-Ex (2A)",
+      "1st Neg Rebuttal": "1st Neg Rebuttal",
+      "1st Aff Rebuttal": "1st Aff Rebuttal",
+      "2nd Neg Rebuttal": "2nd Neg Rebuttal",
+      "2nd Aff Rebuttal": "2nd Aff Rebuttal",
+      "Aff Constructive": "Aff Constructive",
+      "Cross-Ex": "Cross-Ex",
+      "Neg Constructive": "Neg Constructive",
+      "Neg Rebuttal": "Neg Rebuttal",
+      "Speaker 1 (Pro)": "Speaker 1 (Pro)",
+      "Speaker 2 (Con)": "Speaker 2 (Con)",
+      "Crossfire": "Crossfire",
+      "Speaker 3 (Pro)": "Speaker 3 (Pro)",
+      "Speaker 4 (Con)": "Speaker 4 (Con)",
+      "Summary 1 (Pro)": "Summary 1 (Pro)",
+      "Summary 2 (Con)": "Summary 2 (Con)",
+      "Grand Crossfire": "Grand Crossfire",
+      "Final Focus 1 (Pro)": "Final Focus 1 (Pro)",
+      "Final Focus 2 (Con)": "Final Focus 2 (Con)",
+    },
+    ko: {
+      // Header
+      pageTitle: "AP 토론 타이머 — HTML",
+      appTitle: "토론 타이머",
+      help: "도움말",
+      toggleSettings: "설정 보기/숨기기",
+      sound: "소리",
+      muted: "음소거됨",
+      enableSound: "소리 초기화", // CHANGED
+      tests: "테스트",
+      // Settings - Profiles
+      profiles: "프로필",
+      loadProfile: "프로필 불러오기",
+      load: "불러오기",
+      saveCurrent: "현재 설정 저장",
+      deleteSelected: "선택 항목 삭제",
+      exportAll: "모두 내보내기",
+      import: "가져오기",
+      profilePrompt: "프로필 이름을 입력하세요:",
+      cannotDeleteDefault: "기본 프로필은 삭제할 수 없습니다.",
+      cannotOverwriteDefault: "기본 프로필은 덮어쓸 수 없습니다.",
+      // Settings - Timers
+      timerSettings: "타이머 설정",
+      mainTime: "주요 발언 (m:ss)",
+      firstBell: "첫 번째 벨 (m:ss)",
+      secondBell: "두 번째 벨 (m:ss)",
+      yellowTime: "경고 (남은 시간 m:ss)",
+      redTime: "위험 (남은 시간 m:ss)",
+      gracePeriod: "유예 시간 (m:ss)",
+      prepTime: "준비 시간 (m:ss)",
+      cexTime: "교차조사 / 공유 시간 (m:ss)",
+      rebTime: "반박 / 요약 (m:ss)",
+      // Settings - Audio
+      bellSpacing: "벨 간격 (ms)",
+      bellMode: "벨 모드",
+      volume: "볼륨", // CHANGED
+      mp3Url: "MP3 URL",
+      uploadSounds: "사운드 업로드",
+      // Speaker Progress
+      speakerProgress: "발언자 순서",
+      previous: "이전",
+      next: "다음",
+      resetOrder: "순서 초기화",
+      speakerNote: "클릭: 선택, 더블클릭: 활성/비활성, 드래그: 순서 변경.",
+      speakerBoxTitle: " (클릭: 선택, 더블클릭: 활성/비활성, 드래그: 순서 변경)",
+      // Main Timer
+      substantiveSpeech: "주요 발언",
+      replySpeech: "요약 발언",
+      start: "시작",
+      pause: "일시정지",
+      reset: "초기화",
+      single: "벨 1회",
+      double: "벨 2회",
+      stopBell: "벨 중지",
+      testStopCont: "연속 벨 테스트/중지",
+      statusPrefix: "상태:",
+      gracePeriodLabel: "유예 시간:",
+      // Mini Timers
+      cexTitle: "교차조사 / 공유 시간",
+      rebTitle: "반박 / 요약",
+      // Tests
+      testNote: "참고: 업로드된 Blob URL은 임시적이므로, 새로고침 후에도 유지하려면 공개 URL을 사용하세요.",
+      // Help Modal
+      helpTitle: "도움말",
+      helpIntro: "이것은 다양한 토론 형식을 위한 유연한 타이머입니다.",
+      helpProfilesTitle: "프로필",
+      helpProfilesList: [
+        "Simson, AP, Policy 등 내장된 프로필을 불러오거나 자신만의 프로필을 저장하세요.",
+        '"현재 설정 저장"은 모든 타이머 설정과 현재 발언자 순서를 새 사용자 지정 프로필로 저장합니다.',
+      ],
+      helpSpeakersTitle: "발언자 순서",
+      helpSpeakersList: [
+        "발언자를 클릭하여 선택합니다. 그러면 (주요 발언, 준비 시간 등) 올바른 타이머 카드가 표시됩니다.",
+        '발언자를 더블클릭하여 활성/비활성 상태로 전환합니다. 비활성 발언자는 "다음"/"이전" 버튼 클릭 시 건너뜁니다.',
+        "발언자를 드래그 앤 드롭(모바일에서는 탭 앤 드래그)하여 순서를 변경할 수 있습니다.",
+        '"순서 초기화"는 프로필의 기본 발언자 순서로 복원합니다.',
+      ],
+      helpTimersTitle: "타이머",
+      helpTimersList: [
+        '메인 타이머 카드(예: "주요 발언")는 선택된 발언자에 따라 변경됩니다.',
+        '"주요 발언" ("Main" 시간)은 1번째/2번째 벨 및 유예 시간이 있습니다.',
+        '"요약 발언" ("Rebuttal" 시간)은 마지막에 더블 벨이 울리는 더 간단한 타이머입니다.',
+        '"교차조사" 및 "준비 시간" 타이머는 별도의 미니 타이머입니다.',
+        '브라우저에서 소리를 재생하려면 "소리 초기화" 버튼을 한 번 클릭해야 합니다. 이는 대부분의 최신 브라우저(특히 모바일)의 보안 요구 사항입니다.' // ADDED
+      ],
+      close: "닫기",
+      // Audio / Status
+      idle: "대기 중",
+      'resume-fail': "오디오 재개 실패",
+      'synth-unlock-err': "신디사이저 오디오 잠금 해제 오류",
+      'audio-play-fail': "오디오 재생 실패",
+      'audio-unlock-err': "오디오 태그 잠금 해제 오류",
+      'Sound ready.': "소리 준비 완료.",
+      'Synth ready (MP3/WAV may fail)': "신디사이저 준비됨 (MP3/WAV 실패 가능)",
+      'MP3/WAV ready (Synth may fail)': "MP3/WAV 준비됨 (신디사이저 실패 가능)",
+      'Sound failed. Please refresh.': "소리 활성화 실패. 새로고침하세요.",
+      'no-mp3-url': "MP3 URL이 설정되지 않았습니다",
+      'Please click "Enable Sound" first': '"소리 활성화" 버튼을 먼저 클릭하세요',
+      // Sound Dropdown
+      standardSounds: "기본 사운드",
+      uploadedSounds: "업로드된 사운드",
+      synthBell: "신디사이저 벨",
+      builtInWAV: "내장 WAV",
+      mp3URLOpt: "MP3 URL",
+      // Profile Dropdown
+      builtInProfiles: "기본 프로필",
+      customProfiles: "사용자 지정 프로필",
+      // Speaker Role Translations
+      "Prep": "준비 시간",
+      "Prime Minister": "총리",
+      "LO Prep": "야당 대표 준비",
+      "Leader of Opp": "야당 대표",
+      "DPM Prep": "부총리 준비",
+      "Deputy PM": "부총리",
+      "DLO Prep": "야당 부대표 준비",
+      "Deputy LO": "야당 부대표",
+      "PW Prep": "여당 원내총무 준비",
+      "Prop Whip": "여당 원내총무",
+      "OW Prep": "야당 원내총무 준비",
+      "Opp Whip": "야당 원내총무",
+      "Prop Reply Prep": "여당 요약 준비",
+      "Prop Reply": "여당 요약",
+      "Opp Reply Prep": "야당 요약 준비",
+      "Opp Reply": "야당 요약",
+      "Gov Whip": "여당 원내총무",
+      "Gov Reply": "여당 요약",
+      "Member of Gov": "여당 의원",
+      "Member of Opp": "야당 의원",
+      "1st Aff Const": "첫 번째 찬성측 입론",
+      "Cross-Ex (2N)": "교차조사 (2N)",
+      "1st Neg Const": "첫 번째 반대측 입론",
+      "Cross-Ex (1A)": "교차조사 (1A)",
+      "2nd Aff Const": "두 번째 찬성측 입론",
+      "Cross-Ex (1N)": "교차조사 (1N)",
+      "2nd Neg Const": "두 번째 반대측 입론",
+      "Cross-Ex (2A)": "교차조사 (2A)",
+      "1st Neg Rebuttal": "첫 번째 반대측 반박",
+      "1st Aff Rebuttal": "첫 번째 찬성측 반박",
+      "2nd Neg Rebuttal": "두 번째 반대측 반박",
+      "2nd Aff Rebuttal": "두 번째 찬성측 반박",
+      "Aff Constructive": "찬성측 입론",
+      "Cross-Ex": "교차조사",
+      "Neg Constructive": "반대측 입론",
+      "Neg Rebuttal": "반대측 반박",
+      "Speaker 1 (Pro)": "발언자 1 (찬성)",
+      "Speaker 2 (Con)": "발언자 2 (반대)",
+      "Crossfire": "크로스파이어",
+      "Speaker 3 (Pro)": "발언자 3 (찬성)",
+      "Speaker 4 (Con)": "발언자 4 (반대)",
+      "Summary 1 (Pro)": "요약 1 (찬성)",
+      "Summary 2 (Con)": "요약 2 (반대)",
+      "Grand Crossfire": "그랜드 크로스파이어",
+      "Final Focus 1 (Pro)": "최종 초점 1 (찬성)",
+      "Final Focus 2 (Con)": "최종 초점 2 (반대)",
+    }
+  };
+
+  const updateLanguage = (lang) => {
+    currentLang = lang;
+    document.documentElement.lang = lang;
+    localStorage.setItem('debateTimerLang', lang);
+    
+    // Update lang toggle button text
+    langToggleBtn.textContent = lang === 'en' ? '한국어' : 'English';
+
+    const trans = translations[lang];
+    if (!trans) return;
+
+    // Update simple text content
+    $$('[data-lang]').forEach(el => {
+      const key = el.dataset.lang;
+      if (trans[key]) {
+        el.textContent = trans[key];
+      }
+    });
+    
+    // Update title
+    document.title = trans.pageTitle;
+
+    // Update list content (for help modal)
+    $$('[data-lang-list]').forEach(ul => {
+      const key = ul.dataset.langList;
+      if (trans[key] && Array.isArray(trans[key])) {
+        ul.innerHTML = '';
+        trans[key].forEach(text => {
+          const li = document.createElement('li');
+          li.textContent = text;
+          ul.appendChild(li);
+        });
+      }
+    });
+    
+    // Update special cases
+    // Re-populate dropdowns to get translated text
+    populateModeSelect();
+    loadProfilesToDropdown();
+    
+    // Re-render speaker titles
+    initSpeakerProgress();
+    setActiveSpeaker(activeSpeakerIndex, true); // Force re-render of active speaker
+    
+    // Re-render timer labels and status
+    syncInputsToState(); // This will update labels like rebuttalLabel
+    setStatus($('#statusNote').dataset.currentStatus || 'idle');
+    render(true); // Force render with new labels
+  };
 
   // ===== Speaker Data =====
   const createSimsonSpeakerOrder = () => [
@@ -309,8 +785,10 @@
     { role: "Prop Whip", initials: "PW", team: "Prop", timers: ["main"], active: true },
     { role: "OW Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true },
     { role: "Opp Whip", initials: "OW", team: "Opp", timers: ["main"], active: true },
-    { role: "Opp Reply", initials: "OR", team: "Opp", timers: ["rebuttal"], active: true },
-    { role: "Prop Reply", initials: "PR", team: "Prop", timers: ["rebuttal"], active: true },
+    { role: "Prop Reply Prep", initials: "R", team: "Prop", timers: ["cross-ex"], active: true }, // New
+    { role: "Prop Reply", initials: "PR", team: "Prop", timers: ["rebuttal"], active: true }, // Swapped
+    { role: "Opp Reply Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true }, // New
+    { role: "Opp Reply", initials: "OR", team: "Opp", timers: ["rebuttal"], active: true }, // Swapped
   ];
   
   const createAPSpeakerOrder = () => [
@@ -384,6 +862,7 @@
   let speakerOrder = createSimsonSpeakerOrder(); // Make it mutable
   let activeSpeakerIndex = 0;
   let draggingIndex = null;
+  let touchOverElement = null; // For mobile drag/drop
 
   // ===== State =====
   const createDefaultState = (presetName) => {
@@ -541,6 +1020,25 @@
   const prevSpeakerBtn = $('#prevSpeakerBtn');
   const resetOrderBtn = $('#resetOrderBtn');
 
+  // New Help Modal UI
+  const helpBtn = $('#helpBtn');
+  const helpModal = $('#helpModal');
+  /* const helpBtn = $('#helpBtn'); */ // DELETED - Duplicate
+  const closeHelpBtn = $('#closeHelpBtn');
+  
+  const silentAudio = $('#silentUnlockAudio'); // NEW: Get the silent audio element
+
+  // NEW: Selectors for Mute Icons // CHANGED - Was an HTML comment
+  const muteIconOn = $('#muteIconOn');
+  const muteIconOff = $('#muteIconOff');
+
+  // New Lang Toggle UI
+  const langToggleBtn = $('#langToggleBtn');
+  langToggleBtn.onclick = () => {
+    const newLang = currentLang === 'en' ? 'ko' : 'en';
+    updateLanguage(newLang);
+  };
+
   function initSpeakerProgress() {
     speakerProgress.innerHTML = '';
     speakerOrder.forEach((speaker, index) => {
@@ -555,7 +1053,12 @@
       
       const initials = speaker.initials;
       box.textContent = initials;
-      box.title = speaker.role + " (Click to select, Double-click to toggle, Drag to reorder)";
+      
+      // Localize title
+      const trans = translations[currentLang];
+      const roleName = trans[speaker.role] || speaker.role; // Fallback to key
+      box.title = roleName + trans.speakerBoxTitle;
+      box.dataset.langRole = speaker.role; // Store key for updates
       box.dataset.index = index;
       
       // Click to select
@@ -610,6 +1113,83 @@
         initSpeakerProgress(); // Redraw all
         setActiveSpeaker(activeSpeakerIndex, true); // Re-apply active class
       });
+
+      // ===== Touch Events for Mobile Reordering =====
+      box.addEventListener('touchstart', (e) => {
+        // e.preventDefault(); // This can prevent 'click' events
+        draggingIndex = index;
+        box.classList.add('dragging');
+        // We don't prevent default here to allow clicks to register
+      }, { passive: true }); // Use passive: true to allow default click/scroll behavior
+
+      box.addEventListener('touchmove', (e) => {
+        if (draggingIndex === null) return;
+        
+        // Prevent scrolling *while* dragging
+        e.preventDefault(); 
+        
+        const touch = e.touches[0];
+        
+        // Hide the dragging element *briefly* to find what's underneath
+        const draggingBox = $$('.speaker-box')[draggingIndex];
+        if (draggingBox) draggingBox.style.display = 'none';
+        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (draggingBox) draggingBox.style.display = ''; // Show it again
+
+        if (!targetElement) return;
+
+        // Find the closest speaker-box
+        const targetBox = targetElement.closest('.speaker-box');
+
+        // Clear previous drag-over
+        if (touchOverElement && touchOverElement !== targetBox) {
+            touchOverElement.classList.remove('drag-over');
+        }
+
+        // Add drag-over to new target
+        if (targetBox && targetBox.dataset.index != draggingIndex) { // Use != for type coercion
+            targetBox.classList.add('drag-over');
+            touchOverElement = targetBox;
+        } else {
+            touchOverElement = null;
+        }
+      }, { passive: false }); // We must use passive: false because we call preventDefault()
+
+      box.addEventListener('touchend', (e) => {
+        if (draggingIndex === null) return;
+        
+        // Find the drop target
+        const dropIndex = touchOverElement ? parseInt(touchOverElement.dataset.index, 10) : null;
+
+        // Clean up classes *before* reordering
+        box.classList.remove('dragging');
+        if (touchOverElement) {
+            touchOverElement.classList.remove('drag-over');
+        }
+
+        if (dropIndex !== null && dropIndex !== draggingIndex) {
+            // Valid drop
+            const [draggedItem] = speakerOrder.splice(draggingIndex, 1);
+            speakerOrder.splice(dropIndex, 0, draggedItem);
+            
+            // Update active index
+            if (activeSpeakerIndex === draggingIndex) {
+              activeSpeakerIndex = dropIndex;
+            } else if (draggingIndex < activeSpeakerIndex && dropIndex >= activeSpeakerIndex) {
+              activeSpeakerIndex--;
+            } else if (draggingIndex > activeSpeakerIndex && dropIndex <= activeSpeakerIndex) {
+              activeSpeakerIndex++;
+            }
+            
+            initSpeakerProgress(); // Redraw all
+            setActiveSpeaker(activeSpeakerIndex, true); // Re-apply active class
+        }
+
+        // Reset state
+        draggingIndex = null;
+        touchOverElement = null;
+      });
+      // ===== End Touch Events =====
 
       speakerProgress.appendChild(box);
     });
@@ -697,24 +1277,78 @@
   let unlocked = false;
   let uploadedSounds = []; // { name: string, url: string }
 
-  const getOrCreateContext = async()=>{
-    if(state.muted) { setStatus('muted'); return null; }
-    const Ctx = window.AudioContext || window.webkitAudioContext; if(!Ctx){ setStatus('no-audiocontext'); return null; }
-    if(!audioCtx){ try{ audioCtx = new Ctx(); }catch{ setStatus('no-audiocontext'); return null; } }
-    if(audioCtx && audioCtx.state==='suspended'){ try{ await audioCtx.resume(); }catch{} }
-    return audioCtx;
+  // DELETING the getOrCreateContext and playSilent functions,
+  // as they will be inlined into the new 'unlock' function.
+
+  const setStatus = (s)=>{ 
+    const trans = translations[currentLang];
+    const statusText = trans[s] || s; // Translate status key
+    $('#statusNote').dataset.currentStatus = s; // Store key
+    const statusSpan = $('#statusNote').querySelector('[data-lang-status]');
+    if (statusSpan) {
+        statusSpan.textContent = statusText;
+    }
+    
+    const tip = (state.mode==='mp3' && !state.mp3Url ? ' · Tip: set a public MP3 URL or upload below' : '');
+    // We can't easily translate the tip, so we'll leave it
+    // statusNote.textContent = trans.statusPrefix + statusText + tip; 
   };
 
-  const playSilent = async()=>{ try{ const a=new Audio(SILENT_WAV); a.muted=true; await a.play(); a.pause(); a.currentTime=0; return true; }catch{ return false; } };
+  const unlock = ()=>{
+    // This function is now "bulletproof" and based on your suggestion.
+    // It will ALWAYS hide the button, even if audio fails.
+    
+    let synthUnlocked = false;
+    let audioTagUnlocked = false;
 
-  const setStatus = (s)=>{ statusNote.textContent = 'Status: '+s + (state.mode==='mp3' && !state.mp3Url ? ' · Tip: set a public MP3 URL or upload below' : ''); };
+    // 1. Try to unlock Web Audio (for Synth bell)
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) {
+        if (!audioCtx) {
+          audioCtx = new Ctx(); 
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          // Fire-and-forget resume.
+          audioCtx.resume().catch(()=>{ setStatus('resume-fail'); });
+        }
+        synthUnlocked = true;
+      }
+    } catch (e) {
+      setStatus('synth-unlock-err');
+    }
 
-  const unlock = async()=>{
-    const ctx = await getOrCreateContext();
-    const tagOk = await playSilent();
-    const ctxOk = !!ctx && ctx.state==='running';
-    if(ctxOk || tagOk){ unlocked=true; setStatus(state.mode==='mp3' && !state.mp3Url ? 'armed':'ready'); return true; }
-    setStatus('blocked'); return false;
+    // 2. Try to unlock <audio> tag (for WAV/MP3 bells)
+    //    This uses your suggested method of playing an *existing* element.
+    try {
+      const silentAudio = $('#silentUnlockAudio'); // Get the new element
+      if (silentAudio) {
+        const p = silentAudio.play(); // Play the existing element
+        if (p && p.catch) {
+          p.catch(() => { setStatus('audio-play-fail'); });
+        }
+        audioTagUnlocked = true;
+      }
+    } catch (e) {
+      setStatus('audio-unlock-err');
+    }
+
+    // 3. THIS IS THE CRITICAL PART
+    // This code will now run no matter what.
+    unlocked = true; 
+    enableBtn.style.display = 'none';
+    
+    if (synthUnlocked && audioTagUnlocked) {
+      setStatus('Sound ready.');
+    } else if (synthUnlocked) {
+      setStatus('Synth ready (MP3/WAV may fail)');
+    } else if (audioTagUnlocked) {
+      setStatus('MP3/WAV ready (Synth may fail)');
+    } else {
+      setStatus('Sound failed. Please refresh.');
+    }
+    
+    return true; // Return value doesn't matter, but good practice.
   };
 
   const playBell = async(count)=>{
@@ -789,7 +1423,8 @@
           osc.type = 'sine';
           osc.frequency.setValueAtTime(freq, t);
           
-          const partialGain = state.volume * gains[idx];
+          // const partialGain = state.volume * gains[idx]; // OLD (Bug)
+          const partialGain = gains[idx]; // FIX: Master gain already handles volume
           const decay = decays[idx];
           
           g.gain.setValueAtTime(partialGain, t);
@@ -819,14 +1454,48 @@
         setStatus('no-mp3-url');
         return;
       }
-      for(let i=0;i<count;i++) setTimeout(()=>{ try{ const a=new Audio(url); a.volume=state.volume; a.play().catch(()=>{}); }catch{} }, i*state.spacing);
+      
+      // OLD: for(let i=0;i<count;i++) setTimeout(()=>{ try{ const a=new Audio(url); a.volume=state.volume; a.play().catch(()=>{}); }catch{} }, i*state.spacing);
+      
+      // NEW: Re-use the unlocked <audio> element to play sequentially
+      // This is the required fix for iOS
+      let currentPlay = 0;
+      const playSequentially = () => {
+        if (currentPlay >= count) return;
+        
+        // Load the new sound source and play
+        silentAudio.src = url;
+        silentAudio.volume = state.volume;
+        silentAudio.currentTime = 0; // Rewind
+        silentAudio.muted = false; // Ensure it's not muted
+        
+        const p = silentAudio.play();
+        if (p && p.catch) {
+          p.catch(e => {
+            console.error('Audio play failed:', e);
+            setStatus('audio-play-fail');
+          });
+        }
+        
+        currentPlay++;
+        
+        if (currentPlay < count) {
+          setTimeout(playSequentially, state.spacing);
+        }
+      };
+      
+      playSequentially();
     }
   };
 
   // Controls
   muteBtn.onclick = ()=>{ 
     state.muted=!state.muted; 
-    muteBtn.textContent = state.muted? 'Muted':'Sound'; 
+    
+    // UPDATED: Toggle icons instead of text
+    muteIconOn.style.display = state.muted ? 'none' : 'block';
+    muteIconOff.style.display = state.muted ? 'block' : 'none';
+    
     localStorage.setItem('muted', state.muted);
   };
   enableBtn.onclick = unlock;
@@ -847,14 +1516,17 @@
 
   // Wire up stop button
   stopBellBtn.onclick = stopContinuousBell;
-  testContBellBtn.onclick = async ()=>{ // Make async
+  testContBellBtn.onclick = ()=>{ // No longer async
     if(contBellInterval){
       stopContinuousBell();
     } else {
-      await unlock(); // Add await
-      if (!unlocked) return; // Check if unlock succeeded
+      // await unlock(); // REMOVED
+      if (!unlocked) { // Check if unlock succeeded
+        setStatus('Please click "Enable Sound" first');
+        return; 
+      }
       contBellInterval = setInterval(()=>playBell(1), 500);
-      testContBellBtn.textContent = 'Stop';
+      testContBellBtn.textContent = translations[currentLang].stopBell; // 'Stop'
     }
   };
 
@@ -926,11 +1598,19 @@
 
   const start = ()=>{
     if(raf) return;
-    if (acc === 0) { // If it's a fresh start (not resume)
-      snapshotSettings(); // Take snapshot of settings
-      inGrace = false;
-      graceRemaining = timerSnapshot.grace;
+    
+    // FIX: Always snapshot settings on start, unless we're resuming *during* the grace period.
+    // The "if (acc === 0)" check was the bug.
+    if (!inGrace) {
+      snapshotSettings(); // Take fresh snapshot of settings
+      // If we are starting from a paused state (acc > 0), we must preserve acc.
+      // If we are starting from a scrub (acc > 0), we must preserve acc.
+      // If we are starting from 0 (acc === 0), it's a fresh start.
+      if (acc === 0) {
+        graceRemaining = timerSnapshot.grace;
+      }
     }
+    
     raf = requestAnimationFrame(loop); // Set raf *before* calling loop
   };
   
@@ -959,19 +1639,93 @@
   };
 
   // Buttons
-  startBtn.onclick = async ()=>{ // Make async
-    await unlock(); // Add await
+  startBtn.onclick = ()=>{ // No longer async
+    // await unlock(); // REMOVED
     if(raf) { 
       pause(); 
-      startBtn.textContent = 'Start'; 
+      startBtn.textContent = translations[currentLang].start; 
     } else { 
       start(); 
-      startBtn.textContent = 'Pause'; 
+      startBtn.textContent = translations[currentLang].pause; 
     } 
   };
-  resetBtn.onclick = ()=>{ pause(); reset(); startBtn.textContent='Start'; };
-  singleBtn.onclick = async ()=>{ await unlock(); playBell(1); }; // Make async and await
-  doubleBtn.onclick = async ()=>{ await unlock(); playBell(2); }; // Make async and await
+  resetBtn.onclick = ()=>{ pause(); reset(); startBtn.textContent = translations[currentLang].start; };
+  singleBtn.onclick = ()=>{ playBell(1); }; // No longer async, removed await
+  doubleBtn.onclick = ()=>{ playBell(2); }; // No longer async, removed await
+
+  // ===== NEW: Main Timer Scrubbing Logic =====
+  let isScrubbingMain = false;
+
+  const mainScrubMove = (e) => {
+    if (!isScrubbingMain) return;
+    e.preventDefault();
+    
+    // Works for both mouse and touch
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    if (typeof clientX === 'undefined') return;
+
+    const rect = progressEl.getBoundingClientRect();
+    let pct = (clientX - rect.left) / rect.width;
+    pct = Math.max(0, Math.min(1, pct));
+    
+    // Timer is running, don't scrub
+    if (raf !== null) { 
+        mainScrubEnd();
+        return;
+    }
+
+    // Update main timer state
+    const source = timerSnapshot; // Scrubbing always affects the snapshot
+    acc = source.main * pct;
+    remaining = source.main - acc;
+    
+    // Ensure we are not in grace period
+    inGrace = false; 
+    graceRemaining = source.grace;
+    
+    // Reset bell-fired flags if we scrub *before* them
+    if (acc < source.first) fired.first = false;
+    if (acc < source.second) fired.second = false;
+    fired.final = false; // Always reset final bell
+    
+    render(true); // Force render
+  };
+
+  const mainScrubEnd = () => {
+    isScrubbingMain = false;
+    document.removeEventListener('mousemove', mainScrubMove);
+    document.removeEventListener('mouseup', mainScrubEnd);
+    document.removeEventListener('touchmove', mainScrubMove);
+    document.removeEventListener('touchend', mainScrubEnd);
+  };
+
+  const mainScrubStart = (e) => {
+    // Only scrub if PAUSED
+    if (raf !== null) return;
+
+    // Must have a snapshot to scrub
+    /* // OLD, BUGGY LOGIC:
+    if (acc === 0) { 
+      snapshotSettings();
+    }
+    */
+    
+    // NEW FIX: Always take a new snapshot on scrub start.
+    snapshotSettings();
+
+    isScrubbingMain = true;
+    document.addEventListener('mousemove', mainScrubMove);
+    document.addEventListener('mouseup', mainScrubEnd);
+    document.addEventListener('touchmove', mainScrubMove, { passive: false });
+    document.addEventListener('touchend', mainScrubEnd);
+    
+    mainScrubMove(e); // Snap to initial click
+  };
+
+  progressEl.addEventListener('mousedown', mainScrubStart);
+  progressEl.addEventListener('touchstart', mainScrubStart, { passive: false });
+  // ===== END: Main Timer Scrubbing Logic =====
+
 
   // Inputs handlers
   const syncFromInputs = ()=>{
@@ -1008,8 +1762,8 @@
     cex.reset(true);
     reb.reset(true);
     
-    modeLabel.textContent = state.preset==='Substantive'? 'Substantive Speech':'Reply Speech';
-    rebuttalLabel.textContent = `Rebuttal / Reply (${fmt(state.rebTime)})`;
+    modeLabel.textContent = state.preset==='Substantive'? translations[currentLang].substantiveSpeech : translations[currentLang].replySpeech;
+    rebuttalLabel.textContent = `${translations[currentLang].rebTitle} (${fmt(state.rebTime)})`;
   };
   
   const syncInputsToState = () => {
@@ -1031,7 +1785,11 @@
     // Sync global audio settings
     // modeSel.value = state.mode; // This is now handled by populateModeSelect
     volumeInput.value = state.volume;
-    muteBtn.textContent = state.muted? 'Muted':'Sound';
+    
+    // UPDATED: Toggle icons instead of text
+    muteIconOn.style.display = state.muted ? 'none' : 'block';
+    muteIconOff.style.display = state.muted ? 'block' : 'none';
+    
     if (state.mp3Url) mp3Url.value = state.mp3Url;
     
     populateModeSelect(); // Re-populate and set correct value
@@ -1045,28 +1803,29 @@
     cex.reset();
     reb.reset();
     
-    rebuttalLabel.textContent = `Rebuttal / Reply (${fmt(state.rebTime)})`;
+    rebuttalLabel.textContent = `${translations[currentLang].rebTitle} (${fmt(state.rebTime)})`;
   };
   
   // New function to populate the sound dropdown
   function populateModeSelect() {
     const currentMode = state.mode;
     modeSel.innerHTML = ''; // Clear
+    const trans = translations[currentLang];
     
     // Basic options
     const basics = document.createElement('optgroup');
-    basics.label = "Standard Sounds";
+    basics.label = trans.standardSounds;
     basics.innerHTML = `
-      <option value="synth">Synth Bell</option>
-      <option value="wav">Built-in WAV</option>
-      <option value="mp3">MP3 URL</option>
+      <option value="synth">${trans.synthBell}</option>
+      <option value="wav">${trans.builtInWAV}</option>
+      <option value="mp3">${trans.mp3URLOpt}</option>
     `;
     modeSel.appendChild(basics);
     
     // Uploaded options
     if (uploadedSounds.length > 0) {
       const uploads = document.createElement('optgroup');
-      uploads.label = "Uploaded Sounds";
+      uploads.label = trans.uploadedSounds;
       uploadedSounds.forEach((sound, index) => {
         const opt = document.createElement('option');
         opt.value = `upload_${index}`;
@@ -1118,20 +1877,76 @@
     // The actual time values are part of the loaded profile state
     
     // We MUST still update the label
-    modeLabel.textContent = state.preset==='Substantive'? 'Substantive Speech':'Rebuttal / Reply';
+    modeLabel.textContent = state.preset==='Substantive'? translations[currentLang].substantiveSpeech : translations[currentLang].replySpeech;
   }
 
   // Quick timers helper
-  function miniTimer(inputEl, clockEl, fillEl, stateKey, endBellCount = 0){
-    // let dur = parseMin(inputEl.value);
-    let snapshotDur = state[stateKey]; // Snapshot duration on start
+  function miniTimer(clockEl, fillEl, stateKey, endBellCount = 0){
+    let snapshotDur = state[stateKey];
     let rem = state[stateKey]; 
     let st=null, acc=0, r=null;
     
+    // ===== NEW: Mini Timer Scrubbing Logic =====
+    const progressContainerEl = fillEl.parentElement;
+    let isScrubbing = false;
+
+    const scrubMove = (e) => {
+      if (!isScrubbing) return;
+      e.preventDefault();
+      
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      if (typeof clientX === 'undefined') return;
+      
+      const rect = progressContainerEl.getBoundingClientRect();
+      let pct = (clientX - rect.left) / rect.width;
+      pct = Math.max(0, Math.min(1, pct));
+      
+      // Update mini-timer state
+      // We can only do this if the timer is PAUSED (r === null)
+      if (r !== null) { // Timer is running, don't scrub
+          scrubEnd();
+          return;
+      }
+      
+      acc = snapshotDur * pct; // Set elapsed time
+      rem = snapshotDur - acc; // Set remaining time
+      
+      paint(); // Redraw the clock and bar
+    };
+
+    const scrubEnd = () => {
+      isScrubbing = false;
+      document.removeEventListener('mousemove', scrubMove);
+      document.removeEventListener('mouseup', scrubEnd);
+      document.removeEventListener('touchmove', scrubMove);
+      document.removeEventListener('touchend', scrubEnd);
+    };
+
+    const scrubStart = (e) => {
+      // Only scrub if PAUSED
+      if (r !== null) return; 
+
+      // Snapshot duration on scrub start
+      snapshotDur = state[stateKey];
+
+      isScrubbing = true;
+      document.addEventListener('mousemove', scrubMove);
+      document.addEventListener('mouseup', scrubEnd);
+      document.addEventListener('touchmove', scrubMove, { passive: false });
+      document.addEventListener('touchend', scrubEnd);
+      
+      scrubMove(e); // Snap to initial click
+    };
+
+    progressContainerEl.addEventListener('mousedown', scrubStart);
+    progressContainerEl.addEventListener('touchstart', scrubStart, { passive: false });
+    // ===== END: Mini Timer Scrubbing Logic =====
+
+
     const paint = ()=>{ 
       const displayRem = (r === null && acc === 0) ? state[stateKey] : rem;
       clockEl.textContent = fmt(displayRem); 
-      const pct = snapshotDur === 0 ? 0 : 100 - Math.round((displayRem/snapshotDur)*100); 
+      const pct = snapshotDur === 0 ? 0 : 100 - Math.round((rem/snapshotDur)*100); 
       fillEl.style.width = Math.max(0,Math.min(100,pct))+"%"; 
     };
     
@@ -1157,46 +1972,77 @@
         snapshotDur = state[stateKey]; // Snapshot from global state
       }
       rem = snapshotDur - acc;
+      st = null; // Reset start time
       r = requestAnimationFrame(lp); 
     };
+    
     const pause=()=>{ 
-      if(!r) return; 
-      cancelAnimationFrame(r); 
-      r=null; 
-      const now=performance.now(); 
-      acc+=(now-st); 
-      st=null; 
-    };
-    const reset=(ifRunning = false)=>{ 
-      if (ifRunning && r) return; // Don't reset if running
-      if(r) cancelAnimationFrame(r); 
-      r=null; st=null; acc=0; 
-      snapshotDur = state[stateKey]; // Reset snapshot
-      rem = snapshotDur; 
-      paint(); 
+      if(!r) return;
+      cancelAnimationFrame(r);
+      r=null;
+      const now = performance.now();
+      if(st) acc += (now - st); // Only add if st is set
+      st=null;
     };
     
-    // This inputEl listener is now in the global syncFromInputs
-    paint();
-    return { start, pause, reset };
+    const reset=(dontPauseIfRunning = false)=>{
+      if (dontPauseIfRunning && r) return; // Don't reset if running
+      
+      if(r) cancelAnimationFrame(r);
+      r=null; st=null; acc=0;
+      rem = state[stateKey]; // Reset to current global state
+      snapshotDur = state[stateKey]; // Reset snapshot
+      paint();
+    };
+    
+    paint(); // Initial paint
+    
+    return { start, pause, reset, paint };
   }
   
-  // Pass end bell count and state key
-  const prep = miniTimer(prepInput, prepClock, prepFill, 'prepTime', 1);
-  const cex = miniTimer(cexInput, cexClock, cexFill, 'cexTime', 1);
-  const reb = miniTimer(rebInput, rebClock, rebFill, 'rebTime', 2);
+  // Create mini timers
+  const prep = miniTimer(prepClock, prepFill, 'prepTime', 1);
+  const cex = miniTimer(cexClock, cexFill, 'cexTime', 1);
+  const reb = miniTimer(rebClock, rebFill, 'rebTime', 2);
   
-  // Prep timer buttons
-  prepStart.onclick = async ()=>{ await unlock(); if(prepStart.textContent==='Start'){ prep.start(); prepStart.textContent='Pause'; } else { prep.pause(); prepStart.textContent='Start'; } }; // Make async and await
-  prepReset.onclick = ()=>{ prep.reset(); prepStart.textContent='Start'; };
+  // Wire up mini timer buttons
+  prepStart.onclick = ()=>{ 
+    const btn = prepStart;
+    if(btn.textContent === translations[currentLang].start){ 
+      prep.start(); 
+      btn.textContent = translations[currentLang].pause; 
+    } else { 
+      prep.pause(); 
+      btn.textContent = translations[currentLang].start; 
+    } 
+  };
+  prepReset.onclick = ()=>{ prep.reset(); prepStart.textContent = translations[currentLang].start; };
   
   // Rebuttal prep buttons
-  cexStart.onclick = async ()=>{ await unlock(); if(cexStart.textContent==='Start'){ cex.start(); cexStart.textContent='Pause'; } else { cex.pause(); cexStart.textContent='Start'; } }; // Make async and await
-  cexReset.onclick = ()=>{ cex.reset(); cexStart.textContent='Start'; };
+  cexStart.onclick = ()=>{ 
+    const btn = cexStart;
+    if(btn.textContent === translations[currentLang].start){ 
+      cex.start(); 
+      btn.textContent = translations[currentLang].pause; 
+    } else { 
+      cex.pause(); 
+      btn.textContent = translations[currentLang].start; 
+    } 
+  };
+  cexReset.onclick = ()=>{ cex.reset(); cexStart.textContent = translations[currentLang].start; };
 
   // Reply timer buttons
-  rebStart.onclick = async ()=>{ await unlock(); if(rebStart.textContent==='Start'){ reb.start(); rebStart.textContent='Pause'; } else { reb.pause(); rebStart.textContent='Start'; } }; // Make async and await
-  rebReset.onclick = ()=>{ reb.reset(); rebStart.textContent='Start'; };
+  rebStart.onclick = ()=>{ 
+    const btn = rebStart;
+    if(btn.textContent === translations[currentLang].start){ 
+      reb.start(); 
+      btn.textContent = translations[currentLang].pause; 
+    } else { 
+      reb.pause(); // Bug fix: was prep.pause()
+      btn.textContent = translations[currentLang].start; // Bug fix: was prepStart
+    } 
+  };
+  rebReset.onclick = ()=>{ reb.reset(); rebStart.textContent = translations[currentLang].start; };
 
   // Render main
   function render(forceState = false){
@@ -1245,7 +2091,7 @@
     metaEl.textContent = `Main: ${fmt(total)}${source.first?` · 1st ${fmt(source.first)}`:''}${source.second?` · 2nd ${fmt(source.second)}`:''}`;
     
     if (inGrace) {
-      metaEl.textContent = `GRACE PERIOD: ${fmt(source.grace)}`;
+      metaEl.textContent = `${translations[currentLang].gracePeriodLabel} ${fmt(source.grace)}`;
     }
   }
 
@@ -1274,10 +2120,11 @@
     const profiles = getProfiles();
     const selectedValue = profileSelect.value;
     profileSelect.innerHTML = ''; // Clear
+    const trans = translations[currentLang];
     
     // Add default
     const defaultGroup = document.createElement('optgroup');
-    defaultGroup.label = "Built-in Profiles";
+    defaultGroup.label = trans.builtInProfiles;
     DEFAULT_PROFILES.forEach(profile => {
       const opt = document.createElement('option');
       opt.value = profile.name;
@@ -1289,7 +2136,7 @@
     // Add saved
     if (profiles.length > 0) {
       const customGroup = document.createElement('optgroup');
-      customGroup.label = "Custom Profiles";
+      customGroup.label = trans.customProfiles;
       profiles.forEach(profile => {
         const opt = document.createElement('option');
         opt.value = profile.name;
@@ -1328,14 +2175,17 @@
     localStorage.setItem('bellMode', state.mode);
     if(state.mp3Url) localStorage.setItem('mp3Url', state.mp3Url);
     localStorage.setItem('volume', String(state.volume));
+    
+    // Re-apply language to new UI elements
+    updateLanguage(currentLang);
   }
   
   function saveCurrentProfile() {
-    const name = prompt('Enter profile name:', 'My Custom Debate');
+    const name = prompt(translations[currentLang].profilePrompt, 'My Custom Debate');
     if (!name || name.trim() === '') return;
     if (isDefaultProfile(name.trim())) {
       // Use a custom modal in a real app
-      console.error('Cannot overwrite a default profile.');
+      console.error(translations[currentLang].cannotOverwriteDefault);
       return;
     }
     
@@ -1345,7 +2195,7 @@
     const newProfile = {
       name: name.trim(),
       speakerOrder: speakerOrder, // Save current order
-      settings: state, // Save current settings
+      settings: state, // Save current settings,
     };
     
     let profiles = getProfiles();
@@ -1368,7 +2218,7 @@
     const profileName = profileSelect.value;
     if (isDefaultProfile(profileName)) {
       // Use a custom modal in a real app
-      console.error('Cannot delete a default profile.');
+      console.error(translations[currentLang].cannotDeleteDefault);
       return;
     }
     
@@ -1440,10 +2290,15 @@
   importProfilesInput.onchange = importProfiles;
 
   // Initial paint
-  syncInputsToState(); // Set inputs from default state
-  initSpeakerProgress(); // Build speaker UI
-  setActiveSpeaker(0); // Set to first speaker
-  loadProfilesToDropdown(); // Load profiles
+  // Load saved lang *first*
+  const savedLang = localStorage.getItem('debateTimerLang') || 'en';
+  updateLanguage(savedLang);
+  
+  // Original init calls (most are now inside updateLanguage)
+  // syncInputsToState(); // Set inputs from default state
+  // initSpeakerProgress(); // Build speaker UI
+  // setActiveSpeaker(0); // Set to first speaker
+  // loadProfilesToDropdown(); // Load profiles
 
   // ===== Tests =====
   const tests = [
@@ -1465,3 +2320,11 @@
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
