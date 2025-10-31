@@ -150,10 +150,10 @@
 </head>
 <body>
   <!-- 
-    NEW: Added a persistent, silent <audio> tag.
-    This is the key to unlocking audio on iOS, as per your suggestion.
+    REMOVED: The <audio> tag is no longer needed.
+    We are moving to 100% Web Audio API.
   -->
-  <audio id="silentUnlockAudio" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" loop muted playsinline></audio>
+  <!-- <audio id="silentUnlockAudio" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" loop muted playsinline></audio> -->
 
   <div id="app" class="wrap">
     <div class="container">
@@ -168,10 +168,10 @@
           <!-- UPDATED Mute Button -->
           <button id="muteBtn" class="btn"> <!-- data-lang="sound" removed -->
             <!-- NEW: Speaker Icons -->
-            <svg id="muteIconOn" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 20px; height: 20px; stroke-width: 2; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round;">
+            <svg id="muteIconOn" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" viewBox="0 0 24 24" style="width: 20px; height: 20px; stroke-width: 2; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round;">
               <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07"></path>
             </svg>
-            <svg id="muteIconOff" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 20px; height: 20px; stroke-width: 2; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; display: none;">
+            <svg id="muteIconOff" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" viewBox="0 0 24 24" style="width: 20px; height: 20px; stroke-width: 2; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; display: none;">
               <path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"></path>
             </svg>
             <!-- Text "Sound" removed -->
@@ -255,7 +255,7 @@
             </label>
             <!-- MOVED: Volume slider was here -->
             <label class="label"><span data-lang="mp3Url">MP3 URL</span>
-              <input id="mp3Url" class="input" placeholder="https://example.com/bell.mp3" />
+              <input id="mp3Url" class="input" placeholder="[https://example.com/bell.mp3](https://example.com/bell.mp3)" />
             </label>
             <label class="label"><span data-lang="uploadSounds">Upload Sound(s)</span>
               <input id="mp3File" type="file" accept="audio/*" multiple /> <!-- Added multiple -->
@@ -497,15 +497,13 @@
       close: "Close",
       // Audio / Status
       idle: "idle",
-      'resume-fail': "resume-fail",
-      'synth-unlock-err': "synth-unlock-err",
-      'audio-play-fail': "audio-play-fail",
-      'audio-unlock-err': "audio-unlock-err",
+      'resume-fail': "Audio resume failed", // NEW
+      'synth-unlock-err': "Synth audio failed", // NEW
+      'audio-play-fail': "Audio play failed", // NEW
+      'audio-ctx-fail': "Audio Context failed", // NEW
       'Sound ready.': "Sound ready.",
-      'Synth ready (MP3/WAV may fail)': "Synth ready (MP3/WAV may fail)",
-      'MP3/WAV ready (Synth may fail)': "MP3/WAV ready (Synth may fail)",
       'Sound failed. Please refresh.': "Sound failed. Please refresh.",
-      'no-mp3-url': "no-mp3-url",
+      'no-mp3-url': "No MP3 URL set", // NEW
       'Please click "Enable Sound" first': 'Please click "Enable Sound" first',
       // Sound Dropdown
       standardSounds: "Standard Sounds",
@@ -652,15 +650,13 @@
       close: "닫기",
       // Audio / Status
       idle: "대기 중",
-      'resume-fail': "오디오 재개 실패",
-      'synth-unlock-err': "신디사이저 오디오 잠금 해제 오류",
-      'audio-play-fail': "오디오 재생 실패",
-      'audio-unlock-err': "오디오 태그 잠금 해제 오류",
+      'resume-fail': "오디오 재개 실패", // NEW
+      'synth-unlock-err': "신디사이저 오디오 실패", // NEW
+      'audio-play-fail': "오디오 재생 실패", // NEW
+      'audio-ctx-fail': "오디오 컨텍스트 실패", // NEW
       'Sound ready.': "소리 준비 완료.",
-      'Synth ready (MP3/WAV may fail)': "신디사이저 준비됨 (MP3/WAV 실패 가능)",
-      'MP3/WAV ready (Synth may fail)': "MP3/WAV 준비됨 (신디사이저 실패 가능)",
       'Sound failed. Please refresh.': "소리 활성화 실패. 새로고침하세요.",
-      'no-mp3-url': "MP3 URL이 설정되지 않았습니다",
+      'no-mp3-url': "MP3 URL이 설정되지 않았습니다", // NEW
       'Please click "Enable Sound" first': '"소리 활성화" 버튼을 먼저 클릭하세요',
       // Sound Dropdown
       standardSounds: "기본 사운드",
@@ -1023,10 +1019,9 @@
   // New Help Modal UI
   const helpBtn = $('#helpBtn');
   const helpModal = $('#helpModal');
-  /* const helpBtn = $('#helpBtn'); */ // DELETED - Duplicate
   const closeHelpBtn = $('#closeHelpBtn');
   
-  const silentAudio = $('#silentUnlockAudio'); // NEW: Get the silent audio element
+  // const silentAudio = $('#silentUnlockAudio'); // REMOVED
 
   // NEW: Selectors for Mute Icons // CHANGED - Was an HTML comment
   const muteIconOn = $('#muteIconOn');
@@ -1269,16 +1264,59 @@
   };
 
   // ===== Audio =====
-  const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
+  // const SILENT_WAV = '...'; // REMOVED
   // Built-in WAV file (a simple 880Hz 'ding')
   const BUILT_IN_DING_WAV = 'data:audio/wav;base64,UklGRigCAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQCAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIA==';
   
   let audioCtx = null; // AudioContext
   let unlocked = false;
-  let uploadedSounds = []; // { name: string, url: string }
+  // let uploadedSounds = []; // REMOVED: Now part of soundBank
+  
+  // NEW: Sound bank to hold pre-loaded audio buffers
+  const soundBank = {
+    'synth': { name: 'Synth Bell', buffer: null, url: null, builtIn: true },
+    'wav': { name: 'Built-in WAV', buffer: null, url: BUILT_IN_DING_WAV, builtIn: true },
+    'mp3': { name: 'MP3 URL', buffer: null, url: null, builtIn: true }, // URL set from state
+    'uploads': [] // { name: 'file.mp3', buffer: null, url: 'blob:...' }
+  };
+  
+  // NEW: Helper to decode base64 for data: URLs
+  const base64ToArrayBuffer = (base64) => {
+    const binaryString = window.atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
+  };
 
-  // DELETING the getOrCreateContext and playSilent functions,
-  // as they will be inlined into the new 'unlock' function.
+  // NEW: Function to pre-load sounds into AudioBuffers
+  async function loadSound(soundObj) {
+    if (!soundObj || !soundObj.url || !audioCtx) return;
+    
+    // Don't re-fetch if buffer is already loaded
+    if (soundObj.buffer) return; 
+
+    try {
+      let arrayBuffer;
+      // Handle data: URLs directly, fetch others
+      if (soundObj.url.startsWith('data:')) {
+        const base64Data = soundObj.url.split(',')[1];
+        arrayBuffer = base64ToArrayBuffer(base64Data);
+      } else {
+        const response = await fetch(soundObj.url);
+        arrayBuffer = await response.arrayBuffer();
+      }
+      
+      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      soundObj.buffer = audioBuffer; // Cache the buffer
+      console.log(`Loaded sound: ${soundObj.name}`);
+    } catch (e) {
+      console.error(`Failed to load ${soundObj.name} at ${soundObj.url}:`, e);
+      soundObj.buffer = null; // Failed
+    }
+  }
 
   const setStatus = (s)=>{ 
     const trans = translations[currentLang];
@@ -1289,19 +1327,16 @@
         statusSpan.textContent = statusText;
     }
     
-    const tip = (state.mode==='mp3' && !state.mp3Url ? ' · Tip: set a public MP3 URL or upload below' : '');
+    // const tip = (state.mode==='mp3' && !state.mp3Url ? ' · Tip: set a public MP3 URL or upload below' : '');
     // We can't easily translate the tip, so we'll leave it
     // statusNote.textContent = trans.statusPrefix + statusText + tip; 
   };
 
   const unlock = ()=>{
-    // This function is now "bulletproof" and based on your suggestion.
-    // It will ALWAYS hide the button, even if audio fails.
-    
-    let synthUnlocked = false;
-    let audioTagUnlocked = false;
+    // This function is now "bulletproof" and uses Web Audio API
+    if (unlocked) return true;
 
-    // 1. Try to unlock Web Audio (for Synth bell)
+    // 1. Try to unlock Web Audio (for ALL sounds)
     try {
       const Ctx = window.AudioContext || window.webkitAudioContext;
       if (Ctx) {
@@ -1310,102 +1345,71 @@
         }
         if (audioCtx && audioCtx.state === 'suspended') {
           // Fire-and-forget resume.
-          audioCtx.resume().catch(()=>{ setStatus('resume-fail'); });
+          audioCtx.resume().then(() => {
+            // NEW: Load sounds after context is resumed
+            loadSound(soundBank.wav); // Pre-load built-in
+            if (state.mp3Url) {
+              soundBank.mp3.url = state.mp3Url;
+              loadSound(soundBank.mp3); // Pre-load custom URL
+            }
+            soundBank.uploads.forEach(loadSound); // Pre-load all uploads
+            
+            setStatus('Sound ready.');
+          }).catch(()=>{ 
+            setStatus('resume-fail'); 
+          });
+        } else if (audioCtx && audioCtx.state === 'running') {
+            // NEW: Load sounds
+            loadSound(soundBank.wav);
+            if (state.mp3Url) {
+              soundBank.mp3.url = state.mp3Url;
+              loadSound(soundBank.mp3);
+            }
+            soundBank.uploads.forEach(loadSound);
+            setStatus('Sound ready.');
         }
-        synthUnlocked = true;
+        unlocked = true;
+        enableBtn.style.display = 'none';
+        return true;
       }
     } catch (e) {
-      setStatus('synth-unlock-err');
+      setStatus('audio-ctx-fail'); // Use new key
     }
 
-    // 2. Try to unlock <audio> tag (for WAV/MP3 bells)
-    //    This uses your suggested method of playing an *existing* element.
-    try {
-      const silentAudio = $('#silentUnlockAudio'); // Get the new element
-      if (silentAudio) {
-        const p = silentAudio.play(); // Play the existing element
-        if (p && p.catch) {
-          p.catch(() => { setStatus('audio-play-fail'); });
-        }
-        audioTagUnlocked = true;
-      }
-    } catch (e) {
-      setStatus('audio-unlock-err');
-    }
-
-    // 3. THIS IS THE CRITICAL PART
-    // This code will now run no matter what.
-    unlocked = true; 
-    enableBtn.style.display = 'none';
-    
-    if (synthUnlocked && audioTagUnlocked) {
-      setStatus('Sound ready.');
-    } else if (synthUnlocked) {
-      setStatus('Synth ready (MP3/WAV may fail)');
-    } else if (audioTagUnlocked) {
-      setStatus('MP3/WAV ready (Synth may fail)');
-    } else {
-      setStatus('Sound failed. Please refresh.');
-    }
-    
-    return true; // Return value doesn't matter, but good practice.
+    // 2. Fallback (if Ctx failed)
+    unlocked = false; // It failed
+    enableBtn.style.display = 'none'; // Hide button anyway
+    setStatus('Sound failed. Please refresh.');
+    return false;
   };
 
   const playBell = async(count)=>{
     if(state.muted || !unlocked) return; // Check flag, not unlock
-    // const ok = await unlock(); if(!ok) return; // Removed this line
+    
+    // Attempt to resume AudioContext if it's suspended (for iOS)
+    if (audioCtx && audioCtx.state === 'suspended') {
+      try {
+        await audioCtx.resume();
+      } catch (e) {
+        console.error('AudioContext resume failed on playBell:', e);
+        setStatus('resume-fail');
+      }
+    }
+    if (!audioCtx) { // Check if context exists
+      setStatus('Please click "Enable Sound" first');
+      return;
+    }
     
     // Logic for which sound to play
     const mode = state.mode;
     
     if(mode === 'synth'){
-      const ctx = audioCtx; if(!ctx) return; // Add check for context
+      const ctx = audioCtx; // Already checked for existence
       const base = ctx.currentTime + .05;
       
-      // New Bell Synth: Added another higher octave series (12 partials total)
-      const freqs = [
-        700,    // Original fundamental
-        1400,   // New octave of fundamental
-        1760,   // Original
-        2800,   // Original
-        3520,   // Original
-        4400,   // Original
-        5600,   // Original
-        7040,   // New octave
-        8800,   // New octave
-        11200,  // New octave
-        14080,  // New highest octave
-        17600   // New highest octave
-      ];
-      
-      const gains = [
-        0.2,    // 700
-        0.15,   // 1400 (quieter)
-        0.4,    // 1760
-        0.3,    // 2800
-        0.25,   // 3520
-        0.2,    // 4400
-        0.1,    // 5600
-        0.08,   // 7040 (quieter)
-        0.05,   // 8800 (quieter)
-        0.03,   // 11200 (very quiet)
-        0.02,   // 14080 (very quiet)
-        0.01    // 17600 (very quiet)
-      ];
-      const decays = [
-        2.8,    // 700
-        2.0,    // 1400 (faster decay)
-        2.5,    // 1760
-        2.0,    // 2800
-        1.5,    // 3520
-        1.0,    // 4400
-        0.7,    // 5600
-        0.5,    // 7040 (fast)
-        0.4,    // 8800 (very fast)
-        0.3,    // 11200 (very fast)
-        0.2,    // 14080 (very fast)
-        0.1     // 17600 (very fast)
-      ];
+      const freqs = [ 700, 1400, 1760, 2800, 3520, 4400, 5600, 7040, 8800, 11200, 14080, 17600 ];
+      const gains = [ 0.2, 0.15, 0.4, 0.3, 0.25, 0.2, 0.1, 0.08, 0.05, 0.03, 0.02, 0.01 ];
+      const decays = [ 2.8, 2.0, 2.5, 2.0, 1.5, 1.0, 0.7, 0.5, 0.4, 0.3, 0.2, 0.1 ];
       
       for (let i = 0; i < count; i++) {
         const t = base + (i * state.spacing) / 1000; // time for this specific chime
@@ -1423,8 +1427,7 @@
           osc.type = 'sine';
           osc.frequency.setValueAtTime(freq, t);
           
-          // const partialGain = state.volume * gains[idx]; // OLD (Bug)
-          const partialGain = gains[idx]; // FIX: Master gain already handles volume
+          const partialGain = gains[idx]; // Master gain already handles volume
           const decay = decays[idx];
           
           g.gain.setValueAtTime(partialGain, t);
@@ -1436,55 +1439,55 @@
         });
       }
     } else {
-      // Use built-in WAV, MP3 URL, or Uploaded Sound
-      let url;
+      // *** NEW: AudioBuffer playback logic ***
+      let soundObj;
       if (mode === 'wav') {
-        url = BUILT_IN_DING_WAV;
+        soundObj = soundBank.wav;
       } else if (mode === 'mp3') {
-        url = state.mp3Url;
+        soundBank.mp3.url = state.mp3Url; // Ensure URL is current
+        soundObj = soundBank.mp3;
       } else if (mode.startsWith('upload_')) {
         const uploadIndex = parseInt(mode.split('_')[1], 10);
-        const sound = uploadedSounds[uploadIndex];
-        if (sound) {
-          url = sound.url;
+        soundObj = soundBank.uploads[uploadIndex]; // Use new soundBank
+      }
+
+      if (!soundObj || !soundObj.url) {
+        // Special case for 'mp3' mode with no URL set
+        if (mode === 'mp3' && !soundObj.url) {
+          setStatus('no-mp3-url');
+        } else if (!soundObj) {
+          console.error('Sound object not found for mode:', mode);
         }
+        return;
+      }
+
+      // Check if it's loaded. If not, load it ONCE.
+      if (!soundObj.buffer) {
+        await loadSound(soundObj); // Load on-demand
       }
       
-      if (!url) {
-        setStatus('no-mp3-url');
+      // If still no buffer, or sound failed, abort.
+      if (!soundObj.buffer) {
+        console.error(`Sound ${soundObj.name} is not loaded or failed to load.`);
+        setStatus('audio-play-fail');
         return;
       }
       
-      // OLD: for(let i=0;i<count;i++) setTimeout(()=>{ try{ const a=new Audio(url); a.volume=state.volume; a.play().catch(()=>{}); }catch{} }, i*state.spacing);
-      
-      // NEW: Re-use the unlocked <audio> element to play sequentially
-      // This is the required fix for iOS
-      let currentPlay = 0;
-      const playSequentially = () => {
-        if (currentPlay >= count) return;
+      // Play using AudioBuffer
+      const baseTime = audioCtx.currentTime;
+      for (let i = 0; i < count; i++) {
+        const t = baseTime + (i * state.spacing) / 1000;
         
-        // Load the new sound source and play
-        silentAudio.src = url;
-        silentAudio.volume = state.volume;
-        silentAudio.currentTime = 0; // Rewind
-        silentAudio.muted = false; // Ensure it's not muted
+        // Create a *new* source node for each play
+        const source = audioCtx.createBufferSource();
+        source.buffer = soundObj.buffer;
         
-        const p = silentAudio.play();
-        if (p && p.catch) {
-          p.catch(e => {
-            console.error('Audio play failed:', e);
-            setStatus('audio-play-fail');
-          });
-        }
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.setValueAtTime(state.volume, t);
         
-        currentPlay++;
-        
-        if (currentPlay < count) {
-          setTimeout(playSequentially, state.spacing);
-        }
-      };
-      
-      playSequentially();
+        source.connect(gainNode).connect(audioCtx.destination);
+        source.start(t);
+      }
     }
   };
 
@@ -1511,7 +1514,7 @@
   const stopContinuousBell = ()=>{
     if(contBellInterval){ clearInterval(contBellInterval); contBellInterval=null; }
     stopBellBtn.style.display = 'none';
-    testContBellBtn.textContent = 'Test/Stop Cont.';
+    testContBellBtn.textContent = translations[currentLang].testStopCont; // Use translation
   };
 
   // Wire up stop button
@@ -1619,7 +1622,7 @@
     cancelAnimationFrame(raf);
     raf = null;
     const now = performance.now();
-    acc += (now - startTs);
+    if(startTs) acc += (now - startTs); // Check if startTs is set
     startTs = null;
     stopContinuousBell(); // Stop bells on pause
   };
@@ -1747,7 +1750,18 @@
     // Global settings ARE saved
     state.mode = modeSel.value;
     state.volume = parseFloat(volumeInput.value);
-    if(mp3Url.value) state.mp3Url = mp3Url.value;
+    
+    // NEW: Handle MP3 URL change
+    const newMp3Url = mp3Url.value || null;
+    if (newMp3Url !== state.mp3Url) {
+      state.mp3Url = newMp3Url;
+      soundBank.mp3.url = newMp3Url;
+      soundBank.mp3.buffer = null; // Invalidate buffer
+      if (unlocked && newMp3Url) {
+        loadSound(soundBank.mp3); // Preload new URL
+      }
+    }
+    
     localStorage.setItem('bellMode', state.mode);
     if(state.mp3Url) localStorage.setItem('mp3Url', state.mp3Url);
     localStorage.setItem('volume', String(state.volume));
@@ -1823,10 +1837,10 @@
     modeSel.appendChild(basics);
     
     // Uploaded options
-    if (uploadedSounds.length > 0) {
+    if (soundBank.uploads.length > 0) { // Use new soundBank
       const uploads = document.createElement('optgroup');
       uploads.label = trans.uploadedSounds;
-      uploadedSounds.forEach((sound, index) => {
+      soundBank.uploads.forEach((sound, index) => { // Use new soundBank
         const opt = document.createElement('option');
         opt.value = `upload_${index}`;
         opt.textContent = sound.name;
@@ -1851,11 +1865,15 @@
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
-    let firstUploadIndex = uploadedSounds.length;
+    let firstUploadIndex = soundBank.uploads.length; // Use new soundBank
     
     Array.from(files).forEach(file => {
       const url = URL.createObjectURL(file);
-      uploadedSounds.push({ name: file.name, url: url });
+      const newSound = { name: file.name, url: url, buffer: null };
+      soundBank.uploads.push(newSound); // Use new soundBank
+      if (unlocked) { // Only preload if audio is enabled
+        loadSound(newSound);
+      }
     });
     
     populateModeSelect();
@@ -2320,11 +2338,4 @@
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
 
