@@ -25,24 +25,19 @@
   .title{font-weight:700}
   .muted{color:var(--muted)}
   .clock{font-size:76px;font-weight:900;text-align:center; line-height: 1.1;} /* Added line-height */
-  
-  /* Main Progress Bar */
-  .progress{
-    height:12px;
-    background:var(--track);
-    border-radius:999px;
-    position:relative;
-    overflow:hidden;
-    display: flex; /* <-- ADDED: This lays out the bell segments horizontally */
-    cursor: pointer; /* NEW: Add pointer cursor */
-  }
-  .fill{
-    position:absolute;
-    left:0;
-    top:0; /* Added */
-    bottom:0; /* Added */
-    background:var(--fill); /* Added */
-  } /* <-- THIS BRACE WAS MISSING */
+  .progress{height:12px;background:var(--track);border-radius:999px;position:relative;overflow:hidden}
+  .fill{position:absolute;left:0;top:0;bottom:0;background:var(--fill)}
+  .seg{outline:1px solid rgba(0,0,0,0.12);height:100%}
+  .grid{display:grid;gap:12px}
+  .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .input{padding:8px 10px;border:1px solid var(--bd);border-radius:10px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+  .label{display:flex;flex-direction:column;gap:6px}
+  .bar{height:8px;background:rgba(17,24,39,.12);border-radius:8px;overflow:hidden}
+  .bar>.bfill{height:100%;background:#111827}
+  .caps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:6px;color:#475569;font-size:12px}
+  .tests li{margin:2px 0}
+  .note{font-size:12px;color:#6b7280;margin-top:6px;text-align:center}
 
   /* Speaker Progress Bar Styles */
   .speaker-progress-bar {
@@ -126,11 +121,6 @@
     margin-top: 16px;
   }
 
-  /* NEW: Add cursor to mini-timer bars */
-  .bar {
-    cursor: pointer;
-  }
-
   /* Responsive Media Queries */
   @media (max-width:800px){
     .grid-3, .grid-4 { grid-template-columns:repeat(2,minmax(0,1fr)) } /* 2 cols */
@@ -150,10 +140,11 @@
 </head>
 <body>
   <!-- 
-    REMOVED: The <audio> tag is no longer needed.
-    We are moving to 100% Web Audio API.
+    NEW: Added a persistent, silent <audio> tag.
+    This is the key to unlocking audio on iOS, as per your suggestion.
   -->
-  <!-- <audio id="silentUnlockAudio" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" loop muted playsinline></audio> -->
+  <audio id="silentUnlockAudio" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" loop muted playsinline></audio>
+<audio id="deskBell" src="small_desk_bell.wav" preload="auto" playsinline></audio>
 
   <div id="app" class="wrap">
     <div class="container">
@@ -164,27 +155,9 @@
           <button id="helpBtn" class="btn" data-lang="help">Help</button>
           <button id="langToggleBtn" class="btn">한국어</button>
           <button id="settingsBtn" class="btn" data-lang="toggleSettings">Toggle Settings</button> <!-- New Settings Button -->
-          
-          <!-- UPDATED Mute Button -->
-          <button id="muteBtn" class="btn"> <!-- data-lang="sound" removed -->
-            <!-- NEW: Speaker Icons -->
-            <svg id="muteIconOn" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" viewBox="0 0 24 24" style="width: 20px; height: 20px; stroke-width: 2; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round;">
-              <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07"></path>
-            </svg>
-            <svg id="muteIconOff" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" viewBox="0 0 24 24" style="width: 20px; height: 20px; stroke-width: 2; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; display: none;">
-              <path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"></path>
-            </svg>
-            <!-- Text "Sound" removed -->
-          </button>
-          
-          <button id="enableBtn" class="btn" data-lang="enableSound">Initialize Sound</button>
+          <button id="muteBtn" class="btn" data-lang="sound">Sound</button>
+          <button id="enableBtn" class="btn" data-lang="enableSound">Enable Sound</button>
           <button id="testsBtn" class="btn" data-lang="tests">Tests</button>
-          
-          <!-- NEW: Moved Volume Slider Here -->
-          <label class="label" style="flex-direction: row; align-items: center; gap: 8px; margin-left: 8px;">
-            <span data-lang="volume" style="font-weight: 600;">Volume</span>
-            <input id="volumeInput" type="range" min="0" max="1" step="0.05" value="0.5" style="width: 80px;" />
-          </label>
         </div>
       </header>
       
@@ -253,9 +226,11 @@
                 <!-- Options will be populated by JS -->
               </select>
             </label>
-            <!-- MOVED: Volume slider was here -->
+            <label class="label"><span data-lang="volume">Volume (0-1)</span>
+              <input id="volumeInput" type="range" min="0" max="1" step="0.05" value="0.5" />
+            </label>
             <label class="label"><span data-lang="mp3Url">MP3 URL</span>
-              <input id="mp3Url" class="input" placeholder="[https://example.com/bell.mp3](https://example.com/bell.mp3)" />
+              <input id="mp3Url" class="input" placeholder="https://example.com/bell.mp3" />
             </label>
             <label class="label"><span data-lang="uploadSounds">Upload Sound(s)</span>
               <input id="mp3File" type="file" accept="audio/*" multiple /> <!-- Added multiple -->
@@ -417,7 +392,7 @@
       toggleSettings: "Toggle Settings",
       sound: "Sound",
       muted: "Muted",
-      enableSound: "Initialize Sound", // CHANGED
+      enableSound: "Enable Sound",
       tests: "Tests",
       // Settings - Profiles
       profiles: "Profiles",
@@ -444,7 +419,7 @@
       // Settings - Audio
       bellSpacing: "Bell spacing (ms)",
       bellMode: "Bell mode",
-      volume: "Volume", // CHANGED
+      volume: "Volume (0-1)",
       mp3Url: "MP3 URL",
       uploadSounds: "Upload Sound(s)",
       // Speaker Progress
@@ -492,18 +467,19 @@
         '"Substantive" speeches (from "Main" time) have 1st/2nd bells and grace periods.',
         '"Reply" speeches (from "Rebuttal" time) are simpler timers with a final double bell.',
         '"Cross-Ex" and "Prep" timers are separate mini-timers.',
-        '"Initialize Sound" must be clicked once to allow the browser to play audio. This is a security requirement for most browsers, especially on mobile.' // ADDED
       ],
       close: "Close",
       // Audio / Status
       idle: "idle",
-      'resume-fail': "Audio resume failed", // NEW
-      'synth-unlock-err': "Synth audio failed", // NEW
-      'audio-play-fail': "Audio play failed", // NEW
-      'audio-ctx-fail': "Audio Context failed", // NEW
+      'resume-fail': "resume-fail",
+      'synth-unlock-err': "synth-unlock-err",
+      'audio-play-fail': "audio-play-fail",
+      'audio-unlock-err': "audio-unlock-err",
       'Sound ready.': "Sound ready.",
+      'Synth ready (MP3/WAV may fail)': "Synth ready (MP3/WAV may fail)",
+      'MP3/WAV ready (Synth may fail)': "MP3/WAV ready (Synth may fail)",
       'Sound failed. Please refresh.': "Sound failed. Please refresh.",
-      'no-mp3-url': "No MP3 URL set", // NEW
+      'no-mp3-url': "no-mp3-url",
       'Please click "Enable Sound" first': 'Please click "Enable Sound" first',
       // Sound Dropdown
       standardSounds: "Standard Sounds",
@@ -570,7 +546,7 @@
       toggleSettings: "설정 보기/숨기기",
       sound: "소리",
       muted: "음소거됨",
-      enableSound: "소리 초기화", // CHANGED
+      enableSound: "소리 활성화",
       tests: "테스트",
       // Settings - Profiles
       profiles: "프로필",
@@ -597,7 +573,7 @@
       // Settings - Audio
       bellSpacing: "벨 간격 (ms)",
       bellMode: "벨 모드",
-      volume: "볼륨", // CHANGED
+      volume: "볼륨 (0-1)",
       mp3Url: "MP3 URL",
       uploadSounds: "사운드 업로드",
       // Speaker Progress
@@ -645,18 +621,19 @@
         '"주요 발언" ("Main" 시간)은 1번째/2번째 벨 및 유예 시간이 있습니다.',
         '"요약 발언" ("Rebuttal" 시간)은 마지막에 더블 벨이 울리는 더 간단한 타이머입니다.',
         '"교차조사" 및 "준비 시간" 타이머는 별도의 미니 타이머입니다.',
-        '브라우저에서 소리를 재생하려면 "소리 초기화" 버튼을 한 번 클릭해야 합니다. 이는 대부분의 최신 브라우저(특히 모바일)의 보안 요구 사항입니다.' // ADDED
       ],
       close: "닫기",
       // Audio / Status
       idle: "대기 중",
-      'resume-fail': "오디오 재개 실패", // NEW
-      'synth-unlock-err': "신디사이저 오디오 실패", // NEW
-      'audio-play-fail': "오디오 재생 실패", // NEW
-      'audio-ctx-fail': "오디오 컨텍스트 실패", // NEW
+      'resume-fail': "오디오 재개 실패",
+      'synth-unlock-err': "신디사이저 오디오 잠금 해제 오류",
+      'audio-play-fail': "오디오 재생 실패",
+      'audio-unlock-err': "오디오 태그 잠금 해제 오류",
       'Sound ready.': "소리 준비 완료.",
+      'Synth ready (MP3/WAV may fail)': "신디사이저 준비됨 (MP3/WAV 실패 가능)",
+      'MP3/WAV ready (Synth may fail)': "MP3/WAV 준비됨 (신디사이저 실패 가능)",
       'Sound failed. Please refresh.': "소리 활성화 실패. 새로고침하세요.",
-      'no-mp3-url': "MP3 URL이 설정되지 않았습니다", // NEW
+      'no-mp3-url': "MP3 URL이 설정되지 않았습니다",
       'Please click "Enable Sound" first': '"소리 활성화" 버튼을 먼저 클릭하세요',
       // Sound Dropdown
       standardSounds: "기본 사운드",
@@ -1021,11 +998,13 @@
   const helpModal = $('#helpModal');
   const closeHelpBtn = $('#closeHelpBtn');
   
-  // const silentAudio = $('#silentUnlockAudio'); // REMOVED
-
-  // NEW: Selectors for Mute Icons // CHANGED - Was an HTML comment
-  const muteIconOn = $('#muteIconOn');
-  const muteIconOff = $('#muteIconOff');
+  helpBtn.onclick = () => { helpModal.style.display = 'flex'; };
+  closeHelpBtn.onclick = () => { helpModal.style.display = 'none'; };
+  helpModal.onclick = (e) => { // Close on overlay click
+    if (e.target === helpModal) {
+      helpModal.style.display = 'none';
+    }
+  };
 
   // New Lang Toggle UI
   const langToggleBtn = $('#langToggleBtn');
@@ -1264,59 +1243,16 @@
   };
 
   // ===== Audio =====
-  // const SILENT_WAV = '...'; // REMOVED
+  const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
   // Built-in WAV file (a simple 880Hz 'ding')
   const BUILT_IN_DING_WAV = 'data:audio/wav;base64,UklGRigCAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQCAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIA==';
   
   let audioCtx = null; // AudioContext
   let unlocked = false;
-  // let uploadedSounds = []; // REMOVED: Now part of soundBank
-  
-  // NEW: Sound bank to hold pre-loaded audio buffers
-  const soundBank = {
-    'synth': { name: 'Synth Bell', buffer: null, url: null, builtIn: true },
-    'wav': { name: 'Built-in WAV', buffer: null, url: BUILT_IN_DING_WAV, builtIn: true },
-    'mp3': { name: 'MP3 URL', buffer: null, url: null, builtIn: true }, // URL set from state
-    'uploads': [] // { name: 'file.mp3', buffer: null, url: 'blob:...' }
-  };
-  
-  // NEW: Helper to decode base64 for data: URLs
-  const base64ToArrayBuffer = (base64) => {
-    const binaryString = window.atob(base64);
-    const len = binaryString.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    return bytes.buffer;
-  };
+  let uploadedSounds = []; // { name: string, url: string }
 
-  // NEW: Function to pre-load sounds into AudioBuffers
-  async function loadSound(soundObj) {
-    if (!soundObj || !soundObj.url || !audioCtx) return;
-    
-    // Don't re-fetch if buffer is already loaded
-    if (soundObj.buffer) return; 
-
-    try {
-      let arrayBuffer;
-      // Handle data: URLs directly, fetch others
-      if (soundObj.url.startsWith('data:')) {
-        const base64Data = soundObj.url.split(',')[1];
-        arrayBuffer = base64ToArrayBuffer(base64Data);
-      } else {
-        const response = await fetch(soundObj.url);
-        arrayBuffer = await response.arrayBuffer();
-      }
-      
-      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-      soundObj.buffer = audioBuffer; // Cache the buffer
-      console.log(`Loaded sound: ${soundObj.name}`);
-    } catch (e) {
-      console.error(`Failed to load ${soundObj.name} at ${soundObj.url}:`, e);
-      soundObj.buffer = null; // Failed
-    }
-  }
+  // DELETING the getOrCreateContext and playSilent functions,
+  // as they will be inlined into the new 'unlock' function.
 
   const setStatus = (s)=>{ 
     const trans = translations[currentLang];
@@ -1327,16 +1263,19 @@
         statusSpan.textContent = statusText;
     }
     
-    // const tip = (state.mode==='mp3' && !state.mp3Url ? ' · Tip: set a public MP3 URL or upload below' : '');
+    const tip = (state.mode==='mp3' && !state.mp3Url ? ' · Tip: set a public MP3 URL or upload below' : '');
     // We can't easily translate the tip, so we'll leave it
     // statusNote.textContent = trans.statusPrefix + statusText + tip; 
   };
 
   const unlock = ()=>{
-    // This function is now "bulletproof" and uses Web Audio API
-    if (unlocked) return true;
+    // This function is now "bulletproof" and based on your suggestion.
+    // It will ALWAYS hide the button, even if audio fails.
+    
+    let synthUnlocked = false;
+    let audioTagUnlocked = false;
 
-    // 1. Try to unlock Web Audio (for ALL sounds)
+    // 1. Try to unlock Web Audio (for Synth bell)
     try {
       const Ctx = window.AudioContext || window.webkitAudioContext;
       if (Ctx) {
@@ -1345,160 +1284,59 @@
         }
         if (audioCtx && audioCtx.state === 'suspended') {
           // Fire-and-forget resume.
-          audioCtx.resume().then(() => {
-            // NEW: Load sounds after context is resumed
-            loadSound(soundBank.wav); // Pre-load built-in
-            if (state.mp3Url) {
-              soundBank.mp3.url = state.mp3Url;
-              loadSound(soundBank.mp3); // Pre-load custom URL
-            }
-            soundBank.uploads.forEach(loadSound); // Pre-load all uploads
-            
-            setStatus('Sound ready.');
-          }).catch(()=>{ 
-            setStatus('resume-fail'); 
-          });
-        } else if (audioCtx && audioCtx.state === 'running') {
-            // NEW: Load sounds
-            loadSound(soundBank.wav);
-            if (state.mp3Url) {
-              soundBank.mp3.url = state.mp3Url;
-              loadSound(soundBank.mp3);
-            }
-            soundBank.uploads.forEach(loadSound);
-            setStatus('Sound ready.');
+          audioCtx.resume().catch(()=>{ setStatus('resume-fail'); });
         }
-        unlocked = true;
-        enableBtn.style.display = 'none';
-        return true;
+        synthUnlocked = true;
       }
     } catch (e) {
-      setStatus('audio-ctx-fail'); // Use new key
+      setStatus('synth-unlock-err');
     }
 
-    // 2. Fallback (if Ctx failed)
-    unlocked = false; // It failed
-    enableBtn.style.display = 'none'; // Hide button anyway
-    setStatus('Sound failed. Please refresh.');
-    return false;
-  };
-
-  const playBell = async(count)=>{
-    if(state.muted || !unlocked) return; // Check flag, not unlock
-    
-    // Attempt to resume AudioContext if it's suspended (for iOS)
-    if (audioCtx && audioCtx.state === 'suspended') {
-      try {
-        await audioCtx.resume();
-      } catch (e) {
-        console.error('AudioContext resume failed on playBell:', e);
-        setStatus('resume-fail');
-      }
-    }
-    if (!audioCtx) { // Check if context exists
-      setStatus('Please click "Enable Sound" first');
-      return;
-    }
-    
-    // Logic for which sound to play
-    const mode = state.mode;
-    
-    if(mode === 'synth'){
-      const ctx = audioCtx; // Already checked for existence
-      const base = ctx.currentTime + .05;
-      
-      const freqs = [ 700, 1400, 1760, 2800, 3520, 4400, 5600, 7040, 8800, 11200, 14080, 17600 ];
-      const gains = [ 0.2, 0.15, 0.4, 0.3, 0.25, 0.2, 0.1, 0.08, 0.05, 0.03, 0.02, 0.01 ];
-      const decays = [ 2.8, 2.0, 2.5, 2.0, 1.5, 1.0, 0.7, 0.5, 0.4, 0.3, 0.2, 0.1 ];
-      
-      for (let i = 0; i < count; i++) {
-        const t = base + (i * state.spacing) / 1000; // time for this specific chime
-
-        // Create a NEW master gain for EACH chime
-        const master = ctx.createGain();
-        master.gain.setValueAtTime(0.0001, t);
-        master.gain.exponentialRampToValueAtTime(state.volume, t + 0.01); // Very fast attack
-        master.gain.exponentialRampToValueAtTime(0.0001, t + 3.0); // Long decay
-        master.connect(ctx.destination);
-
-        freqs.forEach((freq, idx) => {
-          const osc = ctx.createOscillator();
-          const g = ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, t);
-          
-          const partialGain = gains[idx]; // Master gain already handles volume
-          const decay = decays[idx];
-          
-          g.gain.setValueAtTime(partialGain, t);
-          g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
-          
-          osc.connect(g).connect(master);
-          osc.start(t);
-          osc.stop(t + 3.0);
-        });
-      }
-    } else {
-      // *** NEW: AudioBuffer playback logic ***
-      let soundObj;
-      if (mode === 'wav') {
-        soundObj = soundBank.wav;
-      } else if (mode === 'mp3') {
-        soundBank.mp3.url = state.mp3Url; // Ensure URL is current
-        soundObj = soundBank.mp3;
-      } else if (mode.startsWith('upload_')) {
-        const uploadIndex = parseInt(mode.split('_')[1], 10);
-        soundObj = soundBank.uploads[uploadIndex]; // Use new soundBank
-      }
-
-      if (!soundObj || !soundObj.url) {
-        // Special case for 'mp3' mode with no URL set
-        if (mode === 'mp3' && !soundObj.url) {
-          setStatus('no-mp3-url');
-        } else if (!soundObj) {
-          console.error('Sound object not found for mode:', mode);
+    // 2. Try to unlock <audio> tag (for WAV/MP3 bells)
+    //    This uses your suggested method of playing an *existing* element.
+    try {
+      const silentAudio = $('#silentUnlockAudio'); // Get the new element
+      if (silentAudio) {
+        const p = silentAudio.play(); // Play the existing element
+        if (p && p.catch) {
+          p.catch(() => { setStatus('audio-play-fail'); });
         }
-        return;
+        audioTagUnlocked = true;
       }
-
-      // Check if it's loaded. If not, load it ONCE.
-      if (!soundObj.buffer) {
-        await loadSound(soundObj); // Load on-demand
-      }
-      
-      // If still no buffer, or sound failed, abort.
-      if (!soundObj.buffer) {
-        console.error(`Sound ${soundObj.name} is not loaded or failed to load.`);
-        setStatus('audio-play-fail');
-        return;
-      }
-      
-      // Play using AudioBuffer
-      const baseTime = audioCtx.currentTime;
-      for (let i = 0; i < count; i++) {
-        const t = baseTime + (i * state.spacing) / 1000;
-        
-        // Create a *new* source node for each play
-        const source = audioCtx.createBufferSource();
-        source.buffer = soundObj.buffer;
-        
-        const gainNode = audioCtx.createGain();
-        gainNode.gain.setValueAtTime(state.volume, t);
-        
-        source.connect(gainNode).connect(audioCtx.destination);
-        source.start(t);
-      }
+    } catch (e) {
+      setStatus('audio-unlock-err');
     }
+
+    // 3. THIS IS THE CRITICAL PART
+    // This code will now run no matter what.
+    unlocked = true; 
+    enableBtn.style.display = 'none';
+    
+    if (synthUnlocked && audioTagUnlocked) {
+      setStatus('Sound ready.');
+    } else if (synthUnlocked) {
+      setStatus('Synth ready (MP3/WAV may fail)');
+    } else if (audioTagUnlocked) {
+      setStatus('MP3/WAV ready (Synth may fail)');
+    } else {
+      setStatus('Sound failed. Please refresh.');
+    }
+    
+    return true; // Return value doesn't matter, but good practice.
   };
+
+  const playBell = (count=1)=>{
+  if(state.muted || !unlocked) return;
+  const bell=document.getElementById('deskBell');
+  for(let i=0;i<count;i++){
+    setTimeout(()=>{ bell.currentTime=0; bell.play(); }, i*150);
+  }
+};
 
   // Controls
   muteBtn.onclick = ()=>{ 
     state.muted=!state.muted; 
-    
-    // UPDATED: Toggle icons instead of text
-    muteIconOn.style.display = state.muted ? 'none' : 'block';
-    muteIconOff.style.display = state.muted ? 'block' : 'none';
-    
+    muteBtn.textContent = state.muted? translations[currentLang].muted : translations[currentLang].sound; 
     localStorage.setItem('muted', state.muted);
   };
   enableBtn.onclick = unlock;
@@ -1514,7 +1352,7 @@
   const stopContinuousBell = ()=>{
     if(contBellInterval){ clearInterval(contBellInterval); contBellInterval=null; }
     stopBellBtn.style.display = 'none';
-    testContBellBtn.textContent = translations[currentLang].testStopCont; // Use translation
+    testContBellBtn.textContent = 'Test/Stop Cont.';
   };
 
   // Wire up stop button
@@ -1528,7 +1366,8 @@
         setStatus('Please click "Enable Sound" first');
         return; 
       }
-      contBellInterval = setInterval(()=>playBell(1), 500);
+      const spacing=parseInt(document.getElementById('bellSpacing').value)||100;
+          contBellInterval = setInterval(()=>playBell(1), spacing);
       testContBellBtn.textContent = translations[currentLang].stopBell; // 'Stop'
     }
   };
@@ -1545,7 +1384,8 @@
         // Grace period over
         if (!contBellInterval && timerSnapshot.preset === 'Substantive') {
           // Start continuous bell only for Substantive
-          contBellInterval = setInterval(()=>playBell(1), 500); // 500ms interval
+          const spacing=parseInt(document.getElementById('bellSpacing').value)||100;
+          contBellInterval = setInterval(()=>playBell(1), spacing); // 500ms interval
           stopBellBtn.style.display = 'inline-flex';
         }
       }
@@ -1601,19 +1441,11 @@
 
   const start = ()=>{
     if(raf) return;
-    
-    // FIX: Always snapshot settings on start, unless we're resuming *during* the grace period.
-    // The "if (acc === 0)" check was the bug.
-    if (!inGrace) {
-      snapshotSettings(); // Take fresh snapshot of settings
-      // If we are starting from a paused state (acc > 0), we must preserve acc.
-      // If we are starting from a scrub (acc > 0), we must preserve acc.
-      // If we are starting from 0 (acc === 0), it's a fresh start.
-      if (acc === 0) {
-        graceRemaining = timerSnapshot.grace;
-      }
+    if (acc === 0) { // If it's a fresh start (not resume)
+      snapshotSettings(); // Take snapshot of settings
+      inGrace = false;
+      graceRemaining = timerSnapshot.grace;
     }
-    
     raf = requestAnimationFrame(loop); // Set raf *before* calling loop
   };
   
@@ -1622,7 +1454,7 @@
     cancelAnimationFrame(raf);
     raf = null;
     const now = performance.now();
-    if(startTs) acc += (now - startTs); // Check if startTs is set
+    acc += (now - startTs);
     startTs = null;
     stopContinuousBell(); // Stop bells on pause
   };
@@ -1656,80 +1488,6 @@
   singleBtn.onclick = ()=>{ playBell(1); }; // No longer async, removed await
   doubleBtn.onclick = ()=>{ playBell(2); }; // No longer async, removed await
 
-  // ===== NEW: Main Timer Scrubbing Logic =====
-  let isScrubbingMain = false;
-
-  const mainScrubMove = (e) => {
-    if (!isScrubbingMain) return;
-    e.preventDefault();
-    
-    // Works for both mouse and touch
-    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    if (typeof clientX === 'undefined') return;
-
-    const rect = progressEl.getBoundingClientRect();
-    let pct = (clientX - rect.left) / rect.width;
-    pct = Math.max(0, Math.min(1, pct));
-    
-    // Timer is running, don't scrub
-    if (raf !== null) { 
-        mainScrubEnd();
-        return;
-    }
-
-    // Update main timer state
-    const source = timerSnapshot; // Scrubbing always affects the snapshot
-    acc = source.main * pct;
-    remaining = source.main - acc;
-    
-    // Ensure we are not in grace period
-    inGrace = false; 
-    graceRemaining = source.grace;
-    
-    // Reset bell-fired flags if we scrub *before* them
-    if (acc < source.first) fired.first = false;
-    if (acc < source.second) fired.second = false;
-    fired.final = false; // Always reset final bell
-    
-    render(true); // Force render
-  };
-
-  const mainScrubEnd = () => {
-    isScrubbingMain = false;
-    document.removeEventListener('mousemove', mainScrubMove);
-    document.removeEventListener('mouseup', mainScrubEnd);
-    document.removeEventListener('touchmove', mainScrubMove);
-    document.removeEventListener('touchend', mainScrubEnd);
-  };
-
-  const mainScrubStart = (e) => {
-    // Only scrub if PAUSED
-    if (raf !== null) return;
-
-    // Must have a snapshot to scrub
-    /* // OLD, BUGGY LOGIC:
-    if (acc === 0) { 
-      snapshotSettings();
-    }
-    */
-    
-    // NEW FIX: Always take a new snapshot on scrub start.
-    snapshotSettings();
-
-    isScrubbingMain = true;
-    document.addEventListener('mousemove', mainScrubMove);
-    document.addEventListener('mouseup', mainScrubEnd);
-    document.addEventListener('touchmove', mainScrubMove, { passive: false });
-    document.addEventListener('touchend', mainScrubEnd);
-    
-    mainScrubMove(e); // Snap to initial click
-  };
-
-  progressEl.addEventListener('mousedown', mainScrubStart);
-  progressEl.addEventListener('touchstart', mainScrubStart, { passive: false });
-  // ===== END: Main Timer Scrubbing Logic =====
-
-
   // Inputs handlers
   const syncFromInputs = ()=>{
     // This function now reads from inputs and updates state
@@ -1750,18 +1508,7 @@
     // Global settings ARE saved
     state.mode = modeSel.value;
     state.volume = parseFloat(volumeInput.value);
-    
-    // NEW: Handle MP3 URL change
-    const newMp3Url = mp3Url.value || null;
-    if (newMp3Url !== state.mp3Url) {
-      state.mp3Url = newMp3Url;
-      soundBank.mp3.url = newMp3Url;
-      soundBank.mp3.buffer = null; // Invalidate buffer
-      if (unlocked && newMp3Url) {
-        loadSound(soundBank.mp3); // Preload new URL
-      }
-    }
-    
+    if(mp3Url.value) state.mp3Url = mp3Url.value;
     localStorage.setItem('bellMode', state.mode);
     if(state.mp3Url) localStorage.setItem('mp3Url', state.mp3Url);
     localStorage.setItem('volume', String(state.volume));
@@ -1799,11 +1546,7 @@
     // Sync global audio settings
     // modeSel.value = state.mode; // This is now handled by populateModeSelect
     volumeInput.value = state.volume;
-    
-    // UPDATED: Toggle icons instead of text
-    muteIconOn.style.display = state.muted ? 'none' : 'block';
-    muteIconOff.style.display = state.muted ? 'block' : 'none';
-    
+    muteBtn.textContent = state.muted? translations[currentLang].muted : translations[currentLang].sound;
     if (state.mp3Url) mp3Url.value = state.mp3Url;
     
     populateModeSelect(); // Re-populate and set correct value
@@ -1837,10 +1580,10 @@
     modeSel.appendChild(basics);
     
     // Uploaded options
-    if (soundBank.uploads.length > 0) { // Use new soundBank
+    if (uploadedSounds.length > 0) {
       const uploads = document.createElement('optgroup');
       uploads.label = trans.uploadedSounds;
-      soundBank.uploads.forEach((sound, index) => { // Use new soundBank
+      uploadedSounds.forEach((sound, index) => {
         const opt = document.createElement('option');
         opt.value = `upload_${index}`;
         opt.textContent = sound.name;
@@ -1865,15 +1608,11 @@
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
-    let firstUploadIndex = soundBank.uploads.length; // Use new soundBank
+    let firstUploadIndex = uploadedSounds.length;
     
     Array.from(files).forEach(file => {
       const url = URL.createObjectURL(file);
-      const newSound = { name: file.name, url: url, buffer: null };
-      soundBank.uploads.push(newSound); // Use new soundBank
-      if (unlocked) { // Only preload if audio is enabled
-        loadSound(newSound);
-      }
+      uploadedSounds.push({ name: file.name, url: url });
     });
     
     populateModeSelect();
@@ -1904,67 +1643,10 @@
     let rem = state[stateKey]; 
     let st=null, acc=0, r=null;
     
-    // ===== NEW: Mini Timer Scrubbing Logic =====
-    const progressContainerEl = fillEl.parentElement;
-    let isScrubbing = false;
-
-    const scrubMove = (e) => {
-      if (!isScrubbing) return;
-      e.preventDefault();
-      
-      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-      if (typeof clientX === 'undefined') return;
-      
-      const rect = progressContainerEl.getBoundingClientRect();
-      let pct = (clientX - rect.left) / rect.width;
-      pct = Math.max(0, Math.min(1, pct));
-      
-      // Update mini-timer state
-      // We can only do this if the timer is PAUSED (r === null)
-      if (r !== null) { // Timer is running, don't scrub
-          scrubEnd();
-          return;
-      }
-      
-      acc = snapshotDur * pct; // Set elapsed time
-      rem = snapshotDur - acc; // Set remaining time
-      
-      paint(); // Redraw the clock and bar
-    };
-
-    const scrubEnd = () => {
-      isScrubbing = false;
-      document.removeEventListener('mousemove', scrubMove);
-      document.removeEventListener('mouseup', scrubEnd);
-      document.removeEventListener('touchmove', scrubMove);
-      document.removeEventListener('touchend', scrubEnd);
-    };
-
-    const scrubStart = (e) => {
-      // Only scrub if PAUSED
-      if (r !== null) return; 
-
-      // Snapshot duration on scrub start
-      snapshotDur = state[stateKey];
-
-      isScrubbing = true;
-      document.addEventListener('mousemove', scrubMove);
-      document.addEventListener('mouseup', scrubEnd);
-      document.addEventListener('touchmove', scrubMove, { passive: false });
-      document.addEventListener('touchend', scrubEnd);
-      
-      scrubMove(e); // Snap to initial click
-    };
-
-    progressContainerEl.addEventListener('mousedown', scrubStart);
-    progressContainerEl.addEventListener('touchstart', scrubStart, { passive: false });
-    // ===== END: Mini Timer Scrubbing Logic =====
-
-
     const paint = ()=>{ 
       const displayRem = (r === null && acc === 0) ? state[stateKey] : rem;
       clockEl.textContent = fmt(displayRem); 
-      const pct = snapshotDur === 0 ? 0 : 100 - Math.round((rem/snapshotDur)*100); 
+      const pct = snapshotDur === 0 ? 0 : 100 - Math.round((displayRem/snapshotDur)*100); 
       fillEl.style.width = Math.max(0,Math.min(100,pct))+"%"; 
     };
     
@@ -2213,7 +1895,7 @@
     const newProfile = {
       name: name.trim(),
       speakerOrder: speakerOrder, // Save current order
-      settings: state, // Save current settings,
+      settings: state, // Save current settings
     };
     
     let profiles = getProfiles();
@@ -2338,4 +2020,3 @@
 </script>
 </body>
 </html>
-
