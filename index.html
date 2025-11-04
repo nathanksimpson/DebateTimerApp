@@ -25,24 +25,19 @@
   .title{font-weight:700}
   .muted{color:var(--muted)}
   .clock{font-size:76px;font-weight:900;text-align:center; line-height: 1.1;} /* Added line-height */
-  
-  /* Main Progress Bar */
-  .progress{
-    height:12px;
-    background:var(--track);
-    border-radius:999px;
-    position:relative;
-    overflow:hidden;
-    display: flex; /* <-- ADDED: This lays out the bell segments horizontally */
-    cursor: pointer; /* NEW: Add pointer cursor */
-  }
-  .fill{
-    position:absolute;
-    left:0;
-    top:0; /* Added */
-    bottom:0; /* Added */
-    background:var(--fill); /* Added */
-  } /* <-- THIS BRACE WAS MISSING */
+  .progress{height:12px;background:var(--track);border-radius:999px;position:relative;overflow:hidden}
+  .fill{position:absolute;left:0;top:0;bottom:0;background:var(--fill)}
+  .seg{outline:1px solid rgba(0,0,0,0.12);height:100%}
+  .grid{display:grid;gap:12px}
+  .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .input{padding:8px 10px;border:1px solid var(--bd);border-radius:10px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+  .label{display:flex;flex-direction:column;gap:6px}
+  .bar{height:8px;background:rgba(17,24,39,.12);border-radius:8px;overflow:hidden}
+  .bar>.bfill{height:100%;background:#111827}
+  .caps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:6px;color:#475569;font-size:12px}
+  .tests li{margin:2px 0}
+  .note{font-size:12px;color:#6b7280;margin-top:6px;text-align:center}
 
   /* Speaker Progress Bar Styles */
   .speaker-progress-bar {
@@ -126,11 +121,6 @@
     margin-top: 16px;
   }
 
-  /* NEW: Add cursor to mini-timer bars */
-  .bar {
-    cursor: pointer;
-  }
-
   /* Responsive Media Queries */
   @media (max-width:800px){
     .grid-3, .grid-4 { grid-template-columns:repeat(2,minmax(0,1fr)) } /* 2 cols */
@@ -150,7 +140,8 @@
 </head>
 <body>
   <!-- 
-    Persistent, silent <audio> tag to unlock audio on iOS.
+    NEW: Added a persistent, silent <audio> tag.
+    This is the key to unlocking audio on iOS, as per your suggestion.
   -->
   <audio id="silentUnlockAudio" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" loop muted playsinline></audio>
 
@@ -159,32 +150,18 @@
       <header>
         <h1><span data-lang="appTitle">Debate Timer</span></h1>
         <div class="row">
+          <!-- New Help and Lang buttons -->
           <button id="helpBtn" class="btn" data-lang="help">Help</button>
           <button id="langToggleBtn" class="btn">한국어</button>
-          <button id="settingsBtn" class="btn" data-lang="toggleSettings">Toggle Settings</button>
-          
-          <!-- Mute Button -->
-          <button id="muteBtn" class="btn">
-            <svg id="muteIconOn" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 20px; height: 20px; stroke-width: 2; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round;">
-              <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07"></path>
-            </svg>
-            <svg id="muteIconOff" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 20px; height: 20px; stroke-width: 2; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; display: none;">
-              <path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"></path>
-            </svg>
-          </button>
-          
-          <button id="enableBtn" class="btn" data-lang="enableSound">Initialize Sound</button>
+          <button id="settingsBtn" class="btn" data-lang="toggleSettings">Toggle Settings</button> <!-- New Settings Button -->
+          <button id="presenterBtn" class="btn" data-lang="presenter">Presenter Mode</button>
+          <button id="muteBtn" class="btn" data-lang="sound">Sound</button>
+          <button id="enableBtn" class="btn" data-lang="enableSound">Enable Sound</button>
           <button id="testsBtn" class="btn" data-lang="tests">Tests</button>
-          
-          <!-- Volume Slider -->
-          <label class="label" style="flex-direction: row; align-items: center; gap: 8px; margin-left: 8px;">
-            <span data-lang="volume" style="font-weight: 600;">Volume</span>
-            <input id="volumeInput" type="range" min="0" max="1" step="0.05" value="0.5" style="width: 80px;" />
-          </label>
         </div>
       </header>
       
-      <!-- Collapsible Settings Card -->
+      <!-- New Collapsible Settings Card -->
       <div class="card" id="settingsContainer" style="display:none">
         <!-- Profile Management -->
         <div class="card" style="margin-bottom: 16px;">
@@ -245,13 +222,18 @@
               <input id="spaceInput" class="input" value="100" />
             </label>
             <label class="label"><span data-lang="bellMode">Bell mode</span>
-              <select id="modeSel" class="input"></select>
+              <select id="modeSel" class="input">
+                <!-- Options will be populated by JS -->
+              </select>
+            </label>
+            <label class="label"><span data-lang="volume">Volume (0-1)</span>
+              <input id="volumeInput" type="range" min="0" max="1" step="0.05" value="0.5" />
             </label>
             <label class="label"><span data-lang="mp3Url">MP3 URL</span>
               <input id="mp3Url" class="input" placeholder="https://example.com/bell.mp3" />
             </label>
             <label class="label"><span data-lang="uploadSounds">Upload Sound(s)</span>
-              <input id="mp3File" type="file" accept="audio/*" multiple />
+              <input id="mp3File" type="file" accept="audio/*" multiple /> <!-- Added multiple -->
             </label>
           </div>
         </div>
@@ -260,13 +242,17 @@
       <!-- Speaker Progress -->
       <div class="card">
         <div class="title" style="margin-bottom:8px" data-lang="speakerProgress">Speaker Progress</div>
-        <div class="speaker-progress-bar" id="speakerProgress"></div>
+        <div class="speaker-progress-bar" id="speakerProgress">
+          <!-- Speakers will be generated by JS -->
+        </div>
         <div class="row" style="justify-content:space-between;margin-top:8px">
           <div>
             <button id="prevSpeakerBtn" class="btn" data-lang="previous">Previous</button>
             <button id="nextSpeakerBtn" class="btn" data-lang="next">Next</button>
           </div>
+          <!-- Prep timer is part of this card -->
           <div id="prepTimerContainer" class="row">
+            <!-- Prep input is now in settings -->
             <div class="clock" id="prepClock" style="font-size:20px;font-weight:700;padding:0 8px">20:00</div>
             <button id="prepStart" class="btn" data-lang="start">Start</button>
             <button id="prepReset" class="btn" data-lang="reset">Reset</button>
@@ -307,9 +293,10 @@
       </div>
 
       <div class="grid grid-3">
-        <!-- Cross-Ex / Shared -->
+        <!-- Rebuttal Prep Timer -> Renamed to Cross-Ex -->
         <div class="card" id="crossExCard">
           <div class="title" data-lang="cexTitle">Cross-Ex / Shared</div>
+          <!-- Input now in settings -->
           <div class="clock" id="cexClock">1:00</div>
           <div class="bar"><div class="bfill" id="cexFill" style="width:0%"></div></div>
           <div class="row" style="justify-content:center;margin-top:8px">
@@ -318,9 +305,10 @@
           </div>
         </div>
         
-        <!-- Rebuttal / Reply -->
+        <!-- Reply Timer Card -> Renamed to Rebuttal -->
         <div class="card" id="rebuttalCard">
           <div class="title" id="rebuttalLabel" data-lang="rebTitle">Rebuttal / Reply (3:00)</div>
+          <!-- Input now in settings -->
           <div class="clock" id="rebClock">3:00</div>
           <div class="bar"><div class="bfill" id="rebFill" style="width:0%"></div></div>
           <div class="row" style="justify-content:center;margin-top:8px">
@@ -329,6 +317,8 @@
           </div>
         </div>
       </div>
+
+      <!-- Settings card moved into collapsible section -->
 
       <div class="card" id="tests" style="display:none">
         <div class="title" style="margin-bottom:6px" data-lang="tests">Tests</div>
@@ -339,7 +329,7 @@
     </div>
   </div>
 
-  <!-- Help Modal -->
+  <!-- New Help Modal -->
   <div id="helpModal" style="display:none">
     <div class="card">
       <h2 data-lang="helpTitle">Help</h2>
@@ -365,7 +355,6 @@
         <li>"Substantive" speeches (from "Main" time) have 1st/2nd bells and grace periods.</li>
         <li>"Reply" speeches (from "Rebuttal" time) are simpler timers with a final double bell.</li>
         <li>"Cross-Ex" and "Prep" timers are separate mini-timers.</li>
-        <li>"Initialize Sound" must be clicked once to allow the browser to play audio. This is a security requirement for most browsers, especially on mobile.</li>
       </ul>
 
       <div class="row">
@@ -383,6 +372,7 @@
   const allDigitsFixed = t => !!t && /^[0-D]+$/.test(t);
   const parseMin = input => { const t = (input||'').trim(); if (allDigitsFixed(t)) return parseInt(t,10)*60000; const p=t.split(':'); const m=+p[0]||0,s=+p[1]||0; return (m*60+s)*1000 };
 
+  // ADDED: Missing format function
   const fmt = (ms)=>{ 
     if(ms===null || isNaN(ms)) return '-:--'; 
     const t = Math.abs(Math.round(ms/1000)); 
@@ -395,14 +385,17 @@
   let currentLang = 'en';
   const translations = {
     en: {
+      // Header
       pageTitle: "AP Debate Timer — HTML",
       appTitle: "Debate Timer",
       help: "Help",
       toggleSettings: "Toggle Settings",
       sound: "Sound",
       muted: "Muted",
-      enableSound: "Initialize Sound",
+      enableSound: "Enable Sound",
       tests: "Tests",
+      presenter: "Presenter Mode",
+      // Settings - Profiles
       profiles: "Profiles",
       loadProfile: "Load Profile",
       load: "Load",
@@ -413,6 +406,7 @@
       profilePrompt: "Enter profile name:",
       cannotDeleteDefault: "Cannot delete a default profile.",
       cannotOverwriteDefault: "Cannot overwrite a default profile.",
+      // Settings - Timers
       timerSettings: "Timer Settings",
       mainTime: "Main (m:ss)",
       firstBell: "1st Bell from start (m:ss)",
@@ -423,17 +417,20 @@
       prepTime: "Prep Time (m:ss)",
       cexTime: "Cross-Ex / Shared (m:ss)",
       rebTime: "Rebuttal / Reply (m:ss)",
+      // Settings - Audio
       bellSpacing: "Bell spacing (ms)",
       bellMode: "Bell mode",
-      volume: "Volume",
+      volume: "Volume (0-1)",
       mp3Url: "MP3 URL",
       uploadSounds: "Upload Sound(s)",
+      // Speaker Progress
       speakerProgress: "Speaker Progress",
       previous: "Previous",
       next: "Next",
       resetOrder: "Reset Order",
       speakerNote: "Click to select, Double-click to toggle, Drag to reorder.",
       speakerBoxTitle: " (Click to select, Double-click to toggle, Drag to reorder)",
+      // Main Timer
       substantiveSpeech: "Substantive Speech",
       replySpeech: "Reply Speech",
       start: "Start",
@@ -445,9 +442,12 @@
       testStopCont: "Test/Stop Cont.",
       statusPrefix: "Status:",
       gracePeriodLabel: "GRACE PERIOD:",
+      // Mini Timers
       cexTitle: "Cross-Ex / Shared",
       rebTitle: "Rebuttal / Reply",
+      // Tests
       testNote: "Note: Blob URLs from uploads are temporary. Use a public URL to persist across refresh.",
+      // Help Modal
       helpTitle: "Help",
       helpIntro: "This is a flexible timer for various debate formats.",
       helpProfilesTitle: "Profiles",
@@ -468,9 +468,9 @@
         '"Substantive" speeches (from "Main" time) have 1st/2nd bells and grace periods.',
         '"Reply" speeches (from "Rebuttal" time) are simpler timers with a final double bell.',
         '"Cross-Ex" and "Prep" timers are separate mini-timers.',
-        '"Initialize Sound" must be clicked once to allow the browser to play audio. This is a security requirement for most browsers, especially on mobile.'
       ],
       close: "Close",
+      // Audio / Status
       idle: "idle",
       'resume-fail': "resume-fail",
       'synth-unlock-err': "synth-unlock-err",
@@ -482,13 +482,16 @@
       'Sound failed. Please refresh.': "Sound failed. Please refresh.",
       'no-mp3-url': "no-mp3-url",
       'Please click "Enable Sound" first': 'Please click "Enable Sound" first',
+      // Sound Dropdown
       standardSounds: "Standard Sounds",
       uploadedSounds: "Uploaded Sounds",
       synthBell: "Synth Bell",
       builtInWAV: "Built-in WAV",
       mp3URLOpt: "MP3 URL",
+      // Profile Dropdown
       builtInProfiles: "Built-in Profiles",
       customProfiles: "Custom Profiles",
+      // Speaker Role Translations
       "Prep": "Prep",
       "Prime Minister": "Prime Minister",
       "LO Prep": "LO Prep",
@@ -537,14 +540,17 @@
       "Final Focus 2 (Con)": "Final Focus 2 (Con)",
     },
     ko: {
+      // Header
       pageTitle: "AP 토론 타이머 — HTML",
       appTitle: "토론 타이머",
       help: "도움말",
       toggleSettings: "설정 보기/숨기기",
       sound: "소리",
       muted: "음소거됨",
-      enableSound: "소리 초기화",
+      enableSound: "소리 활성화",
       tests: "테스트",
+      presenter: "발표자 모드",
+      // Settings - Profiles
       profiles: "프로필",
       loadProfile: "프로필 불러오기",
       load: "불러오기",
@@ -552,8 +558,10 @@
       deleteSelected: "선택 항목 삭제",
       exportAll: "모두 내보내기",
       import: "가져오기",
+      profilePrompt: "프로필 이름을 입력하세요:",
       cannotDeleteDefault: "기본 프로필은 삭제할 수 없습니다.",
       cannotOverwriteDefault: "기본 프로필은 덮어쓸 수 없습니다.",
+      // Settings - Timers
       timerSettings: "타이머 설정",
       mainTime: "주요 발언 (m:ss)",
       firstBell: "첫 번째 벨 (m:ss)",
@@ -564,17 +572,20 @@
       prepTime: "준비 시간 (m:ss)",
       cexTime: "교차조사 / 공유 시간 (m:ss)",
       rebTime: "반박 / 요약 (m:ss)",
+      // Settings - Audio
       bellSpacing: "벨 간격 (ms)",
       bellMode: "벨 모드",
-      volume: "볼륨",
+      volume: "볼륨 (0-1)",
       mp3Url: "MP3 URL",
       uploadSounds: "사운드 업로드",
+      // Speaker Progress
       speakerProgress: "발언자 순서",
       previous: "이전",
       next: "다음",
       resetOrder: "순서 초기화",
       speakerNote: "클릭: 선택, 더블클릭: 활성/비활성, 드래그: 순서 변경.",
       speakerBoxTitle: " (클릭: 선택, 더블클릭: 활성/비활성, 드래그: 순서 변경)",
+      // Main Timer
       substantiveSpeech: "주요 발언",
       replySpeech: "요약 발언",
       start: "시작",
@@ -586,9 +597,12 @@
       testStopCont: "연속 벨 테스트/중지",
       statusPrefix: "상태:",
       gracePeriodLabel: "유예 시간:",
+      // Mini Timers
       cexTitle: "교차조사 / 공유 시간",
       rebTitle: "반박 / 요약",
+      // Tests
       testNote: "참고: 업로드된 Blob URL은 임시적이므로, 새로고침 후에도 유지하려면 공개 URL을 사용하세요.",
+      // Help Modal
       helpTitle: "도움말",
       helpIntro: "이것은 다양한 토론 형식을 위한 유연한 타이머입니다.",
       helpProfilesTitle: "프로필",
@@ -609,9 +623,9 @@
         '"주요 발언" ("Main" 시간)은 1번째/2번째 벨 및 유예 시간이 있습니다.',
         '"요약 발언" ("Rebuttal" 시간)은 마지막에 더블 벨이 울리는 더 간단한 타이머입니다.',
         '"교차조사" 및 "준비 시간" 타이머는 별도의 미니 타이머입니다.',
-        '브라우저에서 소리를 재생하려면 "소리 초기화" 버튼을 한 번 클릭해야 합니다. 이는 대부분의 최신 브라우저(특히 모바일)의 보안 요구 사항입니다.'
       ],
       close: "닫기",
+      // Audio / Status
       idle: "대기 중",
       'resume-fail': "오디오 재개 실패",
       'synth-unlock-err': "신디사이저 오디오 잠금 해제 오류",
@@ -623,13 +637,16 @@
       'Sound failed. Please refresh.': "소리 활성화 실패. 새로고침하세요.",
       'no-mp3-url': "MP3 URL이 설정되지 않았습니다",
       'Please click "Enable Sound" first': '"소리 활성화" 버튼을 먼저 클릭하세요',
+      // Sound Dropdown
       standardSounds: "기본 사운드",
       uploadedSounds: "업로드된 사운드",
       synthBell: "신디사이저 벨",
       builtInWAV: "내장 WAV",
       mp3URLOpt: "MP3 URL",
+      // Profile Dropdown
       builtInProfiles: "기본 프로필",
       customProfiles: "사용자 지정 프로필",
+      // Speaker Role Translations
       "Prep": "준비 시간",
       "Prime Minister": "총리",
       "LO Prep": "야당 대표 준비",
@@ -683,18 +700,25 @@
     currentLang = lang;
     document.documentElement.lang = lang;
     localStorage.setItem('debateTimerLang', lang);
+    
+    // Update lang toggle button text
     langToggleBtn.textContent = lang === 'en' ? '한국어' : 'English';
 
     const trans = translations[lang];
     if (!trans) return;
 
+    // Update simple text content
     $$('[data-lang]').forEach(el => {
       const key = el.dataset.lang;
-      if (trans[key]) el.textContent = trans[key];
+      if (trans[key]) {
+        el.textContent = trans[key];
+      }
     });
     
+    // Update title
     document.title = trans.pageTitle;
 
+    // Update list content (for help modal)
     $$('[data-lang-list]').forEach(ul => {
       const key = ul.dataset.langList;
       if (trans[key] && Array.isArray(trans[key])) {
@@ -707,13 +731,19 @@
       }
     });
     
+    // Update special cases
+    // Re-populate dropdowns to get translated text
     populateModeSelect();
     loadProfilesToDropdown();
+    
+    // Re-render speaker titles
     initSpeakerProgress();
-    setActiveSpeaker(activeSpeakerIndex, true);
-    syncInputsToState();
+    setActiveSpeaker(activeSpeakerIndex, true); // Force re-render of active speaker
+    
+    // Re-render timer labels and status
+    syncInputsToState(); // This will update labels like rebuttalLabel
     setStatus($('#statusNote').dataset.currentStatus || 'idle');
-    render(true);
+    render(true); // Force render with new labels
   };
 
   // ===== Speaker Data =====
@@ -730,10 +760,10 @@
     { role: "Prop Whip", initials: "PW", team: "Prop", timers: ["main"], active: true },
     { role: "OW Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true },
     { role: "Opp Whip", initials: "OW", team: "Opp", timers: ["main"], active: true },
-    { role: "Prop Reply Prep", initials: "R", team: "Prop", timers: ["cross-ex"], active: true },
-    { role: "Prop Reply", initials: "PR", team: "Prop", timers: ["rebuttal"], active: true },
-    { role: "Opp Reply Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true },
-    { role: "Opp Reply", initials: "OR", team: "Opp", timers: ["rebuttal"], active: true },
+    { role: "Prop Reply Prep", initials: "R", team: "Prop", timers: ["cross-ex"], active: true }, // New
+    { role: "Prop Reply", initials: "PR", team: "Prop", timers: ["rebuttal"], active: true }, // Swapped
+    { role: "Opp Reply Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true }, // New
+    { role: "Opp Reply", initials: "OR", team: "Opp", timers: ["rebuttal"], active: true }, // Swapped
   ];
   
   const createAPSpeakerOrder = () => [
@@ -760,6 +790,7 @@
     { role: "Opp Whip", initials: "OW", team: "Opp", timers: ["main"], active: true },
   ];
   
+  // New Profiles
   const createPolicySpeakerOrder = () => [
     { role: "Prep", initials: "PREP", team: "None", timers: ["prep"], active: true },
     { role: "1st Aff Const", initials: "1AC", team: "Aff", timers: ["main"], active: true },
@@ -802,10 +833,11 @@
     { role: "Final Focus 2 (Con)", initials: "F2", team: "Neg", timers: ["rebuttal"], active: true },
   ];
   
-  let speakerOrder = createSimsonSpeakerOrder();
+  
+  let speakerOrder = createSimsonSpeakerOrder(); // Make it mutable
   let activeSpeakerIndex = 0;
   let draggingIndex = null;
-  let touchOverElement = null;
+  let touchOverElement = null; // For mobile drag/drop
 
   // ===== State =====
   const createDefaultState = (presetName) => {
@@ -814,46 +846,48 @@
         return {
           preset:'Substantive', main: 8*60000, first: 60000, second: 7*60000, yellow: 2*60000, red: 60000, grace: 30000,
           prepTime: 5*60000, cexTime: 3*60000, rebTime: 5*60000,
-          spacing: 100, running:false, muted:false, mode:'wav', mp3Url:null, volume: 0.5,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
         };
       case "LD":
         return {
           preset:'Substantive', main: 6*60000, first: 60000, second: 5*60000, yellow: 2*60000, red: 60000, grace: 30000,
           prepTime: 4*60000, cexTime: 3*60000, rebTime: 4*60000,
-          spacing: 100, running:false, muted:false, mode:'wav', mp3Url:null, volume: 0.5,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
         };
       case "PF":
         return {
           preset:'Substantive', main: 4*60000, first: 60000, second: 3*60000, yellow: 60000, red: 30000, grace: 30000,
           prepTime: 3*60000, cexTime: 3*60000, rebTime: 2*60000,
-          spacing: 100, running:false, muted:false, mode:'wav', mp3Url:null, volume: 0.5,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
         };
       case "AP":
         return {
           preset:'Substantive', main: 7*60000, first: 60000, second: 6*60000, yellow: 60000, red: 30000, grace: 30000,
           prepTime: 30*60000, cexTime: 0, rebTime: 4*60000,
-          spacing: 100, running:false, muted:false, mode:'wav', mp3Url:null, volume: 0.5,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
         };
       case "BP":
         return {
           preset:'Substantive', main: 7*60000, first: 60000, second: 6*60000, yellow: 60000, red: 30000, grace: 30000,
           prepTime: 15*60000, cexTime: 0, rebTime: 0,
-          spacing: 100, running:false, muted:false, mode:'wav', mp3Url:null, volume: 0.5,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
         };
       case "Simson":
       default:
         return {
           preset:'Substantive', main: 3*60000, first: 60000, second: 2*60000, yellow: 60000, red: 30000, grace: 30000,
           prepTime: 20*60000, cexTime: 60000, rebTime: 3*60000,
-          spacing: 100, running:false, muted:false, mode:'wav', mp3Url:null, volume: 0.5,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
         };
     }
   };
   
   let state = createDefaultState("Simson");
   
+  // This object will hold the timer settings when 'Start' is pressed
   let timerSnapshot = {};
   
+  // Profile DB Key
   const PROFILES_DB_KEY = 'debateTimerProfiles';
   
   const DEFAULT_PROFILES = [
@@ -893,7 +927,8 @@
 
   // Load persisted
   try{
-    state.mode = localStorage.getItem('bellMode')||'wav';
+    // Load global settings (not profile specific)
+    state.mode = localStorage.getItem('bellMode')||'synth'; // Default to synth
     state.mp3Url = localStorage.getItem('mp3Url')||null;
     state.volume = parseFloat(localStorage.getItem('volume')||'0.5');
     state.muted = (localStorage.getItem('muted') === 'true') || false;
@@ -923,7 +958,7 @@
   const spaceInput=$('#spaceInput');
   const modeSel=$('#modeSel'), mp3Url=$('#mp3Url'), mp3File=$('#mp3File'), volumeInput=$('#volumeInput');
   
-  // Quick Timer Inputs
+  // Quick Timer Inputs (now in settings)
   const prepInput=$('#prepInput'), cexInput=$('#cexInput'), rebInput=$('#rebInput');
 
   const muteBtn=$('#muteBtn'), enableBtn=$('#enableBtn'), testsBtn=$('#testsBtn');
@@ -960,18 +995,20 @@
   const prevSpeakerBtn = $('#prevSpeakerBtn');
   const resetOrderBtn = $('#resetOrderBtn');
 
-  // Help Modal UI
+  // New Help Modal UI
   const helpBtn = $('#helpBtn');
   const helpModal = $('#helpModal');
   const closeHelpBtn = $('#closeHelpBtn');
   
-  const silentAudio = $('#silentUnlockAudio');
+  helpBtn.onclick = () => { helpModal.style.display = 'flex'; };
+  closeHelpBtn.onclick = () => { helpModal.style.display = 'none'; };
+  helpModal.onclick = (e) => { // Close on overlay click
+    if (e.target === helpModal) {
+      helpModal.style.display = 'none';
+    }
+  };
 
-  // Mute icons
-  const muteIconOn = $('#muteIconOn');
-  const muteIconOff = $('#muteIconOff');
-
-  // Lang Toggle
+  // New Lang Toggle UI
   const langToggleBtn = $('#langToggleBtn');
   langToggleBtn.onclick = () => {
     const newLang = currentLang === 'en' ? 'ko' : 'en';
@@ -982,6 +1019,7 @@
     speakerProgress.innerHTML = '';
     speakerOrder.forEach((speaker, index) => {
       const box = document.createElement('div');
+      // BP has 'Gov' and 'Opp'
       let teamClass = speaker.team.toLowerCase().replace('prop', 'gov');
       if (teamClass.includes('aff')) teamClass = 'aff';
       if (teamClass.includes('neg')) teamClass = 'neg';
@@ -992,22 +1030,26 @@
       const initials = speaker.initials;
       box.textContent = initials;
       
+      // Localize title
       const trans = translations[currentLang];
-      const roleName = trans[speaker.role] || speaker.role;
+      const roleName = trans[speaker.role] || speaker.role; // Fallback to key
       box.title = roleName + trans.speakerBoxTitle;
-      box.dataset.langRole = speaker.role;
+      box.dataset.langRole = speaker.role; // Store key for updates
       box.dataset.index = index;
       
+      // Click to select
       box.addEventListener('click', () => {
-        if (!speaker.active) return;
+        if (!speaker.active) return; // Don't select inactive
         setActiveSpeaker(index);
       });
       
+      // Double-click to toggle active
       box.addEventListener('dblclick', () => {
         speaker.active = !speaker.active;
         box.classList.toggle('inactive', !speaker.active);
       });
 
+      // Drag and Drop
       box.draggable = true;
       box.addEventListener('dragstart', (e) => {
         draggingIndex = index;
@@ -1031,9 +1073,11 @@
         box.classList.remove('drag-over');
         if (draggingIndex === null || draggingIndex === index) return;
         
+        // Re-order the array
         const [draggedItem] = speakerOrder.splice(draggingIndex, 1);
         speakerOrder.splice(index, 0, draggedItem);
         
+        // Update active index
         if (activeSpeakerIndex === draggingIndex) {
           activeSpeakerIndex = index;
         } else if (draggingIndex < activeSpeakerIndex && index >= activeSpeakerIndex) {
@@ -1042,69 +1086,122 @@
           activeSpeakerIndex++;
         }
         
-        initSpeakerProgress();
-        setActiveSpeaker(activeSpeakerIndex, true);
+        initSpeakerProgress(); // Redraw all
+        setActiveSpeaker(activeSpeakerIndex, true); // Re-apply active class
       });
 
-      // Touch reorder
-      box.addEventListener('touchstart', (e) => { draggingIndex = index; box.classList.add('dragging'); }, { passive: true });
+      // ===== Touch Events for Mobile Reordering =====
+      box.addEventListener('touchstart', (e) => {
+        // e.preventDefault(); // This can prevent 'click' events
+        draggingIndex = index;
+        box.classList.add('dragging');
+        // We don't prevent default here to allow clicks to register
+      }, { passive: true }); // Use passive: true to allow default click/scroll behavior
+
       box.addEventListener('touchmove', (e) => {
         if (draggingIndex === null) return;
+        
+        // Prevent scrolling *while* dragging
         e.preventDefault(); 
+        
         const touch = e.touches[0];
+        
+        // Hide the dragging element *briefly* to find what's underneath
         const draggingBox = $$('.speaker-box')[draggingIndex];
         if (draggingBox) draggingBox.style.display = 'none';
         const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-        if (draggingBox) draggingBox.style.display = '';
+        if (draggingBox) draggingBox.style.display = ''; // Show it again
+
         if (!targetElement) return;
+
+        // Find the closest speaker-box
         const targetBox = targetElement.closest('.speaker-box');
-        if (targetBox && targetBox.dataset.index != draggingIndex) {
+
+        // Clear previous drag-over
+        if (touchOverElement && touchOverElement !== targetBox) {
+            touchOverElement.classList.remove('drag-over');
+        }
+
+        // Add drag-over to new target
+        if (targetBox && targetBox.dataset.index != draggingIndex) { // Use != for type coercion
             targetBox.classList.add('drag-over');
             touchOverElement = targetBox;
         } else {
-            if (touchOverElement) touchOverElement.classList.remove('drag-over');
             touchOverElement = null;
         }
-      }, { passive: false });
+      }, { passive: false }); // We must use passive: false because we call preventDefault()
+
       box.addEventListener('touchend', (e) => {
         if (draggingIndex === null) return;
+        
+        // Find the drop target
         const dropIndex = touchOverElement ? parseInt(touchOverElement.dataset.index, 10) : null;
+
+        // Clean up classes *before* reordering
         box.classList.remove('dragging');
-        if (touchOverElement) touchOverElement.classList.remove('drag-over');
+        if (touchOverElement) {
+            touchOverElement.classList.remove('drag-over');
+        }
+
         if (dropIndex !== null && dropIndex !== draggingIndex) {
+            // Valid drop
             const [draggedItem] = speakerOrder.splice(draggingIndex, 1);
             speakerOrder.splice(dropIndex, 0, draggedItem);
-            if (activeSpeakerIndex === draggingIndex) activeSpeakerIndex = dropIndex;
-            else if (draggingIndex < activeSpeakerIndex && dropIndex >= activeSpeakerIndex) activeSpeakerIndex--;
-            else if (draggingIndex > activeSpeakerIndex && dropIndex <= activeSpeakerIndex) activeSpeakerIndex++;
-            initSpeakerProgress();
-            setActiveSpeaker(activeSpeakerIndex, true);
+            
+            // Update active index
+            if (activeSpeakerIndex === draggingIndex) {
+              activeSpeakerIndex = dropIndex;
+            } else if (draggingIndex < activeSpeakerIndex && dropIndex >= activeSpeakerIndex) {
+              activeSpeakerIndex--;
+            } else if (draggingIndex > activeSpeakerIndex && dropIndex <= activeSpeakerIndex) {
+              activeSpeakerIndex++;
+            }
+            
+            initSpeakerProgress(); // Redraw all
+            setActiveSpeaker(activeSpeakerIndex, true); // Re-apply active class
         }
+
+        // Reset state
         draggingIndex = null;
         touchOverElement = null;
       });
+      // ===== End Touch Events =====
 
       speakerProgress.appendChild(box);
     });
   }
 
   function setActiveSpeaker(index, force = false) {
-    if (index >= speakerOrder.length || index < 0) index = 0;
-    if (!force && index === activeSpeakerIndex) return;
+    if (index >= speakerOrder.length || index < 0) {
+      index = 0; // Safety check
+    }
+    if (!force && index === activeSpeakerIndex) return; // No change
 
     activeSpeakerIndex = index;
+    
+    // Remove active class from all
     $$('.speaker-box').forEach(box => box.classList.remove('active-speaker'));
-    const activeBox = document.querySelector(`[data-index="${index}"]`);
-    if (activeBox) activeBox.classList.add('active-speaker');
+    
+    // Add active class to current
+    const activeBox = $(`[data-index="${index}"]`);
+    if (activeBox) {
+      activeBox.classList.add('active-speaker');
+    }
 
+    // Get speaker and set correct timers
     const speaker = speakerOrder[index];
     if (!speaker) return;
+    
     const timers = speaker.timers;
+    
+    // Hide/Show correct timer cards
     prepTimerContainer.style.display = timers.includes('prep') ? 'flex' : 'none';
     mainSpeechCard.style.display = timers.includes('main') ? 'block' : 'none';
     crossExCard.style.display = timers.includes('cross-ex') ? 'block' : 'none';
     rebuttalCard.style.display = timers.includes('rebuttal') ? 'block' : 'none';
 
+    // Apply correct preset
+    try{ postSync('active-speaker'); }catch(_){}
     if (timers.includes('main')) {
       applyPreset('Substantive');
     } else if (timers.includes('rebuttal')) {
@@ -1114,52 +1211,82 @@
 
   function findNextSpeaker(direction) {
     let newIndex = activeSpeakerIndex;
+    const max = speakerOrder.length - 1;
+    
     for (let i = 1; i <= speakerOrder.length; i++) {
       newIndex = (newIndex + direction + speakerOrder.length) % speakerOrder.length;
-      if (speakerOrder[newIndex].active) return newIndex;
+      if (speakerOrder[newIndex].active) {
+        return newIndex;
+      }
     }
-    return activeSpeakerIndex;
+    return activeSpeakerIndex; // No other active speaker
   }
 
-  nextSpeakerBtn.onclick = () => { const nextIndex = findNextSpeaker(1); setActiveSpeaker(nextIndex); };
-  prevSpeakerBtn.onclick = () => { const prevIndex = findNextSpeaker(-1); setActiveSpeaker(prevIndex); };
+  nextSpeakerBtn.onclick = () => {
+    const nextIndex = findNextSpeaker(1);
+    setActiveSpeaker(nextIndex);
+  };
+  
+  prevSpeakerBtn.onclick = () => {
+    const prevIndex = findNextSpeaker(-1);
+    setActiveSpeaker(prevIndex);
+  };
 
   resetOrderBtn.onclick = () => {
+    // Resets order *based on the currently loaded profile*
     const currentProfileName = profileSelect.value;
     const profile = findProfileByName(currentProfileName);
-    if (!profile) { loadSelectedProfile(DEFAULT_PROFILES[0].name); return; }
-    speakerOrder = JSON.parse(JSON.stringify(profile.speakerOrder));
+    if (!profile) { // Safety check
+      loadSelectedProfile(DEFAULT_PROFILES[0].name);
+      return;
+    }
+    speakerOrder = JSON.parse(JSON.stringify(profile.speakerOrder)); // Deep copy
     initSpeakerProgress();
     setActiveSpeaker(0);
   };
 
   // ===== Audio =====
   const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
-  // Built-in WAV bell
-  const BUILT_IN_DING_WAV = 'data:audio/wav;base64,UklGRigCAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQCAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIA==';
-
-  let audioCtx = null;
+  // Built-in WAV file (a simple 880Hz 'ding')
+  const BUILT_IN_DING_WAV = 'data:audio/wav;base64,UklGRigCAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQCAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIA==';
+  
+  let audioCtx = null; // AudioContext
   let unlocked = false;
-  let uploadedSounds = [];
+  let uploadedSounds = []; // { name: string, url: string }
+
+  // DELETING the getOrCreateContext and playSilent functions,
+  // as they will be inlined into the new 'unlock' function.
 
   const setStatus = (s)=>{ 
     const trans = translations[currentLang];
-    const statusText = trans[s] || s;
-    $('#statusNote').dataset.currentStatus = s;
+    const statusText = trans[s] || s; // Translate status key
+    $('#statusNote').dataset.currentStatus = s; // Store key
     const statusSpan = $('#statusNote').querySelector('[data-lang-status]');
-    if (statusSpan) statusSpan.textContent = statusText;
+    if (statusSpan) {
+        statusSpan.textContent = statusText;
+    }
+    
+    const tip = (state.mode==='mp3' && !state.mp3Url ? ' · Tip: set a public MP3 URL or upload below' : '');
+    // We can't easily translate the tip, so we'll leave it
+    // statusNote.textContent = trans.statusPrefix + statusText + tip; 
   };
 
   const unlock = ()=>{
+    // This function is now "bulletproof" and based on your suggestion.
+    // It will ALWAYS hide the button, even if audio fails.
+    
     let synthUnlocked = false;
     let audioTagUnlocked = false;
 
-    // 1) Try to unlock Web Audio
+    // 1. Try to unlock Web Audio (for Synth bell)
     try {
       const Ctx = window.AudioContext || window.webkitAudioContext;
       if (Ctx) {
-        if (!audioCtx) audioCtx = new Ctx(); 
+        if (!audioCtx) {
+          audioCtx = new Ctx(); 
+        }
         if (audioCtx && audioCtx.state === 'suspended') {
+          // Fire-and-forget resume.
           audioCtx.resume().catch(()=>{ setStatus('resume-fail'); });
         }
         synthUnlocked = true;
@@ -1168,14 +1295,14 @@
       setStatus('synth-unlock-err');
     }
 
-    // 2) Unlock <audio> tag: play, then pause & unmute
+    // 2. Try to unlock <audio> tag (for WAV/MP3 bells)
+    //    This uses your suggested method of playing an *existing* element.
     try {
+      const silentAudio = $('#silentUnlockAudio'); // Get the new element
       if (silentAudio) {
-        const p = silentAudio.play();
-        if (p && p.then) {
-          p.then(()=>{
-            try { silentAudio.pause(); silentAudio.currentTime = 0; silentAudio.muted = false; } catch(e){}
-          }).catch(()=>{ setStatus('audio-play-fail'); });
+        const p = silentAudio.play(); // Play the existing element
+        if (p && p.catch) {
+          p.catch(() => { setStatus('audio-play-fail'); });
         }
         audioTagUnlocked = true;
       }
@@ -1183,77 +1310,134 @@
       setStatus('audio-unlock-err');
     }
 
+    // 3. THIS IS THE CRITICAL PART
+    // This code will now run no matter what.
     unlocked = true; 
     enableBtn.style.display = 'none';
     
-    if (synthUnlocked && audioTagUnlocked) setStatus('Sound ready.');
-    else if (synthUnlocked) setStatus('Synth ready (MP3/WAV may fail)');
-    else if (audioTagUnlocked) setStatus('MP3/WAV ready (Synth may fail)');
-    else setStatus('Sound failed. Please refresh.');
-    return true;
+    if (synthUnlocked && audioTagUnlocked) {
+      setStatus('Sound ready.');
+    } else if (synthUnlocked) {
+      setStatus('Synth ready (MP3/WAV may fail)');
+    } else if (audioTagUnlocked) {
+      setStatus('MP3/WAV ready (Synth may fail)');
+    } else {
+      setStatus('Sound failed. Please refresh.');
+    }
+    
+    return true; // Return value doesn't matter, but good practice.
   };
 
-  const playBell = (count)=>{
-    if(state.muted || !unlocked) return;
+  const playBell = async(count)=>{
+    if(state.muted || !unlocked) return; // Check flag, not unlock
+    // const ok = await unlock(); if(!ok) return; // Removed this line
+    
+    // Logic for which sound to play
     const mode = state.mode;
+    
     if(mode === 'synth'){
-      const ctx = audioCtx; if(!ctx) return;
+      const ctx = audioCtx; if(!ctx) return; // Add check for context
       const base = ctx.currentTime + .05;
-      const freqs = [700,1400,1760,2800,3520,4400,5600,7040,8800,11200,14080,17600];
-      const gains = [0.2,0.15,0.4,0.3,0.25,0.2,0.1,0.08,0.05,0.03,0.02,0.01];
-      const decays = [2.8,2.0,2.5,2.0,1.5,1.0,0.7,0.5,0.4,0.3,0.2,0.1];
+      
+      // New Bell Synth: Added another higher octave series (12 partials total)
+      const freqs = [
+        700,    // Original fundamental
+        1400,   // New octave of fundamental
+        1760,   // Original
+        2800,   // Original
+        3520,   // Original
+        4400,   // Original
+        5600,   // Original
+        7040,   // New octave
+        8800,   // New octave
+        11200,  // New octave
+        14080,  // New highest octave
+        17600   // New highest octave
+      ];
+      
+      const gains = [
+        0.2,    // 700
+        0.15,   // 1400 (quieter)
+        0.4,    // 1760
+        0.3,    // 2800
+        0.25,   // 3520
+        0.2,    // 4400
+        0.1,    // 5600
+        0.08,   // 7040 (quieter)
+        0.05,   // 8800 (quieter)
+        0.03,   // 11200 (very quiet)
+        0.02,   // 14080 (very quiet)
+        0.01    // 17600 (very quiet)
+      ];
+      const decays = [
+        2.8,    // 700
+        2.0,    // 1400 (faster decay)
+        2.5,    // 1760
+        2.0,    // 2800
+        1.5,    // 3520
+        1.0,    // 4400
+        0.7,    // 5600
+        0.5,    // 7040 (fast)
+        0.4,    // 8800 (very fast)
+        0.3,    // 11200 (very fast)
+        0.2,    // 14080 (very fast)
+        0.1     // 17600 (very fast)
+      ];
+      
       for (let i = 0; i < count; i++) {
-        const t = base + (i * state.spacing) / 1000;
+        const t = base + (i * state.spacing) / 1000; // time for this specific chime
+
+        // Create a NEW master gain for EACH chime
         const master = ctx.createGain();
         master.gain.setValueAtTime(0.0001, t);
-        master.gain.exponentialRampToValueAtTime(state.volume, t + 0.01);
-        master.gain.exponentialRampToValueAtTime(0.0001, t + 3.0);
+        master.gain.exponentialRampToValueAtTime(state.volume, t + 0.01); // Very fast attack
+        master.gain.exponentialRampToValueAtTime(0.0001, t + 3.0); // Long decay
         master.connect(ctx.destination);
+
         freqs.forEach((freq, idx) => {
           const osc = ctx.createOscillator();
           const g = ctx.createGain();
           osc.type = 'sine';
           osc.frequency.setValueAtTime(freq, t);
-          const partialGain = gains[idx];
+          
+          const partialGain = state.volume * gains[idx];
           const decay = decays[idx];
+          
           g.gain.setValueAtTime(partialGain, t);
           g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+          
           osc.connect(g).connect(master);
           osc.start(t);
           osc.stop(t + 3.0);
         });
       }
     } else {
+      // Use built-in WAV, MP3 URL, or Uploaded Sound
       let url;
-      if (mode === 'wav') url = BUILT_IN_DING_WAV;
-      else if (mode === 'mp3') url = state.mp3Url;
-      else if (mode.startsWith('upload_')) {
+      if (mode === 'wav') {
+        url = BUILT_IN_DING_WAV;
+      } else if (mode === 'mp3') {
+        url = state.mp3Url;
+      } else if (mode.startsWith('upload_')) {
         const uploadIndex = parseInt(mode.split('_')[1], 10);
         const sound = uploadedSounds[uploadIndex];
-        if (sound) url = sound.url;
+        if (sound) {
+          url = sound.url;
+        }
       }
-      if (!url) { setStatus('no-mp3-url'); return; }
-      let currentPlay = 0;
-      const playSequentially = () => {
-        if (currentPlay >= count) return;
-        silentAudio.src = url;
-        silentAudio.volume = state.volume;
-        silentAudio.currentTime = 0;
-        silentAudio.muted = false;
-        const p = silentAudio.play();
-        if (p && p.catch) { p.catch(()=> setStatus('audio-play-fail')); }
-        currentPlay++;
-        if (currentPlay < count) setTimeout(playSequentially, state.spacing);
-      };
-      playSequentially();
+      
+      if (!url) {
+        setStatus('no-mp3-url');
+        return;
+      }
+      for(let i=0;i<count;i++) setTimeout(()=>{ try{ const a=new Audio(url); a.volume=state.volume; a.play().catch(()=>{}); }catch{} }, i*state.spacing);
     }
   };
 
   // Controls
   muteBtn.onclick = ()=>{ 
     state.muted=!state.muted; 
-    muteIconOn.style.display = state.muted ? 'none' : 'block';
-    muteIconOff.style.display = state.muted ? 'block' : 'none';
+    muteBtn.textContent = state.muted? translations[currentLang].muted : translations[currentLang].sound; 
     localStorage.setItem('muted', state.muted);
   };
   enableBtn.onclick = unlock;
@@ -1265,18 +1449,26 @@
   let contBellInterval=null;
   const fired = {first:false, second:false, final:false};
 
+  // Stop continuous bell
   const stopContinuousBell = ()=>{
     if(contBellInterval){ clearInterval(contBellInterval); contBellInterval=null; }
     stopBellBtn.style.display = 'none';
     testContBellBtn.textContent = 'Test/Stop Cont.';
   };
+
+  // Wire up stop button
   stopBellBtn.onclick = stopContinuousBell;
-  testContBellBtn.onclick = ()=>{
-    if(contBellInterval){ stopContinuousBell(); }
-    else {
-      if (!unlocked) { setStatus('Please click "Enable Sound" first'); return; }
-      contBellInterval = setInterval(()=>playBell(1), state.spacing || 500);
-      testContBellBtn.textContent = translations[currentLang].stopBell;
+  testContBellBtn.onclick = ()=>{ // No longer async
+    if(contBellInterval){
+      stopContinuousBell();
+    } else {
+      // await unlock(); // REMOVED
+      if (!unlocked) { // Check if unlock succeeded
+        setStatus('Please click "Enable Sound" first');
+        return; 
+      }
+      contBellInterval = setInterval(()=>playBell(1), 500);
+      testContBellBtn.textContent = translations[currentLang].stopBell; // 'Stop'
     }
   };
 
@@ -1285,34 +1477,52 @@
     const elapsed = (ts-startTs)+acc;
     
     if (inGrace) {
+      // We are in the grace period
       graceRemaining = Math.max(0, timerSnapshot.grace - elapsed);
       remaining = 0;
       if (graceRemaining === 0) {
+        // Grace period over
         if (!contBellInterval && timerSnapshot.preset === 'Substantive') {
-          contBellInterval = setInterval(()=>playBell(1), state.spacing || 500);
+          // Start continuous bell only for Substantive
+          contBellInterval = setInterval(()=>playBell(1), 500); // 500ms interval
           stopBellBtn.style.display = 'inline-flex';
         }
       }
     } else {
+      // We are in the main countdown
       remaining = Math.max(0, timerSnapshot.main - elapsed);
       if (remaining === 0) {
-        if (!fired.final) { playBell(2); fired.final = true; }
+        if (!fired.final) {
+          playBell(2);
+          fired.final = true;
+        }
+        // Transition to grace period
         if (timerSnapshot.grace > 0) {
           inGrace = true;
-          acc = 0;
-          startTs = ts;
+          acc = 0; // Reset accumulator for grace period
+          startTs = ts; // Reset start time for grace period
         } else {
-          cancelAnimationFrame(raf); raf = null;
+          // No grace period, just end
+          cancelAnimationFrame(raf);
+          raf = null;
         }
       }
     }
     
     render();
-    if (!inGrace) checkBells();
+    
+    // Check bells during main countdown
+    if (!inGrace) {
+      checkBells();
+    }
+    
+    // Only continue loop if main time or grace time is left
     if ((remaining > 0 || graceRemaining > 0) && raf) {
       raf = requestAnimationFrame(loop);
     } else {
-      cancelAnimationFrame(raf); raf = null;
+      // Loop finishes (unless continuous bell is on)
+      cancelAnimationFrame(raf);
+      raf = null;
     }
   };
 
@@ -1324,17 +1534,18 @@
       yellow: state.yellow,
       red: state.red,
       grace: state.grace,
-      preset: state.preset,
+      preset: state.preset, // Snapshot preset type
     };
   };
 
   const start = ()=>{
     if(raf) return;
-    if (!inGrace) {
-      snapshotSettings();
-      if (acc === 0) { graceRemaining = timerSnapshot.grace; }
+    if (acc === 0) { // If it's a fresh start (not resume)
+      snapshotSettings(); // Take snapshot of settings
+      inGrace = false;
+      graceRemaining = timerSnapshot.grace;
     }
-    raf = requestAnimationFrame(loop);
+    raf = requestAnimationFrame(loop); // Set raf *before* calling loop
   };
   
   const pause = ()=>{
@@ -1344,70 +1555,42 @@
     const now = performance.now();
     acc += (now - startTs);
     startTs = null;
-    stopContinuousBell();
+    stopContinuousBell(); // Stop bells on pause
   };
   
   const reset = ()=>{
     if(raf) cancelAnimationFrame(raf);
-    raf = null; startTs = null; acc = 0; inGrace = false;
+    raf = null;
+    startTs = null;
+    acc = 0;
+    inGrace = false;
+    // Reset to the *current state*, not the snapshot
     remaining = state.main; 
     graceRemaining = state.grace;
     fired.first = fired.second = fired.final = false;
-    stopContinuousBell();
-    render(true);
+    stopContinuousBell(); // Stop bells on reset
+    render(true); // Force render with state
   };
 
-  startBtn.onclick = ()=>{ 
-    if(raf) { pause(); startBtn.textContent = translations[currentLang].start; } 
-    else { start(); startBtn.textContent = translations[currentLang].pause; } 
+  // Buttons
+  startBtn.onclick = ()=>{ // No longer async
+    // await unlock(); // REMOVED
+    if(raf) { 
+      pause(); 
+      startBtn.textContent = translations[currentLang].start; 
+    } else { 
+      start(); 
+      startBtn.textContent = translations[currentLang].pause; 
+    } 
   };
   resetBtn.onclick = ()=>{ pause(); reset(); startBtn.textContent = translations[currentLang].start; };
-  singleBtn.onclick = ()=>{ playBell(1); };
-  doubleBtn.onclick = ()=>{ playBell(2); };
-
-  // Scrubbing: main
-  let isScrubbingMain = false;
-  const mainScrubMove = (e) => {
-    if (!isScrubbingMain) return;
-    e.preventDefault();
-    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    if (typeof clientX === 'undefined') return;
-    const rect = progressEl.getBoundingClientRect();
-    let pct = (clientX - rect.left) / rect.width;
-    pct = Math.max(0, Math.min(1, pct));
-    if (raf !== null) { mainScrubEnd(); return; }
-    const source = timerSnapshot;
-    acc = source.main * pct;
-    remaining = source.main - acc;
-    inGrace = false; 
-    graceRemaining = source.grace;
-    if (acc < source.first) fired.first = false;
-    if (acc < source.second) fired.second = false;
-    fired.final = false;
-    render(true);
-  };
-  const mainScrubEnd = () => {
-    isScrubbingMain = false;
-    document.removeEventListener('mousemove', mainScrubMove);
-    document.removeEventListener('mouseup', mainScrubEnd);
-    document.removeEventListener('touchmove', mainScrubMove);
-    document.removeEventListener('touchend', mainScrubEnd);
-  };
-  const mainScrubStart = (e) => {
-    if (raf !== null) return;
-    snapshotSettings();
-    isScrubbingMain = true;
-    document.addEventListener('mousemove', mainScrubMove);
-    document.addEventListener('mouseup', mainScrubEnd);
-    document.addEventListener('touchmove', mainScrubMove, { passive: false });
-    document.addEventListener('touchend', mainScrubEnd);
-    mainScrubMove(e);
-  };
-  progressEl.addEventListener('mousedown', mainScrubStart);
-  progressEl.addEventListener('touchstart', mainScrubStart, { passive: false });
+  singleBtn.onclick = ()=>{ playBell(1); }; // No longer async, removed await
+  doubleBtn.onclick = ()=>{ playBell(2); }; // No longer async, removed await
 
   // Inputs handlers
   const syncFromInputs = ()=>{
+    // This function now reads from inputs and updates state
+    // It does NOT save to local storage (except for global settings)
     state.main = parseMin(mainInput.value);
     state.first = parseMin(firstInput.value);
     state.second = parseMin(secondInput.value);
@@ -1415,22 +1598,37 @@
     state.red = parseMin(redInput.value);
     state.grace = parseMin(graceInput.value);
     state.spacing = Math.max(100, parseInt(spaceInput.value||'100',10)||100);
+    
+    // Sync quick timers
     state.prepTime = parseMin(prepInput.value);
     state.cexTime = parseMin(cexInput.value);
     state.rebTime = parseMin(rebInput.value);
+    
+    // Global settings ARE saved
     state.mode = modeSel.value;
     state.volume = parseFloat(volumeInput.value);
     if(mp3Url.value) state.mp3Url = mp3Url.value;
     localStorage.setItem('bellMode', state.mode);
     if(state.mp3Url) localStorage.setItem('mp3Url', state.mp3Url);
     localStorage.setItem('volume', String(state.volume));
-    if (!raf) reset();
-    prep.reset(true); cex.reset(true); reb.reset(true);
+    
+    // Only reset if timer is not running
+    if (!raf) {
+      reset();
+    }
+    
+    // Also reset quick timers if not running
+    prep.reset(true); // Pass true to say "don't reset if running"
+    cex.reset(true);
+    reb.reset(true);
+    
     modeLabel.textContent = state.preset==='Substantive'? translations[currentLang].substantiveSpeech : translations[currentLang].replySpeech;
     rebuttalLabel.textContent = `${translations[currentLang].rebTitle} (${fmt(state.rebTime)})`;
   };
   
   const syncInputsToState = () => {
+    // This function updates the input fields TO MATCH the state
+    // (e.g., after loading a profile)
     mainInput.value = fmt(state.main);
     firstInput.value = fmt(state.first);
     secondInput.value = fmt(state.second);
@@ -1438,31 +1636,49 @@
     redInput.value = fmt(state.red);
     graceInput.value = fmt(state.grace);
     spaceInput.value = state.spacing;
+    
+    // Sync quick timer inputs
     prepInput.value = fmt(state.prepTime);
     cexInput.value = fmt(state.cexTime);
     rebInput.value = fmt(state.rebTime);
+    
+    // Sync global audio settings
+    // modeSel.value = state.mode; // This is now handled by populateModeSelect
     volumeInput.value = state.volume;
-    muteIconOn.style.display = state.muted ? 'none' : 'block';
-    muteIconOff.style.display = state.muted ? 'block' : 'none';
+    muteBtn.textContent = state.muted? translations[currentLang].muted : translations[currentLang].sound;
     if (state.mp3Url) mp3Url.value = state.mp3Url;
-    populateModeSelect();
-    if (!raf) reset();
-    prep.reset(); cex.reset(); reb.reset();
+    
+    populateModeSelect(); // Re-populate and set correct value
+    
+    if (!raf) {
+      reset();
+    }
+    
+    // Reset quick timers
+    prep.reset();
+    cex.reset();
+    reb.reset();
+    
     rebuttalLabel.textContent = `${translations[currentLang].rebTitle} (${fmt(state.rebTime)})`;
   };
   
+  // New function to populate the sound dropdown
   function populateModeSelect() {
     const currentMode = state.mode;
-    modeSel.innerHTML = '';
+    modeSel.innerHTML = ''; // Clear
     const trans = translations[currentLang];
+    
+    // Basic options
     const basics = document.createElement('optgroup');
     basics.label = trans.standardSounds;
     basics.innerHTML = `
+      <option value="synth">${trans.synthBell}</option>
       <option value="wav">${trans.builtInWAV}</option>
       <option value="mp3">${trans.mp3URLOpt}</option>
-      <option value="synth">${trans.synthBell}</option>
     `;
     modeSel.appendChild(basics);
+    
+    // Uploaded options
     if (uploadedSounds.length > 0) {
       const uploads = document.createElement('optgroup');
       uploads.label = trans.uploadedSounds;
@@ -1474,83 +1690,62 @@
       });
       modeSel.appendChild(uploads);
     }
+    
+    // Try to set the mode, fallback to synth if it's not found (e.g., deleted upload)
     if (modeSel.querySelector(`option[value="${currentMode}"]`)) {
       modeSel.value = currentMode;
     } else {
-      state.mode = 'wav';
-      modeSel.value = 'wav';
+      state.mode = 'synth';
+      modeSel.value = 'synth';
     }
   }
   
+  // Add listeners
   [mainInput,firstInput,secondInput,yellowInput,redInput,graceInput,spaceInput,modeSel,mp3Url,volumeInput, prepInput, cexInput, rebInput].forEach(el=> el.addEventListener('change', syncFromInputs));
   
   mp3File.addEventListener('change', (e)=>{ 
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    
     let firstUploadIndex = uploadedSounds.length;
+    
     Array.from(files).forEach(file => {
       const url = URL.createObjectURL(file);
       uploadedSounds.push({ name: file.name, url: url });
     });
+    
     populateModeSelect();
+    
+    // Select the first of the *newly* uploaded files
     state.mode = `upload_${firstUploadIndex}`;
     modeSel.value = state.mode;
+    
+    // Clear the input to allow uploading the same file again
     e.target.value = null; 
   });
 
+  // Presets
   function applyPreset(key){
     state.preset=key;
+    // This function no longer changes inputs directly
+    // It just sets the preset key, which is snapshot
+    // and used for logic (e.g. continuous bell)
+    // The actual time values are part of the loaded profile state
+    
+    // We MUST still update the label
     modeLabel.textContent = state.preset==='Substantive'? translations[currentLang].substantiveSpeech : translations[currentLang].replySpeech;
   }
 
+  // Quick timers helper
   function miniTimer(clockEl, fillEl, stateKey, endBellCount = 0){
     let snapshotDur = state[stateKey];
     let rem = state[stateKey]; 
     let st=null, acc=0, r=null;
     
-    const progressContainerEl = fillEl.parentElement;
-    let isScrubbing = false;
-
-    const scrubMove = (e) => {
-      if (!isScrubbing) return;
-      e.preventDefault();
-      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-      if (typeof clientX === 'undefined') return;
-      const rect = progressContainerEl.getBoundingClientRect();
-      let pct = (clientX - rect.left) / rect.width;
-      pct = Math.max(0, Math.min(1, pct));
-      if (r !== null) { scrubEnd(); return; }
-      acc = snapshotDur * pct;
-      rem = snapshotDur - acc;
-      paint();
-    };
-
-    const scrubEnd = () => {
-      isScrubbing = false;
-      document.removeEventListener('mousemove', scrubMove);
-      document.removeEventListener('mouseup', scrubEnd);
-      document.removeEventListener('touchmove', scrubMove);
-      document.removeEventListener('touchend', scrubEnd);
-    };
-
-    const scrubStart = (e) => {
-      if (r !== null) return; 
-      snapshotDur = state[stateKey];
-      isScrubbing = true;
-      document.addEventListener('mousemove', scrubMove);
-      document.addEventListener('mouseup', scrubEnd);
-      document.addEventListener('touchmove', scrubMove, { passive: false });
-      document.addEventListener('touchend', scrubEnd);
-      scrubMove(e);
-    };
-
-    progressContainerEl.addEventListener('mousedown', scrubStart);
-    progressContainerEl.addEventListener('touchstart', scrubStart, { passive: false });
-
     const paint = ()=>{ 
       const displayRem = (r === null && acc === 0) ? state[stateKey] : rem;
       clockEl.textContent = fmt(displayRem); 
-      const pct = snapshotDur === 0 ? 0 : 100 - Math.round((rem/snapshotDur)*100); 
+      const pct = snapshotDur === 0 ? 0 : 100 - Math.round((displayRem/snapshotDur)*100); 
       fillEl.style.width = Math.max(0,Math.min(100,pct))+"%"; 
     };
     
@@ -1572,9 +1767,11 @@
     
     const start=()=>{ 
       if(r) return; 
-      if (acc === 0) { snapshotDur = state[stateKey]; }
+      if (acc === 0) { // Fresh start
+        snapshotDur = state[stateKey]; // Snapshot from global state
+      }
       rem = snapshotDur - acc;
-      st = null;
+      st = null; // Reset start time
       r = requestAnimationFrame(lp); 
     };
     
@@ -1583,44 +1780,89 @@
       cancelAnimationFrame(r);
       r=null;
       const now = performance.now();
-      if(st) acc += (now - st);
+      if(st) acc += (now - st); // Only add if st is set
       st=null;
     };
     
     const reset=(dontPauseIfRunning = false)=>{
-      if (dontPauseIfRunning && r) return;
+      if (dontPauseIfRunning && r) return; // Don't reset if running
+      
       if(r) cancelAnimationFrame(r);
       r=null; st=null; acc=0;
-      rem = state[stateKey];
-      snapshotDur = state[stateKey];
+      rem = state[stateKey]; // Reset to current global state
+      snapshotDur = state[stateKey]; // Reset snapshot
       paint();
     };
     
-    paint();
+    paint(); // Initial paint
+    
     return { start, pause, reset, paint };
   }
   
+  // Create mini timers
   const prep = miniTimer(prepClock, prepFill, 'prepTime', 1);
   const cex = miniTimer(cexClock, cexFill, 'cexTime', 1);
   const reb = miniTimer(rebClock, rebFill, 'rebTime', 2);
   
-  prepStart.onclick = ()=>{ const btn = prepStart; if(btn.textContent === translations[currentLang].start){ prep.start(); btn.textContent = translations[currentLang].pause; } else { prep.pause(); btn.textContent = translations[currentLang].start; } };
+  // Wire up mini timer buttons
+  prepStart.onclick = ()=>{ 
+    const btn = prepStart;
+    if(btn.textContent === translations[currentLang].start){ 
+      prep.start(); 
+      btn.textContent = translations[currentLang].pause; 
+    } else { 
+      prep.pause(); 
+      btn.textContent = translations[currentLang].start; 
+    } 
+  };
   prepReset.onclick = ()=>{ prep.reset(); prepStart.textContent = translations[currentLang].start; };
-  cexStart.onclick = ()=>{ const btn = cexStart; if(btn.textContent === translations[currentLang].start){ cex.start(); btn.textContent = translations[currentLang].pause; } else { cex.pause(); btn.textContent = translations[currentLang].start; } };
+  
+  // Rebuttal prep buttons
+  cexStart.onclick = ()=>{ 
+    const btn = cexStart;
+    if(btn.textContent === translations[currentLang].start){ 
+      cex.start(); 
+      btn.textContent = translations[currentLang].pause; 
+    } else { 
+      cex.pause(); 
+      btn.textContent = translations[currentLang].start; 
+    } 
+  };
   cexReset.onclick = ()=>{ cex.reset(); cexStart.textContent = translations[currentLang].start; };
-  rebStart.onclick = ()=>{ const btn = rebStart; if(btn.textContent === translations[currentLang].start){ reb.start(); btn.textContent = translations[currentLang].pause; } else { reb.pause(); btn.textContent = translations[currentLang].start; } };
+
+  // Reply timer buttons
+  rebStart.onclick = ()=>{ 
+    const btn = rebStart;
+    if(btn.textContent === translations[currentLang].start){ 
+      reb.start(); 
+      btn.textContent = translations[currentLang].pause; 
+    } else { 
+      reb.pause(); // Bug fix: was prep.pause()
+      btn.textContent = translations[currentLang].start; // Bug fix: was prepStart
+    } 
+  };
   rebReset.onclick = ()=>{ reb.reset(); rebStart.textContent = translations[currentLang].start; };
 
+  // Render main
   function render(forceState = false){
+    // Use snapshot if timer is running, otherwise use current state
     const source = (raf && !forceState) ? timerSnapshot : state;
+    
     const total = source.main;
     const currentRemaining = inGrace ? graceRemaining : remaining;
+    
     clockEl.textContent = fmt(currentRemaining);
-    if (inGrace) clockEl.textContent = '-' + fmt(graceRemaining);
+    if (inGrace) {
+      clockEl.textContent = '-' + fmt(graceRemaining);
+    }
+    
+    // background color by thresholds
     const bg = currentRemaining <= source.red ? 'var(--bg-red)' : currentRemaining <= source.yellow ? 'var(--bg-yellow)' : 'var(--bg-green)';
     const fg = currentRemaining <= source.red ? 'var(--fg-red)' : currentRemaining <= source.yellow ? 'var(--fg-yellow)' : 'var(--fg-green)';
     const bd = currentRemaining <= source.red ? 'var(--bd-red)' : currentRemaining <= source.yellow ? 'var(--bd-yellow)' : 'var(--bd-green)';
+    
     if (inGrace) {
+      // Flashing red for grace period
       const flash = Math.floor(performance.now() / 500) % 2 === 0;
       wrap.style.background = flash ? 'var(--bg-red)' : 'var(--bg-card)';
       wrap.style.color = flash ? 'var(--fg-red)' : 'var(--fg)';
@@ -1630,20 +1872,32 @@
       wrap.style.color = fg;
       document.documentElement.style.setProperty('--bd', bd);
     }
+
+    // progress segments
     const a = Math.min(source.first || 0, total);
     const b = Math.min(Math.max(0, (source.second || 0) - (source.first || 0)), total);
     const c = Math.max(0, total - (a + b));
     const pct = n => total === 0 ? 0 : (n/total)*100;
     const fillPct = total === 0 ? 100 : pct(total-remaining);
+    
     fillEl.style.width = fillPct+"%";
     segA.style.width = pct(a)+"%"; segB.style.width = pct(b)+"%"; segC.style.width = pct(c)+"%";
+
     capA.textContent = `0 → 1st: ${source.first?fmt(source.first):'-'}`;
     capB.textContent = `1st → 2nd: ${(source.first&&source.second)?fmt(source.second-source.first):'-'}`;
     capC.textContent = `2nd → Final: ${source.second?fmt(total-source.second):fmt(total-(source.first||0))}`;
+
     metaEl.textContent = `Main: ${fmt(total)}${source.first?` · 1st ${fmt(source.first)}`:''}${source.second?` · 2nd ${fmt(source.second)}`:''}`;
-    if (inGrace) metaEl.textContent = `${translations[currentLang].gracePeriodLabel} ${fmt(source.grace)}`;
+
+    // sync to presenter window
+    try{ postSync('render'); }catch(_){}
+    
+    if (inGrace) {
+      metaEl.textContent = `${translations[currentLang].gracePeriodLabel} ${fmt(source.grace)}`;
+    }
   }
 
+  // Fire bells as elapsed passes markers
   function checkBells(){
     const elapsed = timerSnapshot.main - remaining;
     if(!fired.first && timerSnapshot.first>0 && elapsed>=timerSnapshot.first){ playBell(1); fired.first=true; }
@@ -1651,17 +1905,26 @@
   }
   
   // ===== Profile Management =====
-  function getProfiles() { return JSON.parse(localStorage.getItem(PROFILES_DB_KEY) || '[]'); }
+  
+  function getProfiles() {
+    return JSON.parse(localStorage.getItem(PROFILES_DB_KEY) || '[]');
+  }
+  
   function findProfileByName(name) {
-    const def = DEFAULT_PROFILES.find(p => p.name === name);
-    if (def) return def;
+    const defaultProfile = DEFAULT_PROFILES.find(p => p.name === name);
+    if (defaultProfile) {
+      return defaultProfile;
+    }
     return getProfiles().find(p => p.name === name);
   }
+
   function loadProfilesToDropdown() {
     const profiles = getProfiles();
     const selectedValue = profileSelect.value;
-    profileSelect.innerHTML = '';
+    profileSelect.innerHTML = ''; // Clear
     const trans = translations[currentLang];
+    
+    // Add default
     const defaultGroup = document.createElement('optgroup');
     defaultGroup.label = trans.builtInProfiles;
     DEFAULT_PROFILES.forEach(profile => {
@@ -1671,6 +1934,8 @@
       defaultGroup.appendChild(opt);
     });
     profileSelect.appendChild(defaultGroup);
+
+    // Add saved
     if (profiles.length > 0) {
       const customGroup = document.createElement('optgroup');
       customGroup.label = trans.customProfiles;
@@ -1682,46 +1947,96 @@
       });
       profileSelect.appendChild(customGroup);
     }
+    
+    // Restore selection
     profileSelect.value = selectedValue || DEFAULT_PROFILES[0].name;
   }
+  
   function loadSelectedProfile(name) {
     const profileName = name || profileSelect.value;
     if (!profileName) return;
+    
     const profile = findProfileByName(profileName);
-    if (!profile) { console.error('Error: Could not find profile.'); return; }
+    if (!profile) {
+      // Use a custom modal in a real app
+      console.error('Error: Could not find profile.');
+      return;
+    }
+    
+    // Load profile data
+    // Use deep copies to prevent mutation of the stored profile
     speakerOrder = JSON.parse(JSON.stringify(profile.speakerOrder)); 
     Object.assign(state, JSON.parse(JSON.stringify(profile.settings)));
+    
+    // Sync all UI elements
     syncInputsToState();
     initSpeakerProgress();
     setActiveSpeaker(0);
+    
+    // Glocal settings must be re-synced from state
     localStorage.setItem('bellMode', state.mode);
     if(state.mp3Url) localStorage.setItem('mp3Url', state.mp3Url);
     localStorage.setItem('volume', String(state.volume));
+    
+    // Re-apply language to new UI elements
     updateLanguage(currentLang);
   }
+  
   function saveCurrentProfile() {
     const name = prompt(translations[currentLang].profilePrompt, 'My Custom Debate');
     if (!name || name.trim() === '') return;
-    if (isDefaultProfile(name.trim())) { console.error(translations[currentLang].cannotOverwriteDefault); return; }
+    if (isDefaultProfile(name.trim())) {
+      // Use a custom modal in a real app
+      console.error(translations[currentLang].cannotOverwriteDefault);
+      return;
+    }
+    
+    // Read current values from inputs into state *before* saving
     syncFromInputs();
-    const newProfile = { name: name.trim(), speakerOrder: speakerOrder, settings: state };
+    
+    const newProfile = {
+      name: name.trim(),
+      speakerOrder: speakerOrder, // Save current order
+      settings: state, // Save current settings
+    };
+    
     let profiles = getProfiles();
     const existingIndex = profiles.findIndex(p => p.name === newProfile.name);
-    if (existingIndex > -1) profiles[existingIndex] = newProfile;
-    else profiles.push(newProfile);
+    
+    if (existingIndex > -1) {
+      // Overwrite
+      profiles[existingIndex] = newProfile;
+    } else {
+      // Add new
+      profiles.push(newProfile);
+    }
+    
     localStorage.setItem(PROFILES_DB_KEY, JSON.stringify(profiles));
     loadProfilesToDropdown();
-    profileSelect.value = newProfile.name;
+    profileSelect.value = newProfile.name; // Select the new profile
   }
+  
   function deleteSelectedProfile() {
     const profileName = profileSelect.value;
-    if (isDefaultProfile(profileName)) { console.error(translations[currentLang].cannotDeleteDefault); return; }
+    if (isDefaultProfile(profileName)) {
+      // Use a custom modal in a real app
+      console.error(translations[currentLang].cannotDeleteDefault);
+      return;
+    }
+    
+    // Use a custom modal in a real app
+    // if (typeof confirm === 'function' && !confirm(`Are you sure you want to delete profile: "${profileName}"?`)) {
+    //   return;
+    // }
+    
     let profiles = getProfiles();
     profiles = profiles.filter(p => p.name !== profileName);
     localStorage.setItem(PROFILES_DB_KEY, JSON.stringify(profiles));
     loadProfilesToDropdown();
+    // Load the first default profile
     loadSelectedProfile(DEFAULT_PROFILES[0].name);
   }
+  
   function exportProfiles() {
     const profiles = getProfiles();
     const dataStr = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(profiles, null, 2));
@@ -1731,35 +2046,61 @@
     a.click();
     a.remove();
   }
+  
   function importProfiles(event) {
     const file = event.target.files[0];
     if (!file) return;
+    
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const importedProfiles = JSON.parse(e.target.result);
         if (!Array.isArray(importedProfiles)) throw new Error('Not an array');
+        
         let existingProfiles = getProfiles();
         const profileMap = new Map();
+        
+        // Add existing
         existingProfiles.forEach(p => profileMap.set(p.name, p));
-        importedProfiles.forEach(p => { if (p.name && p.speakerOrder && p.settings && !isDefaultProfile(p.name)) profileMap.set(p.name, p); });
+        // Add/overwrite with imported
+        importedProfiles.forEach(p => {
+          if (p.name && p.speakerOrder && p.settings && !isDefaultProfile(p.name)) { // Don't import default profiles
+            profileMap.set(p.name, p);
+          }
+        });
+        
         const mergedProfiles = Array.from(profileMap.values());
         localStorage.setItem(PROFILES_DB_KEY, JSON.stringify(mergedProfiles));
         loadProfilesToDropdown();
-      } catch (err) {}
+        // Use a custom modal/alert in a real app
+        // alert('Profiles imported successfully!');
+      } catch (err) {
+        // Use a custom modal/alert in a real app
+        // alert('Error importing file. Make sure it is a valid profile JSON.');
+      }
     };
     reader.readAsText(file);
+    // Clear input to allow re-importing same file
     event.target.value = null;
   }
-  loadProfileBtn.onclick = () => loadSelectedProfile();
+  
+  // Wire up profile buttons
+  loadProfileBtn.onclick = () => loadSelectedProfile(); // Use arrow to call with no args
   saveProfileBtn.onclick = saveCurrentProfile;
   deleteProfileBtn.onclick = deleteSelectedProfile;
   exportProfilesBtn.onclick = exportProfiles;
   importProfilesInput.onchange = importProfiles;
 
   // Initial paint
+  // Load saved lang *first*
   const savedLang = localStorage.getItem('debateTimerLang') || 'en';
   updateLanguage(savedLang);
+  
+  // Original init calls (most are now inside updateLanguage)
+  // syncInputsToState(); // Set inputs from default state
+  // initSpeakerProgress(); // Build speaker UI
+  // setActiveSpeaker(0); // Set to first speaker
+  // loadProfilesToDropdown(); // Load profiles
 
   // ===== Tests =====
   const tests = [
