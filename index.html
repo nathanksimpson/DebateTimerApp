@@ -86,6 +86,7 @@
   #startBtn .icon-play { display: block; }
 
   /* Presenter grace mode */
+  /* This style is now injected into the presenter window directly */
   .presenter-grace #pClock { color: var(--grace-fg); }
   .presenter-grace { animation: gracePulse 1.6s ease-in-out infinite !important; }
   /* This is the animation definition for the presenter window */
@@ -290,13 +291,90 @@ function applyBodyState(state){
   // --- FIX: Check for presenter mode *inside* IIFE to ensure `return` works ---
   const isPresenter = new URLSearchParams(location.search).get('presenter')==='true';
   if(isPresenter){
-    document.body.innerHTML = `
-      <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);">
-        <div style="text-align:center">
-          <div id="pClock" style="font-family:Rubik,ui-rounded,system-ui;-webkit-font-smoothing:antialiased;font-weight:900;font-size:22vw;line-height:1;letter-spacing:2px;">00:00</div>
-          <div id="pMeta" style="margin-top:12px;color:var(--muted);font-weight:700">Presenter</div>
+    // FIX: Write a full HTML document to the presenter window
+    // This injects all necessary styles for themes, fonts, and animations.
+    document.open();
+    document.write(`
+      <!doctype html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Presenter</title>
+        <style>
+          /* ---------- THEME (Copied from main) ---------- */
+          :root{
+            --bg:#f9fafb; --fg:#111827; --card:#ffffff; --bd:#e5e7eb;
+            --track:#e5e7eb; --fill:#111827; --muted:#6b7280;
+            --ok-bg:#d1fae5; --ok-fg:#065f46; --warn-bg:#fef3c7; --warn-fg:#92400e; --bad-bg:#fee2e2; --bad-fg:#7f1d1d;
+            --prop-bg:#dbeafe; --prop-border:#93c5fd; --prop-fg:#1e3a8a;
+            --opp-bg:#fee2e2; --opp-border:#fca5a5; --opp-fg:#7f1d1d;
+            --prep-bg:#f3f4f6; --prep-border:#d1d5db; --prep-fg:#374151;
+            --grace-fg: #7f1d1d; /* Color for grace text in presenter */
+          }
+          :root.dark{
+            --bg:#1f2937; --fg:#f9fafb; --card:#111827; --bd:#374151;
+            --track:#374151; --fill:#f9fafb; --muted:#9ca3af;
+            --grace-fg: #f9fafb;
+          }
+          *{box-sizing:border-box}
+          html,body{height:100%}
+          body{
+            margin:0; background:var(--bg); color:var(--fg);
+            font:16px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; 
+            display:flex; align-items:center; justify-content:center; min-height:100vh;
+            -webkit-font-smoothing: antialiased;
+          }
+          
+          /* STATE COLORS (Copied from main) */
+          body.state-warn{background:var(--warn-bg); color:var(--warn-fg)}
+          body.state-bad{background:var(--bad-bg); color:var(--bad-fg)}
+          
+          /* Presenter-specific grace animation (copied from main) */
+          body.presenter-grace #pClock { color: var(--grace-fg); }
+          body.presenter-grace { animation: gracePulse 1.6s ease-in-out infinite !important; }
+          
+          @keyframes gracePulse {
+            0% { background: var(--bg); color: var(--fg); }
+            50% { background: var(--bad-bg); color: var(--bad-fg); }
+            100% { background: var(--bg); color: var(--fg); }
+          }
+          /* Ensure presenter-grace state overrides clock color (copied from main) */
+          body.presenter-grace.state-grace #pClock {
+            color: var(--bad-fg);
+          }
+          
+          /* Copied from main .clock for font */
+          #pClock {
+            font-family: "Rubik", ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            font-weight: 900;
+            font-size: 22vw;
+            line-height: 1;
+            letter-spacing: 2px;
+          }
+          #pMeta {
+            margin-top: 12px;
+            color: var(--muted);
+            font-weight: 700;
+            font-size: 2vw; /* Make meta text responsive */
+          }
+          .presenter-wrap {
+            text-align: center;
+          }
+        </style>
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@700;900&display=swap" rel="stylesheet">
+      </head>
+      <body>
+        <div class="presenter-wrap">
+          <div id="pClock">00:00</div>
+          <div id="pMeta">Presenter</div>
         </div>
-      </div>`;
+      </body>
+      </html>
+    `);
+    document.close();
+      
     // Listen for sync messages
     const channel = new BroadcastChannel('debate_timer_sync_v1');
     channel.onmessage=(e)=>{
@@ -312,13 +390,14 @@ function applyBodyState(state){
         if(pm) pm.textContent = m.meta||'';
         
         // Apply grace pulse
+        // Note: 'presenter-grace' class is now applied to the BODY of the presenter window
         document.body.classList.toggle('presenter-grace', m.inGrace);
 
         // Apply visual state (using global function)
         applyBodyState(m.state);
       }
     };
-    return; // <-- MOVED: Stop script execution for presenter window
+    return; // Stop script execution for presenter window
   }
 
   // ---------- Utilities ----------
@@ -568,11 +647,7 @@ function applyBodyState(state){
     }else{ presenterWin.focus(); }
   };
 
-  // --- This is now handled at the top of the IIFE ---
-  // const isPresenter = new URLSearchParams(location.search).get('presenter')==='true';
-  // if(isPresenter){ ... }
-
-  // ---------- FIX: This is the updated sync function ----------
+  // ---------- Sync Function ----------
   function syncOut(full=false){
     // Calculate state here, just for the message
     const left = mainRemain;
@@ -584,11 +659,11 @@ function applyBodyState(state){
 
     if(inGrace) {
       bodyState = 'state-grace';
-      remainTime = graceRemain; // <-- FIX 1: Send grace time
+      remainTime = graceRemain; 
       
       const s = speakers[activeIdx];
       const role = s ? (s.role || '') : '';
-      metaText = `${role} — ${currentLang.grace}`; // <-- FIX 2: Send grace meta
+      metaText = `${role} — ${currentLang.grace}`; 
     }
     else if(bad) bodyState = 'state-bad';
     else if(warn) bodyState = 'state-warn';
@@ -604,11 +679,7 @@ function applyBodyState(state){
     };
     channel.postMessage(payload);
   }
-  channel.onmessage=(e)=>{
-    // Main window doesn't need to listen, only presenter
-    // (this handler is now inside the isPresenter block)
-  };
-
+  
   // ---------- Presets (base) ----------
   const PRESETS = {
     SIMSON: {
@@ -958,8 +1029,8 @@ function applyBodyState(state){
     resetBtn.onclick=()=>{ running=false; startBtn.textContent=currentLang.start; setRemain(total); draw() };
   }
   makeMini(prepStart, prepReset, prepClock, prepFill, ()=>prepRemain, v=>prepRemain = v);
-  makeMini(cexStart, cexReset, cexClock, cexFill, ()=>cexRemain, v=>cexRemain=v);
-  makeMini(rebStart, rebReset, rebClock, rebFill, ()=>rebRemain, v=>rebRemain=v);
+  makeMini(cexStart, cexReset, cexClock, cexFill, ()=>cexRemain, v=>cexRemain = v);
+  makeMini(rebStart, rebReset, rebClock, rebFill, ()=>rebRemain, v=>rebRemain = v);
 
   // ---------- scrubbing logic (paused-only) ----------
   let isScrubbing = false;
@@ -1248,5 +1319,4 @@ function applyBodyState(state){
 </script>
 </body>
 </html>
-
 
