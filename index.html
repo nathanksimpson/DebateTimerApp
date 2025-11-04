@@ -23,6 +23,26 @@
   *{box-sizing:border-box}
   html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  
+  /* --- FIX: App/Presenter Mode Toggle (prevents FOUC) --- */
+  /* Hide both roots by default */
+  #mainAppRoot, #presenterRoot {
+    display: none;
+  }
+  /* Show main app when in main mode */
+  body.main-mode #mainAppRoot {
+    display: block;
+  }
+  /* Show presenter root when in presenter mode */
+  body.presenter-mode #presenterRoot {
+    display: flex; /* Use flex to center it */
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    text-align: center;
+  }
+  /* --- End App/Presenter Mode Toggle --- */
+
   .wrap{min-height:100%;display:flex;flex-direction:column;gap:24px;align-items:center;padding:24px}
   .container{width:100%;max-width:1100px;display:flex;flex-direction:column;gap:16px}
   header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
@@ -100,14 +120,7 @@
     color: var(--bad-fg);
   }
   
-  /* --- Presenter Mode Root (hidden by default) --- */
-  #presenterRoot {
-    display: none; /* Hidden by default */
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    text-align: center;
-  }
+  /* --- Presenter Mode Root Styles (moved from line 130) --- */
   #pClock {
     font-family: "Rubik", ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
     font-weight: 900;
@@ -211,7 +224,7 @@
                 <path d="M1 4v6h6"></path>
                 <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
               </svg>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="width: 19px; height: 19px; margin-left: -6px; margin-top: -2px;">
+              <svg xmlns="http://www.w3.org/2D0/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="width: 19px; height: 19px; margin-left: -6px; margin-top: -2px;">
                 <path d="M10 10C6 10 6 14 10 14c4 0 4-4 8-4 4 0 4 4 0 4s-4-4-8-4z"></path>
               </svg>
             </button>
@@ -331,11 +344,17 @@ function applyBodyState(state){
 (function(){
   // --- FIX: Check for presenter mode *immediately* ---
   const isPresenter = new URLSearchParams(location.search).get('presenter')==='true';
+
+  // --- NEW CSS-based mode toggle ---
+  // This runs *before* any content is rendered, preventing FOUC
+  if (isPresenter) {
+    document.body.classList.add('presenter-mode');
+  } else {
+    document.body.classList.add('main-mode');
+  }
+  // --- End new toggle ---
+
   if(isPresenter){
-    // Hide main app, show presenter root
-    document.getElementById('mainAppRoot').style.display = 'none';
-    document.getElementById('presenterRoot').style.display = 'flex'; // Use flex to center it
-      
     // Listen for sync messages
     const channel = new BroadcastChannel('debate_timer_sync_v1');
     channel.onmessage=(e)=>{
@@ -1176,7 +1195,7 @@ function applyBodyState(state){
         updateMeta();
       }catch(err){ console.warn('Import failed:', err); }
     };
-    reader.readAsText(file);
+    reader.readText(file);
   };
   
   // ---------- Language ----------
