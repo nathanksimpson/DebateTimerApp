@@ -301,6 +301,7 @@ function applyBodyState(state){
           <div id="pMeta" style="margin-top:12px;color:var(--muted);font-weight:700">Presenter</div>
         </div>
       </div>`;
+    return; // <-- ADDED: Stop script execution for presenter window
   }
 
   function syncOut(full=false){
@@ -839,6 +840,8 @@ function applyBodyState(state){
 </script>
 </body>
 </html>
+
+
 
 
 
