@@ -221,14 +221,21 @@
   </div>
 
 <script>
+// ---------- GLOBAL Utilities (for main + presenter) ----------
+const $ = (s,o=document)=>o.querySelector(s);
+const fmt=(ms)=>{ms=Math.max(0,Math.round(ms/1000));const m=Math.floor(ms/60),s=ms%60;return m+":"+(s<10?"0":"")+s};
+function setDarkGlobal(on) { document.documentElement.classList.toggle('dark', on); }
+function applyBodyState(state){
+  document.body.classList.remove('state-warn','state-bad','state-grace');
+  if(state) document.body.classList.add(state);
+}
+
 (function(){
   // ---------- Utilities ----------
-  const $ = (s,o=document)=>o.querySelector(s);
   const $$ = (s,o=document)=>Array.from(o.querySelectorAll(s));
   const clamp=(n,a,b)=>Math.min(Math.max(n,a),b);
   const parseTime = t=>{const p=(t||'').trim().split(':'); if(p.length===1) return (+p[0]||0)*1000; const m=+p[0]||0,s=+p[1]||0; return (m*60+s)*1000};
-  const fmt=(ms)=>{ms=Math.max(0,Math.round(ms/1000));const m=Math.floor(ms/60),s=ms%60;return m+":"+(s<10?"0":"")+s};
-
+  
   // ---------- Theme ----------
   const themeBtn = $('#themeBtn');
   const setDark = (on)=>{document.documentElement.classList.toggle('dark',on); localStorage.setItem('debateTheme', on? 'dark':'light'); themeBtn.textContent = on? 'Light Mode':'Dark Mode'};
@@ -296,26 +303,46 @@
       </div>`;
   }
 
-  function applyBodyState(state){
-    document.body.classList.remove('state-warn','state-bad','state-grace');
-    if(state) document.body.classList.add(state);
-  }
-
   function syncOut(full=false){
-    const payload={type:'state', full, main:{remain: mainRemain, total:mainTotal, running:mainRunning}, meta: (titleEl?.textContent||'') + (metaEl.textContent? ' — '+metaEl.textContent : ''), thresholds:{yellow, red}, inGrace};
+    // Calculate state here, just for the message
+    const left = mainRemain;
+    const warn = left <= yellow && left > red && mode==='main' && !inGrace;
+    const bad = left <= red && left > 0 && mode==='main' && !inGrace;
+    let bodyState = null;
+    if(inGrace) bodyState = 'state-grace';
+    else if(bad) bodyState = 'state-bad';
+    else if(warn) bodyState = 'state-warn';
+
+    const payload={
+      type:'state', 
+      full, 
+      main:{remain: mainRemain, total:mainTotal, running:mainRunning}, 
+      meta: (titleEl?.textContent||'') + (metaEl.textContent? ' — '+metaEl.textContent : ''), 
+      inGrace,
+      state: bodyState,
+      theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+    };
     channel.postMessage(payload);
   }
   channel.onmessage=(e)=>{
-  if(!e||!e.data) return; const m=e.data;
-  if(isPresenter && m.type==='state'){
-    const pc=$('#pClock'); const pm=$('#pMeta');
-    pc.textContent = fmt(m.main.remain);
-    pm.textContent = m.meta||'';
-    const isGrace = (m.meta || '').toLowerCase().includes('grace');
-    if(isGrace){ document.body.classList.add('presenter-grace'); }
-    else { document.body.classList.remove('presenter-grace'); }
-  }
-};
+    if(!e||!e.data) return; const m=e.data;
+    if(isPresenter && m.type==='state'){
+      const pc=$('#pClock'); const pm=$('#pMeta');
+      
+      // Apply theme (using global function)
+      setDarkGlobal(m.theme === 'dark');
+
+      // Apply time and meta (using global functions)
+      if(pc) pc.textContent = fmt(m.main.remain);
+      if(pm) pm.textContent = m.meta||'';
+      
+      // Apply grace pulse
+      document.body.classList.toggle('presenter-grace', m.inGrace);
+
+      // Apply visual state (using global function)
+      applyBodyState(m.state);
+    }
+  };
 
   // ---------- Presets (base) ----------
   const PRESETS = {
@@ -812,6 +839,7 @@
 </script>
 </body>
 </html>
+
 
 
 
