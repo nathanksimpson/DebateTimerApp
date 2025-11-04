@@ -401,6 +401,2555 @@
   const $ = (s, o = document) => o.querySelector(s);
   const $$ = (s, o = document) => o.querySelectorAll(s);
   
+  // NEW: BroadcastChannel for live presenter sync
+  const syncChannel = new BroadcastChannel('debate_timer_sync');
+  
+  // NEW: Check for presenter mode
+  const isPresenter = new URLSearchParams(window.location.search).get('presenter') === 'true';
+  const PRESENTER_STATE_KEY = 'debateTimerPresenterState';
+  
+  const allDigitsFixed = t => !!t && /^[0-D]+$/.test(t);
+  const parseMin = input => { const t = (input||'').trim(); if (allDigitsFixed(t)) return parseInt(t,10)*60000; const p=t.split(':'); const m=+p[0]||0,s=+p[1]||0; return (m*60+s)*1000 };
+
+  // ADDED: Missing format function
+  const fmt = (ms)=>{ 
+    if(ms===null || isNaN(ms)) return '-:--'; 
+    const t = Math.abs(Math.round(ms/1000)); 
+    const m = Math.floor(t/60); 
+    const s = t%60; 
+    return m+':'+(s<10?'0':'')+s; 
+  };
+
+  // ===== Language =====
+  let currentLang = 'en';
+  const translations = {
+    en: {
+      // Header
+      pageTitle: "AP Debate Timer — HTML",
+      appTitle: "Debate Timer",
+      help: "Help",
+      toggleSettings: "Toggle Settings",
+      presenter: "Presenter Mode", // RE-ADDED
+      sound: "Sound", // No longer used on button
+      muted: "Muted", // No longer used on button
+      enableSound: "Initialize Sound", // CHANGED
+      tests: "Tests",
+      // Settings - Profiles
+      profiles: "Profiles",
+      loadProfile: "Load Profile",
+      load: "Load",
+      saveCurrent: "Save Current",
+      deleteSelected: "Delete Selected",
+      exportAll: "Export All",
+      import: "Import",
+      profilePrompt: "Enter profile name:",
+      cannotDeleteDefault: "Cannot delete a default profile.",
+      cannotOverwriteDefault: "Cannot overwrite a default profile.",
+      // Settings - Timers
+      timerSettings: "Timer Settings",
+      mainTime: "Main (m:ss)",
+      firstBell: "1st Bell from start (m:ss)",
+      secondBell: "2nd Bell from start (m:ss)",
+      yellowTime: "Yellow at remaining (m:ss)",
+      redTime: "Red at remaining (m:ss)",
+      gracePeriod: "Grace Period (m:ss)",
+      prepTime: "Prep Time (m:ss)",
+      cexTime: "Cross-Ex / Shared (m:ss)",
+      rebTime: "Rebuttal / Reply (m:ss)",
+      // Settings - Audio
+      bellSpacing: "Bell spacing (ms)",
+      bellMode: "Bell mode",
+      volume: "Volume", // CHANGED
+      mp3Url: "MP3 URL",
+      uploadSounds: "Upload Sound(s)",
+      // Speaker Progress
+      speakerProgress: "Speaker Progress",
+      previous: "Previous",
+      next: "Next",
+      resetOrder: "Reset Order",
+      speakerNote: "Click to select, Double-click to toggle, Drag to reorder.",
+      speakerBoxTitle: " (Click to select, Double-click to toggle, Drag to reorder)",
+      // Main Timer
+      substantiveSpeech: "Substantive Speech",
+      replySpeech: "Reply Speech",
+      start: "Start",
+      pause: "Pause",
+      reset: "Reset",
+      single: "Single",
+      double: "Double",
+      stopBell: "Stop Bell",
+      testStopCont: "Test/Stop Cont.",
+      statusPrefix: "Status:",
+      gracePeriodLabel: "GRACE PERIOD:",
+      // Mini Timers
+      cexTitle: "Cross-Ex / Shared",
+      rebTitle: "Rebuttal / Reply",
+      // Tests
+      testNote: "Note: Blob URLs from uploads are temporary. Use a public URL to persist across refresh.",
+      // Help Modal
+      helpTitle: "Help",
+      helpIntro: "This is a flexible timer for various debate formats.",
+      helpProfilesTitle: "Profiles",
+      helpProfilesList: [
+        "Load a built-in profile (like Simson, AP, Policy) or save your own.",
+        '"Save Current" saves all timer settings and the current speaker order as a new custom profile.',
+      ],
+      helpSpeakersTitle: "Speaker Progress",
+      helpSpeakersList: [
+        "Click a speaker to select them. This will show the correct timer card (Main, Prep, etc.).",
+        'Double-click a speaker to toggle them active/inactive. Inactive speakers are skipped by "Next"/"Previous".',
+        "Drag and drop (or tap and drag on mobile) to reorder speakers.",
+        '"Reset Order" restores the profile\'s default speaker order.',
+      ],
+      helpTimersTitle: "Timers",
+      helpTimersList: [
+        'The main timer card (e.g., "Substantive Speech") changes based on the selected speaker.',
+        '"Substantive" speeches (from "Main" time) have 1st/2nd bells and grace periods.',
+        '"Reply" speeches (from "Rebuttal" time) are simpler timers with a final double bell.',
+        '"Cross-Ex" and "Prep" timers are separate mini-timers.',
+        '"Initialize Sound" must be clicked once to allow the browser to play audio. This is a security requirement for most browsers, especially on mobile.' // ADDED
+      ],
+      close: "Close",
+      // Audio / Status
+      idle: "idle",
+      'resume-fail': "Audio resume failed", // NEW
+      'synth-unlock-err': "Synth audio failed", // NEW
+      'audio-play-fail': "Audio play failed", // NEW
+      'audio-ctx-fail': "Audio Context failed", // NEW
+      'Sound ready.': "Sound ready.",
+      'Sound failed. Please refresh.': "Sound failed. Please refresh.",
+      'no-mp3-url': "No MP3 URL set", // NEW
+      'Please click "Enable Sound" first': 'Please click "Enable Sound" first',
+      // Sound Dropdown
+      standardSounds: "Standard Sounds",
+      uploadedSounds: "Uploaded Sounds",
+      synthBell: "Synth Bell",
+      // builtInWAV: "Built-in WAV", // REMOVED
+      mp3URLOpt: "MP3 URL",
+      // Profile Dropdown
+      builtInProfiles: "Built-in Profiles",
+      customProfiles: "Custom Profiles",
+      // Speaker Role Translations
+      "Prep": "Prep",
+      "Prime Minister": "Prime Minister",
+      "LO Prep": "LO Prep",
+      "Leader of Opp": "Leader of Opp",
+      "DPM Prep": "DPM Prep",
+      "Deputy PM": "Deputy PM",
+      "DLO Prep": "DLO Prep",
+      "Deputy LO": "Deputy LO",
+      "PW Prep": "PW Prep",
+      "Prop Whip": "Prop Whip",
+      "OW Prep": "OW Prep",
+      "Opp Whip": "Opp Whip",
+      "Prop Reply Prep": "Prop Reply Prep",
+      "Prop Reply": "Prop Reply",
+      "Opp Reply Prep": "Opp Reply Prep",
+      "Opp Reply": "Opp Reply",
+      "Gov Whip": "Gov Whip",
+      "Gov Reply": "Gov Reply",
+      "Member of Gov": "Member of Gov",
+      "Member of Opp": "Member of Opp",
+      "1st Aff Const": "1st Aff Const",
+      "Cross-Ex (2N)": "Cross-Ex (2N)",
+      "1st Neg Const": "1st Neg Const",
+      "Cross-Ex (1A)": "Cross-Ex (1A)",
+      "2nd Aff Const": "2nd Aff Const",
+      "Cross-Ex (1N)": "Cross-Ex (1N)",
+      "2nd Neg Const": "2nd Neg Const",
+      "Cross-Ex (2A)": "Cross-Ex (2A)",
+      "1st Neg Rebuttal": "1st Neg Rebuttal",
+      "1st Aff Rebuttal": "1st Aff Rebuttal",
+      "2nd Neg Rebuttal": "2nd Neg Rebuttal",
+      "2nd Aff Rebuttal": "2nd Aff Rebuttal",
+      "Aff Constructive": "Aff Constructive",
+      "Cross-Ex": "Cross-Ex",
+      "Neg Constructive": "Neg Constructive",
+      "Neg Rebuttal": "Neg Rebuttal",
+      "Speaker 1 (Pro)": "Speaker 1 (Pro)",
+      "Speaker 2 (Con)": "Speaker 2 (Con)",
+      "Crossfire": "Crossfire",
+      "Speaker 3 (Pro)": "Speaker 3 (Pro)",
+      "Speaker 4 (Con)": "Speaker 4 (Con)",
+      "Summary 1 (Pro)": "Summary 1 (Pro)",
+      "Summary 2 (Con)": "Summary 2 (Con)",
+      "Grand Crossfire": "Grand Crossfire",
+      "Final Focus 1 (Pro)": "Final Focus 1 (Pro)",
+      "Final Focus 2 (Con)": "Final Focus 2 (Con)",
+    },
+    ko: {
+      // Header
+      pageTitle: "AP 토론 타이머 — HTML",
+      appTitle: "토론 타이머",
+      help: "도움말",
+      toggleSettings: "설정 보기/숨기기",
+      presenter: "발표자 모드", // RE-ADDED
+      sound: "소리", // No longer used
+      muted: "음소거됨", // No longer used
+      enableSound: "소리 초기화", // CHANGED
+      tests: "테스트",
+      // Settings - Profiles
+      profiles: "프로필",
+      loadProfile: "프로필 불러오기",
+      load: "불러오기",
+      saveCurrent: "현재 설정 저장",
+      deleteSelected: "선택 항목 삭제",
+      exportAll: "모두 내보내기",
+      import: "가져오기",
+      profilePrompt: "프로필 이름을 입력하세요:",
+      cannotDeleteDefault: "기본 프로필은 삭제할 수 없습니다.",
+      cannotOverwriteDefault: "기본 프로필은 덮어쓸 수 없습니다.",
+      // Settings - Timers
+      timerSettings: "타이머 설정",
+      mainTime: "주요 발언 (m:ss)",
+      firstBell: "첫 번째 벨 (m:ss)",
+      secondBell: "두 번째 벨 (m:ss)",
+      yellowTime: "경고 (남은 시간 m:ss)",
+      redTime: "위험 (남은 시간 m:ss)",
+      gracePeriod: "유예 시간 (m:ss)",
+      prepTime: "준비 시간 (m:ss)",
+      cexTime: "교차조사 / 공유 시간 (m:ss)",
+      rebTime: "반박 / 요약 (m:ss)",
+      // Settings - Audio
+      bellSpacing: "벨 간격 (ms)",
+      bellMode: "벨 모드",
+      volume: "볼륨", // CHANGED
+      mp3Url: "MP3 URL",
+      uploadSounds: "사운드 업로드",
+      // Speaker Progress
+      speakerProgress: "발언자 순서",
+      previous: "이전",
+      next: "다음",
+      resetOrder: "순서 초기화",
+      speakerNote: "클릭: 선택, 더블클릭: 활성/비활성, 드래그: 순서 변경.",
+      speakerBoxTitle: " (클릭: 선택, 더블클릭: 활성/비활성, 드래그: 순서 변경)",
+      // Main Timer
+      substantiveSpeech: "주요 발언",
+      replySpeech: "요약 발언",
+      start: "시작",
+      pause: "일시정지",
+      reset: "초기화",
+      single: "벨 1회",
+      double: "벨 2회",
+      stopBell: "벨 중지",
+      testStopCont: "연속 벨 테스트/중지",
+      statusPrefix: "상태:",
+      gracePeriodLabel: "유예 시간:",
+      // Mini Timers
+      cexTitle: "교차조사 / 공유 시간",
+      rebTitle: "반박 / 요약",
+      // Tests
+      testNote: "참고: 업로드된 Blob URL은 임시적이므로, 새로고침 후에도 유지하려면 공개 URL을 사용하세요.",
+      // Help Modal
+      helpTitle: "도움말",
+      helpIntro: "이것은 다양한 토론 형식을 위한 유연한 타이머입니다.",
+      helpProfilesTitle: "프로필",
+      helpProfilesList: [
+        "Simson, AP, Policy 등 내장된 프로필을 불러오거나 자신만의 프로필을 저장하세요.",
+        '"현재 설정 저장"은 모든 타이머 설정과 현재 발언자 순서를 새 사용자 지정 프로필로 저장합니다.',
+      ],
+      helpSpeakersTitle: "발언자 순서",
+      helpSpeakersList: [
+        "발언자를 클릭하여 선택합니다. 그러면 (주요 발언, 준비 시간 등) 올바른 타이머 카드가 표시됩니다.",
+        '발언자를 더블클릭하여 활성/비활성 상태로 전환합니다. 비활성 발언자는 "다음"/"이전" 버튼 클릭 시 건너뜁니다.',
+        "발언자를 드래그 앤 드롭(모바일에서는 탭 앤 드래그)하여 순서를 변경할 수 있습니다.",
+        '"순서 초기화"는 프로필의 기본 발언자 순서로 복원합니다.',
+      ],
+      helpTimersTitle: "타이머",
+      helpTimersList: [
+        '메인 타이머 카드(예: "주요 발언")는 선택된 발언자에 따라 변경됩니다.',
+        '"주요 발언" ("Main" 시간)은 1번째/2번째 벨 및 유예 시간이 있습니다.',
+        '"요약 발언" ("Rebuttal" 시간)은 마지막에 더블 벨이 울리는 더 간단한 타이머입니다.',
+        '"교차조사" 및 "준비 시간" 타이머는 별도의 미니 타이머입니다.',
+        '브라우저에서 소리를 재생하려면 "소리 초기화" 버튼을 한 번 클릭해야 합니다. 이는 대부분의 최신 브라우저(특히 모바일)의 보안 요구 사항입니다.' // ADDED
+      ],
+      close: "닫기",
+      // Audio / Status
+      idle: "대기 중",
+      'resume-fail': "오디오 재개 실패", // NEW
+      'synth-unlock-err': "신디사이저 오디오 실패", // NEW
+      'audio-play-fail': "오디오 재생 실패", // NEW
+      'audio-ctx-fail': "오디오 컨텍스트 실패", // NEW
+      'Sound ready.': "소리 준비 완료.",
+      'Sound failed. Please refresh.': "소리 활성화 실패. 새로고침하세요.",
+      'no-mp3-url': "MP3 URL이 설정되지 않았습니다", // NEW
+      'Please click "Enable Sound" first': '"소리 활성화" 버튼을 먼저 클릭하세요',
+      // Sound Dropdown
+      standardSounds: "기본 사운드",
+      uploadedSounds: "업로드된 사운드",
+      synthBell: "신디사이저 벨",
+      // builtInWAV: "내장 WAV", // REMOVED
+      mp3URLOpt: "MP3 URL",
+      // Profile Dropdown
+      builtInProfiles: "기본 프로필",
+      customProfiles: "사용자 지정 프로필",
+      // Speaker Role Translations
+      "Prep": "준비 시간",
+      "Prime Minister": "총리",
+      "LO Prep": "야당 대표 준비",
+      "Leader of Opp": "야당 대표",
+      "DPM Prep": "부총리 준비",
+      "Deputy PM": "부총리",
+      "DLO Prep": "야당 부대표 준비",
+      "Deputy LO": "야당 부대표",
+      "PW Prep": "여당 원내총무 준비",
+      "Prop Whip": "여당 원내총무",
+      "OW Prep": "야당 원내총무 준비",
+      "Opp Whip": "야당 원내총무",
+      "Prop Reply Prep": "여당 요약 준비",
+      "Prop Reply": "여당 요약",
+      "Opp Reply Prep": "야당 요약 준비",
+      "Opp Reply": "야당 요약",
+      "Gov Whip": "여당 원내총무",
+      "Gov Reply": "여당 요약",
+      "Member of Gov": "여당 의원",
+      "Member of Opp": "야당 의원",
+      "1st Aff Const": "첫 번째 찬성측 입론",
+      "Cross-Ex (2N)": "교차조사 (2N)",
+      "1st Neg Const": "첫 번째 반대측 입론",
+      "Cross-Ex (1A)": "교차조사 (1A)",
+      "2nd Aff Const": "두 번째 찬성측 입론",
+      "Cross-Ex (1N)": "교차조사 (1N)",
+      "2nd Neg Const": "두 번째 반대측 입론",
+      "Cross-Ex (2A)": "교차조사 (2A)",
+      "1st Neg Rebuttal": "첫 번째 반대측 반박",
+      "1st Aff Rebuttal": "첫 번째 찬성측 반박",
+      "2nd Neg Rebuttal": "두 번째 반대측 반박",
+      "2nd Aff Rebuttal": "두 번째 찬성측 반박",
+      "Aff Constructive": "찬성측 입론",
+      "Cross-Ex": "교차조사",
+      "Neg Constructive": "반대측 입론",
+      "Neg Rebuttal": "반대측 반박",
+      "Speaker 1 (Pro)": "발언자 1 (찬성)",
+      "Speaker 2 (Con)": "발언자 2 (반대)",
+      "Crossfire": "크로스파이어",
+      "Speaker 3 (Pro)": "발언자 3 (찬성)",
+      "Speaker 4 (Con)": "발언자 4 (반대)",
+      "Summary 1 (Pro)": "요약 1 (찬성)",
+      "Summary 2 (Con)": "요약 2 (반대)",
+      "Grand Crossfire": "그랜드 크로스파이어",
+      "Final Focus 1 (Pro)": "최종 초점 1 (찬성)",
+      "Final Focus 2 (Con)": "최종 초점 2 (반대)",
+    }
+  };
+
+  const updateLanguage = (lang) => {
+    currentLang = lang;
+    document.documentElement.lang = lang;
+    localStorage.setItem('debateTimerLang', lang);
+    
+    // Update lang toggle button text
+    langToggleBtn.textContent = lang === 'en' ? '한국어' : 'English';
+
+    const trans = translations[lang];
+    if (!trans) return;
+
+    // Update simple text content
+    $$('[data-lang]').forEach(el => {
+      const key = el.dataset.lang;
+      if (trans[key]) {
+        el.textContent = trans[key];
+      }
+    });
+    
+    // Update title
+    document.title = trans.pageTitle;
+
+    // Update list content (for help modal)
+    $$('[data-lang-list]').forEach(ul => {
+      const key = ul.dataset.langList;
+      if (trans[key] && Array.isArray(trans[key])) {
+        ul.innerHTML = '';
+        trans[key].forEach(text => {
+          const li = document.createElement('li');
+          li.textContent = text;
+          ul.appendChild(li);
+        });
+      }
+    });
+    
+    // Update special cases
+    // Re-populate dropdowns to get translated text
+    populateModeSelect();
+    loadProfilesToDropdown();
+    
+    // Re-render speaker titles
+    initSpeakerProgress();
+    setActiveSpeaker(activeSpeakerIndex, true); // Force re-render of active speaker
+    
+    // Re-render timer labels and status
+    syncInputsToState(); // This will update labels like rebuttalLabel
+    setStatus($('#statusNote').dataset.currentStatus || 'idle');
+    render(true); // Force render with new labels
+  };
+
+  // ===== Speaker Data =====
+  const createSimsonSpeakerOrder = () => [
+    { role: "Prep", initials: "PREP", team: "None", timers: ["prep"], active: true },
+    { role: "Prime Minister", initials: "PM", team: "Prop", timers: ["main"], active: true },
+    { role: "LO Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true },
+    { role: "Leader of Opp", initials: "LO", team: "Opp", timers: ["main"], active: true },
+    { role: "DPM Prep", initials: "R", team: "Prop", timers: ["cross-ex"], active: true },
+    { role: "Deputy PM", initials: "DPM", team: "Prop", timers: ["main"], active: true },
+    { role: "DLO Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true },
+    { role: "Deputy LO", initials: "DLO", team: "Opp", timers: ["main"], active: true },
+    { role: "PW Prep", initials: "R", team: "Prop", timers: ["cross-ex"], active: true },
+    { role: "Prop Whip", initials: "PW", team: "Prop", timers: ["main"], active: true },
+    { role: "OW Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true },
+    { role: "Opp Whip", initials: "OW", team: "Opp", timers: ["main"], active: true },
+    { role: "Prop Reply Prep", initials: "R", team: "Prop", timers: ["cross-ex"], active: true }, // New
+    { role: "Prop Reply", initials: "PR", team: "Prop", timers: ["rebuttal"], active: true }, // Swapped
+    { role: "Opp Reply Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true }, // New
+    { role: "Opp Reply", initials: "OR", team: "Opp", timers: ["rebuttal"], active: true }, // Swapped
+  ];
+  
+  const createAPSpeakerOrder = () => [
+    { role: "Prep", initials: "PREP", team: "None", timers: ["prep"], active: true },
+    { role: "Prime Minister", initials: "PM", team: "Gov", timers: ["main"], active: true },
+    { role: "LO Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true },
+    { role: "Leader of Opp", initials: "LO", team: "Opp", timers: ["main"], active: true },
+    { role: "DPM Prep", initials: "R", team: "Gov", timers: ["cross-ex"], active: true },
+    { role: "Deputy PM", initials: "DPM", team: "Gov", timers: ["main"], active: true },
+    { role: "DLO Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true },
+    { role: "Deputy LO", initials: "DLO", team: "Opp", timers: ["main"], active: true },
+    { role: "PW Prep", initials: "R", team: "Gov", timers: ["cross-ex"], active: true },
+    { role: "Gov Whip", initials: "GW", team: "Gov", timers: ["main"], active: true },
+    { role: "OW Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true },
+    { role: "Opp Whip", initials: "OW", team: "Opp", timers: ["main"], active: true },
+    { role: "Prop Reply Prep", initials: "R", team: "Gov", timers: ["cross-ex"], active: true },
+    { role: "Gov Reply", initials: "GR", team: "Gov", timers: ["rebuttal"], active: true },
+    { role: "Opp Reply Prep", initials: "R", team: "Opp", timers: ["cross-ex"], active: true },
+    { role: "Opp Reply", initials: "OR", team: "Opp", timers: ["rebuttal"], active: true },
+  ];
+  
+  const createBPSpeakerOrder = () => [
+    { role: "Prep", initials: "PREP", team: "None", timers: ["prep"], active: true },
+    { role: "Prime Minister", initials: "PM", team: "Gov", timers: ["main"], active: true },
+    { role: "Leader of Opp", initials: "LO", team: "Opp", timers: ["main"], active: true },
+    { role: "Deputy PM", initials: "DPM", team: "Gov", timers: ["main"], active: true },
+    { role: "Deputy LO", initials: "DLO", team: "Opp", timers: ["main"], active: true },
+    { role: "Member of Gov", initials: "MG", team: "Gov", timers: ["main"], active: true },
+    { role: "Member of Opp", initials: "MO", team: "Opp", timers: ["main"], active: true },
+    { role: "Gov Whip", initials: "GW", team: "Gov", timers: ["main"], active: true }, // FIX: Was role:In
+    { role: "Opp Whip", initials: "OW", team: "Opp", timers: ["main"], active: true },
+  ];
+  
+  // New Profiles
+  const createPolicySpeakerOrder = () => [
+    { role: "Prep", initials: "PREP", team: "None", timers: ["prep"], active: true },
+    { role: "1st Aff Const", initials: "1AC", team: "Aff", timers: ["main"], active: true },
+    { role: "Cross-Ex (2N)", initials: "CX", team: "Neg", timers: ["cross-ex"], active: true },
+    { role: "1st Neg Const", initials: "1NC", team: "Neg", timers: ["main"], active: true },
+    { role: "Cross-Ex (1A)", initials: "CX", team: "Aff", timers: ["cross-ex"], active: true },
+    { role: "2nd Aff Const", initials: "2AC", team: "Aff", timers: ["main"], active: true },
+    { role: "Cross-Ex (1N)", initials: "CX", team: "Neg", timers: ["cross-ex"], active: true },
+    { role: "2nd Neg Const", initials: "2NC", team: "Neg", timers: ["main"], active: true },
+    { role: "Cross-Ex (2A)", initials: "CX", team: "Aff", timers: ["cross-ex"], active: true },
+    { role: "1st Neg Rebuttal", initials: "1NR", team: "Neg", timers: ["rebuttal"], active: true },
+    { role: "1st Aff Rebuttal", initials: "1AR", team: "Aff", timers: ["rebuttal"], active: true },
+    { role: "2nd Neg Rebuttal", initials: "2NR", team: "Neg", timers: ["rebuttal"], active: true },
+    { role: "2nd Aff Rebuttal", initials: "2AR", team: "Aff", timers: ["rebuttal"], active: true },
+  ];
+  
+  const createLDSpeakerOrder = () => [
+    { role: "Prep", initials: "PREP", team: "None", timers: ["prep"], active: true },
+    { role: "Aff Constructive", initials: "AC", team: "Aff", timers: ["main"], active: true },
+    { role: "Cross-Ex", initials: "CX", team: "Neg", timers: ["cross-ex"], active: true },
+    { role: "Neg Constructive", initials: "NC", team: "Neg", timers: ["main"], active: true },
+    { role: "Cross-Ex", initials: "CX", team: "Aff", timers: ["cross-ex"], active: true },
+    { role: "1st Aff Rebuttal", initials: "1AR", team: "Aff", timers: ["rebuttal"], active: true },
+    { role: "Neg Rebuttal", initials: "NR", team: "Neg", timers: ["rebuttal"], active: true },
+    { role: "2nd Aff Rebuttal", initials: "2AR", team: "Aff", timers: ["rebuttal"], active: true }, // FIX: Was "role:Details:"
+  ];
+  
+  const createBFSpeakerOrder = () => [
+    { role: "Prep", initials: "PREP", team: "None", timers: ["prep"], active: true },
+    { role: "Speaker 1 (Pro)", initials: "S1", team: "Aff", timers: ["main"], active: true },
+    { role: "Speaker 2 (Con)", initials: "S2", team: "Neg", timers: ["main"], active: true },
+    { role: "Crossfire", initials: "CF", team: "None", timers: ["cross-ex"], active: true },
+    { role: "Speaker 3 (Pro)", initials: "S3", team: "Aff", timers: ["main"], active: true },
+    { role: "Speaker 4 (Con)", initials: "S4", team: "Neg", timers: ["main"], active: true },
+    { role: "Crossfire", initials: "CF", team: "None", timers: ["cross-ex"], active: true },
+    { role: "Summary 1 (Pro)", initials: "S1", team: "Aff", timers: ["rebuttal"], active: true },
+    { role: "Summary 2 (Con)", initials: "S2", team: "Neg", timers: ["rebuttal"], active: true },
+    { role: "Grand Crossfire", initials: "GCF", team: "None", timers: ["cross-ex"], active: true },
+    { role: "Final Focus 1 (Pro)", initials: "F1", team: "Aff", timers: ["rebuttal"], active: true },
+    { role: "Final Focus 2 (Con)", initials: "F2", team: "Neg", timers: ["rebuttal"], active: true },
+  ];
+  
+  
+  let speakerOrder = createSimsonSpeakerOrder(); // Make it mutable
+  let activeSpeakerIndex = 0;
+  let draggingIndex = null;
+  let touchOverElement = null; // For mobile drag/drop
+
+  // ===== State =====
+  const createDefaultState = (presetName) => {
+    switch (presetName) {
+      case "Policy":
+        return {
+          preset:'Substantive', main: 8*60000, first: 60000, second: 7*60000, yellow: 2*60000, red: 60000, grace: 30000,
+          prepTime: 5*60000, cexTime: 3*60000, rebTime: 5*60000,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
+        };
+      case "LD":
+        return {
+          preset:'Substantive', main: 6*60000, first: 60000, second: 5*60000, yellow: 2*60000, red: 60000, grace: 30000,
+          prepTime: 4*60000, cexTime: 3*60000, rebTime: 4*60000,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
+        };
+      case "PF":
+        return {
+          preset:'Substantive', main: 4*60000, first: 60000, second: 3*60000, yellow: 60000, red: 30000, grace: 30000,
+          prepTime: 3*60000, cexTime: 3*60000, rebTime: 2*60000,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
+        };
+      case "AP":
+        return {
+          preset:'Substantive', main: 7*60000, first: 60000, second: 6*60000, yellow: 60000, red: 30000, grace: 30000,
+          prepTime: 30*60000, cexTime: 60000, rebTime: 4*60000, // 1 min for Cex
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
+        };
+      case "BP":
+        return {
+          preset:'Substantive', main: 7*60000, first: 60000, second: 6*60000, yellow: 60000, red: 30000, grace: 30000,
+          prepTime: 15*60000, cexTime: 0, rebTime: 0,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
+        };
+      case "Simson":
+      default:
+        return {
+          preset:'Substantive', main: 3*60000, first: 60000, second: 2*60000, yellow: 60000, red: 30000, grace: 30000,
+          prepTime: 20*60000, cexTime: 60000, rebTime: 3*60000,
+          spacing: 100, running:false, muted:false, mode:'synth', mp3Url:null, volume: 0.5,
+        };
+    }
+  };
+  
+  let state = createDefaultState("Simson");
+  
+  // This object will hold the timer settings when 'Start' is pressed
+  let timerSnapshot = {};
+  
+  // Profile DB Key
+  const PROFILES_DB_KEY = 'debateTimerProfiles';
+  
+  const DEFAULT_PROFILES = [
+    {
+      name: "Simson (Default)",
+      speakerOrder: createSimsonSpeakerOrder(),
+      settings: createDefaultState("Simson")
+    },
+    {
+      name: "Team Policy (CX)",
+      speakerOrder: createPolicySpeakerOrder(),
+      settings: createDefaultState("Policy")
+    },
+    {
+      name: "Lincoln-Douglas (LD)",
+      speakerOrder: createLDSpeakerOrder(),
+      settings: createDefaultState("LD")
+    },
+    {
+      name: "Public Forum (PF)",
+      speakerOrder: createBFSpeakerOrder(),
+      settings: createDefaultState("PF")
+    },
+    {
+      name: "Asian Parliamentary (AP)",
+      speakerOrder: createAPSpeakerOrder(),
+      settings: createDefaultState("AP")
+    },
+    {
+      name: "British Parliamentary (BP)",
+      speakerOrder: createBPSpeakerOrder(),
+      settings: createDefaultState("BP")
+    }
+  ];
+  
+  const isDefaultProfile = (name) => DEFAULT_PROFILES.some(p => p.name === name);
+
+  // Load persisted
+  try{
+    // Load global settings (not profile specific)
+    state.mode = localStorage.getItem('bellMode')||'synth'; // Default to synth
+    state.mp3Url = localStorage.getItem('mp3Url')||null;
+    state.volume = parseFloat(localStorage.getItem('volume')||'0.5');
+    state.muted = (localStorage.getItem('muted') === 'true') || false;
+  }catch{}
+
+  // Elements
+  const wrap = $('#app');
+  const clockEl = $('#clock');
+  const metaEl = $('#meta');
+  const progressEl = $('#progress');
+  const fillEl = $('#fill');
+  const segA = $('#segA'), segB=$('#segB'), segC=$('#segC');
+  const capA=$('#capA'), capB=$('#capB'), capC=$('#capC');
+  const statusNote=$('#statusNote');
+  const modeLabel=$('#modeLabel');
+  
+  // Settings UI
+  const settingsBtn = $('#settingsBtn');
+  const settingsContainer = $('#settingsContainer');
+  settingsBtn.onclick = () => {
+    settingsContainer.style.display = settingsContainer.style.display === 'none' ? 'block' : 'none';
+  };
+
+  // Inputs
+  const mainInput=$('#mainInput'), firstInput=$('#firstInput'), secondInput=$('#secondInput');
+  const yellowInput=$('#yellowInput'), redInput=$('#redInput'), graceInput=$('#graceInput');
+  const spaceInput=$('#spaceInput');
+  const modeSel=$('#modeSel'), mp3Url=$('#mp3Url'), mp3File=$('#mp3File'), volumeInput=$('#volumeInput');
+  
+  // Quick Timer Inputs (now in settings)
+  const prepInput=$('#prepInput'), cexInput=$('#cexInput'), rebInput=$('#rebInput');
+
+  const muteBtn=$('#muteBtn'), enableBtn=$('#enableBtn'), testsBtn=$('#testsBtn');
+  const startBtn=$('#startBtn'), resetBtn=$('#resetBtn');
+  const singleBtn=$('#singleBtn'), doubleBtn=$('#doubleBtn');
+  const stopBellBtn=$('#stopBellBtn'), testContBellBtn=$('#testContBellBtn');
+
+  // Quick timers (display elements)
+  const prepClock=$('#prepClock'), prepFill=$('#prepFill');
+  const cexClock=$('#cexClock'), cexFill=$('#cexFill'); // FIX: Was $$
+  const rebClock=$('#rebClock'), rebFill=$('#rebFill'), rebuttalLabel=$('#rebuttalLabel');
+  
+  const prepStart=$('#prepStart'), prepReset=$('#prepReset');
+  const cexStart=$('#cexStart'), cexReset=$('#cexReset');
+  let rebStart=$('#rebStart'), rebReset=$('#rebReset'); // FIX: Let, not const
+  
+  // Timer Containers
+  const prepTimerContainer = $('#prepTimerContainer');
+  const mainSpeechCard = $('#mainSpeechCard');
+  const crossExCard = $('#crossExCard');
+  const rebuttalCard = $('#rebuttalCard');
+  
+  // Profile UI
+  const profileSelect = $('#profileSelect');
+  const loadProfileBtn = $('#loadProfileBtn');
+  const saveProfileBtn = $('#saveProfileBtn');
+  const deleteProfileBtn = $('#deleteProfileBtn');
+  const exportProfilesBtn = $('#exportProfilesBtn');
+  const importProfilesInput = $('#importProfilesInput');
+
+  // Speaker Progress UI
+  const speakerProgress = $('#speakerProgress');
+  const nextSpeakerBtn = $('#nextSpeakerBtn');
+  const prevSpeakerBtn = $('#prevSpeakerBtn');
+  const resetOrderBtn = $('#resetOrderBtn');
+  
+  // RE-ADDED: Presenter Mode
+  const presenterBtn = $('#presenterBtn');
+
+  // New Help Modal UI
+  const helpBtn = $('#helpBtn');
+  const helpModal = $('#helpModal');
+  const closeHelpBtn = $('#closeHelpBtn');
+  
+  helpBtn.onclick = () => { helpModal.style.display = 'flex'; };
+  closeHelpBtn.onclick = () => { helpModal.style.display = 'none'; };
+  
+  // const silentAudio = $('#silentUnlockAudio'); // REMOVED
+
+  // NEW: Selectors for Mute Icons
+  const muteIconOn = $('#muteIconOn');
+  const muteIconOff = $('#muteIconOff');
+
+  // New Lang Toggle UI
+  const langToggleBtn = $('#langToggleBtn');
+  langToggleBtn.onclick = () => {
+    const newLang = currentLang === 'en' ? 'ko' : 'en';
+    updateLanguage(newLang);
+  };
+
+  function initSpeakerProgress() {
+    speakerProgress.innerHTML = '';
+    speakerOrder.forEach((speaker, index) => {
+      const box = document.createElement('div');
+      // BP has 'Gov' and 'Opp'
+      let teamClass = speaker.team.toLowerCase().replace('prop', 'gov');
+      if (teamClass.includes('aff')) teamClass = 'aff';
+      if (teamClass.includes('neg')) teamClass = 'neg';
+      
+      box.className = `speaker-box team-${teamClass}`;
+      box.classList.toggle('inactive', !speaker.active);
+      
+      const initials = speaker.initials;
+      box.textContent = initials;
+      
+      // Localize title
+      const trans = translations[currentLang];
+      const roleName = trans[speaker.role] || speaker.role; // Fallback to key
+      box.title = roleName + trans.speakerBoxTitle;
+      box.dataset.langRole = speaker.role; // Store key for updates
+      box.dataset.index = index;
+      
+      // Click to select
+      box.addEventListener('click', () => {
+        if (!speaker.active) return; // Don't select inactive
+        setActiveSpeaker(index);
+      });
+      
+      // Double-click to toggle active
+      box.addEventListener('dblclick', () => {
+        speaker.active = !speaker.active;
+        box.classList.toggle('inactive', !speaker.active);
+      });
+
+      // Drag and Drop
+      box.draggable = true;
+      box.addEventListener('dragstart', (e) => {
+        draggingIndex = index;
+        e.dataTransfer.effectAllowed = 'move';
+        box.classList.add('dragging');
+      });
+      box.addEventListener('dragend', () => {
+        box.classList.remove('dragging');
+        draggingIndex = null;
+      });
+      box.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        box.classList.add('drag-over');
+      });
+      box.addEventListener('dragleave', () => {
+        box.classList.remove('drag-over');
+      });
+      box.addEventListener('drop', (e) => {
+        e.preventDefault();
+        box.classList.remove('drag-over');
+        if (draggingIndex === null || draggingIndex === index) return;
+        
+        // Re-order the array
+        const [draggedItem] = speakerOrder.splice(draggingIndex, 1);
+        speakerOrder.splice(index, 0, draggedItem);
+        
+        // Update active index
+        if (activeSpeakerIndex === draggingIndex) {
+          activeSpeakerIndex = index;
+        } else if (draggingIndex < activeSpeakerIndex && index >= activeSpeakerIndex) {
+          activeSpeakerIndex--;
+        } else if (draggingIndex > activeSpeakerIndex && index <= activeSpeakerIndex) {
+          activeSpeakerIndex++;
+        }
+        
+        initSpeakerProgress(); // Redraw all
+        setActiveSpeaker(activeSpeakerIndex, true); // Re-apply active class
+        // NOTE: initSpeakerProgress now handles broadcasting
+      });
+
+      // ===== Touch Events for Mobile Reordering =====
+      box.addEventListener('touchstart', (e) => {
+        // e.preventDefault(); // This can prevent 'click' events
+        draggingIndex = index;
+        box.classList.add('dragging');
+        // We don't prevent default here to allow clicks to register
+      }, { passive: true }); // Use passive: true to allow default click/scroll
+
+      box.addEventListener('touchmove', (e) => {
+        if (draggingIndex === null) return;
+        
+        // Prevent scrolling *while* dragging
+        e.preventDefault(); 
+        
+        const touch = e.touches[0];
+        
+        // Hide the dragging element *briefly* to find what's underneath
+        const draggingBox = $$('.speaker-box')[draggingIndex];
+        if (draggingBox) draggingBox.style.display = 'none';
+        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (draggingBox) draggingBox.style.display = ''; // Show it again
+
+        if (!targetElement) return;
+
+        // Find the closest speaker-box
+        const targetBox = targetElement.closest('.speaker-box');
+
+        // Clear previous drag-over
+        if (touchOverElement && touchOverElement !== targetBox) {
+            touchOverElement.classList.remove('drag-over');
+        }
+
+        // Add drag-over to new target
+        if (targetBox && targetBox.dataset.index != draggingIndex) { // Use != for type coercion
+            targetBox.classList.add('drag-over');
+            touchOverElement = targetBox;
+        } else {
+            touchOverElement = null;
+        }
+      }, { passive: false }); // We must use passive: false because we call preventDefault()
+
+      box.addEventListener('touchend', (e) => {
+        if (draggingIndex === null) return;
+        
+        // Find the drop target
+        const dropIndex = touchOverElement ? parseInt(touchOverElement.dataset.index, 10) : null;
+
+        // Clean up classes *before* reordering
+        box.classList.remove('dragging');
+        if (touchOverElement) {
+            touchOverElement.classList.remove('drag-over');
+        }
+
+        if (dropIndex !== null && dropIndex !== draggingIndex) {
+            // Valid drop
+            const [draggedItem] = speakerOrder.splice(draggingIndex, 1);
+            speakerOrder.splice(dropIndex, 0, draggedItem);
+            
+            // Update active index
+            if (activeSpeakerIndex === draggingIndex) {
+              activeSpeakerIndex = dropIndex;
+            } else if (draggingIndex < activeSpeakerIndex && dropIndex >= activeSpeakerIndex) {
+              activeSpeakerIndex--;
+            } else if (draggingIndex > activeSpeakerIndex && dropIndex <= activeSpeakerIndex) {
+              activeSpeakerIndex++;
+            }
+            
+            initSpeakerProgress(); // Redraw all
+            setActiveSpeaker(activeSpeakerIndex, true); // Re-apply active class
+            // NOTE: initSpeakerProgress now handles broadcasting
+        }
+
+        // Reset state
+        draggingIndex = null;
+        touchOverElement = null;
+      });
+      // ===== End Touch Events =====
+
+      speakerProgress.appendChild(box);
+    });
+    
+    if (!isPresenter) broadcastPresenterState(); // NEW: Broadcast after re-drawing speakers
+  }
+
+  function setActiveSpeaker(index, force = false) {
+    if (index >= speakerOrder.length || index < 0) {
+      index = 0; // Safety check
+    }
+    if (!force && index === activeSpeakerIndex) return; // No change
+
+    activeSpeakerIndex = index;
+    
+    // Remove active class from all
+    $$('.speaker-box').forEach(box => box.classList.remove('active-speaker'));
+    
+    // Add active class to current
+    const activeBox = $(`[data-index="${index}"]`);
+    if (activeBox) {
+      activeBox.classList.add('active-speaker');
+    }
+
+    // Get speaker and set correct timers
+    const speaker = speakerOrder[index];
+    if (!speaker) return;
+    
+    const timers = speaker.timers;
+    
+    // Hide/Show correct timer cards
+    prepTimerContainer.style.display = timers.includes('prep') ? 'flex' : 'none';
+    mainSpeechCard.style.display = timers.includes('main') ? 'block' : 'none';
+    crossExCard.style.display = timers.includes('cross-ex') ? 'block' : 'none';
+    rebuttalCard.style.display = timers.includes('rebuttal') ? 'block' : 'none';
+
+    // Apply correct preset
+    if (timers.includes('main')) {
+      applyPreset('Substantive');
+    } else if (timers.includes('rebuttal')) {
+      applyPreset('Reply');
+    }
+    
+    if (!isPresenter) broadcastPresenterState(); // RE-ADDED
+  }
+
+  function findNextSpeaker(direction) {
+    let newIndex = activeSpeakerIndex;
+    const max = speakerOrder.length - 1;
+    
+    for (let i = 1; i <= speakerOrder.length; i++) {
+      newIndex = (newIndex + direction + speakerOrder.length) % speakerOrder.length;
+      if (speakerOrder[newIndex].active) {
+        return newIndex;
+      }
+    }
+    return activeSpeakerIndex; // No other active speaker
+  }
+
+  nextSpeakerBtn.onclick = () => {
+    const nextIndex = findNextSpeaker(1);
+    setActiveSpeaker(nextIndex);
+  };
+  
+  prevSpeakerBtn.onclick = () => {
+    const prevIndex = findNextSpeaker(-1);
+    setActiveSpeaker(prevIndex);
+  };
+
+  resetOrderBtn.onclick = () => {
+    // Resets order *based on the currently loaded profile*
+    const currentProfileName = profileSelect.value;
+    const profile = findProfileByName(currentProfileName);
+    if (!profile) { // Safety check
+      loadSelectedProfile(DEFAULT_PROFILES[0].name);
+      return;
+    }
+    speakerOrder = JSON.parse(JSON.stringify(profile.speakerOrder)); // Deep copy
+    initSpeakerProgress();
+    setActiveSpeaker(0);
+    if (!isPresenter) broadcastPresenterState(); // RE-ADDED
+  };
+
+  // ===== Audio =====
+  // const SILENT_WAV = '...'; // REMOVED
+  // Built-in WAV file (a simple 880Hz 'ding')
+  // const BUILT_IN_DING_WAV = '...'; // REMOVED
+  
+  let audioCtx = null; // AudioContext
+  let unlocked = false;
+  // let uploadedSounds = []; // REMOVED: Now part of soundBank
+  
+  // NEW: Sound bank to hold pre-loaded audio buffers
+  const soundBank = {
+    'synth': { name: 'Synth Bell', buffer: null, url: null, builtIn: true },
+    // 'wav': { name: 'Built-in WAV', buffer: null, url: BUILT_IN_DING_WAV, builtIn: true }, // REMOVED
+    'mp3': { name: 'MP3 URL', buffer: null, url: null, builtIn: true }, // URL set from state
+    'uploads': [] // { name: 'file.mp3', buffer: null, url: 'blob:...' }
+  };
+  
+  // NEW: Helper to decode base64 for data: URLs
+  const base64ToArrayBuffer = (base64) => {
+    const binaryString = window.atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
+  };
+
+  // NEW: Function to pre-load sounds into AudioBuffers
+  async function loadSound(soundObj) {
+    if (!soundObj || !soundObj.url || !audioCtx) return;
+    
+    // Don't re-fetch if buffer is already loaded
+    if (soundObj.buffer) return; 
+
+    try {
+      let arrayBuffer;
+      // Handle data: URLs directly, fetch others
+      if (soundObj.url.startsWith('data:')) {
+        const base64Data = soundObj.url.split(',')[1];
+        arrayBuffer = base64ToArrayBuffer(base64Data);
+      } else {
+        const response = await fetch(soundObj.url);
+        arrayBuffer = await response.arrayBuffer();
+      }
+      
+      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      soundObj.buffer = audioBuffer; // Cache the buffer
+      console.log(`Loaded sound: ${soundObj.name}`);
+    } catch (e) {
+      console.error(`Failed to load ${soundObj.name} at ${soundObj.url}:`, e);
+      soundObj.buffer = null; // Failed
+    }
+  }
+
+  const setStatus = (s)=>{ 
+    const trans = translations[currentLang];
+    const statusText = trans[s] || s; // Translate status key
+    $('#statusNote').dataset.currentStatus = s; // Store key
+    const statusSpan = $('#statusNote').querySelector('[data-lang-status]');
+    if (statusSpan) {
+        statusSpan.textContent = statusText;
+    }
+    
+    // const tip = (state.mode==='mp3' && !state.mp3Url ? ' · Tip: set a public MP3 URL or upload below' : '');
+    // We can't easily translate the tip, so we'll leave it
+    // statusNote.textContent = trans.statusPrefix + statusText + tip; 
+  };
+
+  const unlock = ()=>{
+    // This function is now "bulletproof" and uses Web Audio API
+    if (unlocked) return true;
+
+    // 1. Try to unlock Web Audio (for ALL sounds)
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) {
+        if (!audioCtx) {
+          audioCtx = new Ctx(); 
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          // Fire-and-forget resume.
+          audioCtx.resume().then(() => {
+            // NEW: Load sounds after context is resumed
+            // loadSound(soundBank.wav); // REMOVED
+            if (state.mp3Url) {
+              soundBank.mp3.url = state.mp3Url;
+              loadSound(soundBank.mp3); // Pre-load custom URL
+            }
+            soundBank.uploads.forEach(loadSound); // Pre-load all uploads
+            
+            setStatus('Sound ready.');
+          }).catch(()=>{ 
+            setStatus('resume-fail'); 
+          });
+        } else if (audioCtx && audioCtx.state === 'running') {
+            // NEW: Load sounds
+            // loadSound(soundBank.wav); // REMOVED
+            if (state.mp3Url) {
+              soundBank.mp3.url = state.mp3Url;
+              loadSound(soundBank.mp3);
+            }
+            soundBank.uploads.forEach(loadSound);
+            setStatus('Sound ready.');
+        }
+        unlocked = true;
+        enableBtn.style.display = 'none';
+        return true;
+      }
+    } catch (e) {
+      setStatus('audio-ctx-fail'); // Use new key
+    }
+
+    // 2. Fallback (if Ctx failed)
+    unlocked = false; // It failed
+    enableBtn.style.display = 'none'; // Hide button anyway
+    setStatus('Sound failed. Please refresh.');
+    return false;
+  };
+
+  const playBell = async(count)=>{
+    if(state.muted || !unlocked) return; // Check flag, not unlock
+    
+    // Attempt to resume AudioContext if it's suspended (for iOS)
+    if (audioCtx && audioCtx.state === 'suspended') {
+      try {
+        await audioCtx.resume();
+      } catch (e) {
+        console.error('AudioContext resume failed on playBell:', e);
+        setStatus('resume-fail');
+      }
+    }
+    if (!audioCtx) { // Check if context exists
+      setStatus('Please click "Enable Sound" first');
+      return;
+    }
+    
+    // Logic for which sound to play
+    const mode = state.mode;
+    
+    if(mode === 'synth'){
+      const ctx = audioCtx; // Already checked for existence
+      const base = ctx.currentTime + .05;
+      
+      const freqs = [ 700, 1400, 1760, 2800, 3520, 4400, 5600, 7040, 8800, 11200, 14080, 17600 ];
+      const gains = [ 0.2, 0.15, 0.4, 0.3, 0.25, 0.2, 0.1, 0.08, 0.05, 0.03, 0.02, 0.01 ];
+      const decays = [ 2.8, 2.0, 2.5, 2.0, 1.5, 1.0, 0.7, 0.5, 0.4, 0.3, 0.2, 0.1 ];
+      
+      for (let i = 0; i < count; i++) {
+        const t = base + (i * state.spacing) / 1000; // time for this specific chime
+
+        // Create a NEW master gain for EACH chime
+        const master = ctx.createGain();
+        master.gain.setValueAtTime(0.0001, t);
+        master.gain.exponentialRampToValueAtTime(state.volume, t + 0.01); // Very fast attack
+        master.gain.exponentialRampToValueAtTime(0.0001, t + 3.0); // Long decay
+        master.connect(ctx.destination);
+
+        freqs.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, t);
+          
+          const partialGain = gains[idx]; // Master gain already handles volume
+          const decay = decays[idx];
+          
+          g.gain.setValueAtTime(partialGain, t);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+          
+          osc.connect(g).connect(master);
+          osc.start(t);
+          osc.stop(t + 3.0);
+        });
+      }
+    } else {
+      // *** NEW: AudioBuffer playback logic ***
+      let soundObj;
+      if (mode === 'mp3') { // 'wav' case removed
+        soundObj = soundBank.mp3;
+      } else if (mode.startsWith('upload_')) {
+        const uploadIndex = parseInt(mode.split('_')[1], 10);
+        soundObj = soundBank.uploads[uploadIndex]; // Use new soundBank
+      }
+
+      if (!soundObj || !soundObj.url) {
+        // Special case for 'mp3' mode with no URL set
+        if (mode === 'mp3' && !soundObj.url) {
+          setStatus('no-mp3-url');
+        } else if (!soundObj) {
+          console.error('Sound object not found for mode:', mode);
+        }
+        return;
+      }
+
+      // Check if it's loaded. If not, load it ONCE.
+      if (!soundObj.buffer) {
+        await loadSound(soundObj); // Load on-demand
+      }
+      
+      // If still no buffer, or sound failed, abort.
+      if (!soundObj.buffer) {
+        console.error(`Sound ${soundObj.name} is not loaded or failed to load.`);
+        setStatus('audio-play-fail');
+        return;
+      }
+      
+      // Play using AudioBuffer
+      const baseTime = audioCtx.currentTime;
+      for (let i = 0; i < count; i++) {
+        const t = baseTime + (i * state.spacing) / 1000;
+        
+        // Create a *new* source node for each play
+        const source = audioCtx.createBufferSource();
+        source.buffer = soundObj.buffer;
+        
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.setValueAtTime(state.volume, t);
+        
+        source.connect(gainNode).connect(audioCtx.destination);
+        source.start(t);
+      }
+    }
+  };
+
+  // Controls
+  muteBtn.onclick = ()=>{ 
+    state.muted=!state.muted; 
+    
+    // UPDATED: Toggle icons instead of text
+    muteIconOn.style.display = state.muted ? 'none' : 'block';
+    muteIconOff.style.display = state.muted ? 'block' : 'none';
+    
+    localStorage.setItem('muted', state.muted);
+  };
+  enableBtn.onclick = unlock;
+  testsBtn.onclick = ()=>{ const box=$('#tests'); box.style.display = box.style.display==='none'?'block':'none'; };
+
+  // ===== Main Timer Engine =====
+  let startTs=null, acc=0, raf=null, remaining=state.main;
+  let inGrace=false, graceRemaining=0;
+  let contBellInterval=null;
+  const fired = {first:false, second:false, final:false};
+
+  // Stop continuous bell
+  const stopContinuousBell = ()=>{
+    if(contBellInterval){ clearInterval(contBellInterval); contBellInterval=null; }
+    stopBellBtn.style.display = 'none';
+    testContBellBtn.textContent = translations[currentLang].testStopCont; // Use translation
+  };
+
+  // Wire up stop button
+  stopBellBtn.onclick = stopContinuousBell;
+  testContBellBtn.onclick = ()=>{ // No longer async
+    if(contBellInterval){
+      stopContinuousBell();
+    } else {
+      // await unlock(); // REMOVED
+      if (!unlocked) { // Check if unlock succeeded
+        setStatus('Please click "Enable Sound" first');
+        return; 
+      }
+      contBellInterval = setInterval(()=>playBell(1), 500);
+      testContBellBtn.textContent = translations[currentLang].stopBell; // 'Stop'
+    }
+  };
+
+  const loop = (ts)=>{
+    if(startTs===null) startTs=ts;
+    const elapsed = (ts-startTs)+acc;
+    
+    if (inGrace) {
+      // We are in the grace period
+      graceRemaining = Math.max(0, timerSnapshot.grace - elapsed);
+      remaining = 0;
+      if (graceRemaining === 0) {
+        // Grace period over
+        if (!contBellInterval && timerSnapshot.preset === 'Substantive') {
+          // Start continuous bell only for Substantive
+          contBellInterval = setInterval(()=>playBell(1), 500); // 500ms interval
+          stopBellBtn.style.display = 'inline-flex';
+        }
+      }
+    } else {
+      // We are in the main countdown
+      remaining = Math.max(0, timerSnapshot.main - elapsed);
+      if (remaining === 0) {
+        if (!fired.final) {
+          playBell(2);
+          fired.final = true;
+        }
+        // Transition to grace period
+        if (timerSnapshot.grace > 0) {
+          inGrace = true;
+          acc = 0; // Reset accumulator for grace period
+          startTs = ts; // Reset start time for grace period
+        } else {
+          // No grace period, just end
+          cancelAnimationFrame(raf);
+          raf = null;
+        }
+      }
+    }
+    
+    render();
+    
+    // Check bells during main countdown
+    if (!inGrace) {
+      checkBells();
+    }
+    
+    // Only continue loop if main time or grace time is left
+    if ((remaining > 0 || graceRemaining > 0) && raf) {
+      raf = requestAnimationFrame(loop);
+    } else {
+      // Loop finishes (unless continuous bell is on)
+      cancelAnimationFrame(raf);
+      raf = null;
+    }
+    // NOTE: render() call was moved up, and render() no longer broadcasts
+  };
+
+  const snapshotSettings = () => {
+    timerSnapshot = {
+      main: state.main,
+      first: state.first,
+      second: state.second,
+      yellow: state.yellow,
+      red: state.red,
+      grace: state.grace,
+      preset: state.preset, // Snapshot preset type
+    };
+  };
+
+  const start = ()=>{
+    if(raf) return;
+    
+    // FIX: Always snapshot settings on start, unless we're resuming *during* the grace period.
+    // The "if (acc === 0)" check was the bug.
+    if (!inGrace) {
+      snapshotSettings(); // Take fresh snapshot of settings
+      // If we are starting from a paused state (acc > 0), we must preserve acc.
+      // If we are starting from a scrub (acc > 0), we must preserve acc.
+      // If we are starting from 0 (acc === 0), it's a fresh start.
+      if (acc === 0) {
+        graceRemaining = timerSnapshot.grace;
+      }
+    }
+    
+    raf = requestAnimationFrame(loop); // Set raf *before* calling loop
+    if (!isPresenter) broadcastPresenterState(); // NEW: Broadcast on start
+  };
+  
+  const pause = ()=>{
+    if(!raf) return;
+    cancelAnimationFrame(raf);
+    raf = null;
+    const now = performance.now();
+    if(startTs) acc += (now - startTs); // Check if startTs is set
+    startTs = null;
+    stopContinuousBell(); // Stop bells on pause
+    if (!isPresenter) broadcastPresenterState(); // NEW: Broadcast on pause
+  };
+  
+  const reset = ()=>{
+    if(raf) cancelAnimationFrame(raf);
+    raf = null;
+    startTs = null;
+    acc = 0;
+    inGrace = false;
+    // Reset to the *current state*, not the snapshot
+    remaining = state.main; 
+    graceRemaining = state.grace;
+    fired.first = fired.second = fired.final = false;
+    stopContinuousBell(); // Stop bells on reset
+    render(true); // Force render with state
+    if (!isPresenter) broadcastPresenterState(); // RE-ADDED
+  };
+
+  // Buttons
+  startBtn.onclick = ()=>{ // No longer async
+    // await unlock(); // REMOVED
+    if(raf) { 
+      pause(); 
+      startBtn.textContent = translations[currentLang].start; 
+    } else { 
+      start(); 
+      startBtn.textContent = translations[currentLang].pause; 
+    } 
+  };
+  resetBtn.onclick = ()=>{ pause(); reset(); startBtn.textContent = translations[currentLang].start; };
+  singleBtn.onclick = ()=>{ playBell(1); }; // No longer async, removed await
+  doubleBtn.onclick = ()=>{ playBell(2); }; // No longer async, removed await
+
+  // ===== NEW: Main Timer Scrubbing Logic =====
+  let isScrubbingMain = false;
+
+  const mainScrubMove = (e) => {
+    if (!isScrubbingMain) return;
+    e.preventDefault();
+    
+    // Works for both mouse and touch
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    if (typeof clientX === 'undefined') return;
+
+    const rect = progressEl.getBoundingClientRect();
+    let pct = (clientX - rect.left) / rect.width;
+    pct = Math.max(0, Math.min(1, pct));
+    
+    // Timer is running, don't scrub
+    if (raf !== null) { 
+        mainScrubEnd();
+        return;
+    }
+
+    // Update main timer state
+    const source = timerSnapshot; // Scrubbing always affects the snapshot
+    acc = source.main * pct;
+    remaining = source.main - acc;
+    
+    // Ensure we are not in grace period
+    inGrace = false; 
+    graceRemaining = source.grace;
+    
+    // Reset bell-fired flags if we scrub *before* them
+    if (acc < source.first) fired.first = false;
+    if (acc < source.second) fired.second = false;
+    fired.final = false; // Always reset final bell
+    
+    render(true); // Force render
+  };
+
+  const mainScrubEnd = () => {
+    isScrubbingMain = false;
+    document.removeEventListener('mousemove', mainScrubMove);
+    document.removeEventListener('mouseup', mainScrubEnd);
+    document.removeEventListener('touchmove', mainScrubMove);
+    document.removeEventListener('touchend', mainScrubEnd);
+  };
+
+  const mainScrubStart = (e) => {
+    // Only scrub if PAUSED
+    if (raf !== null) return;
+
+    // Must have a snapshot to scrub
+    /* // OLD, BUGGY LOGIC:
+    if (acc === 0) { 
+      snapshotSettings();
+    }
+    */
+    
+    // NEW FIX: Always take a new snapshot on scrub start.
+    snapshotSettings();
+
+    isScrubbingMain = true;
+    document.removeEventListener('mousemove', mainScrubMove);
+    document.addEventListener('mouseup', mainScrubEnd);
+    document.addEventListener('touchmove', mainScrubMove, { passive: false });
+    document.addEventListener('touchend', mainScrubEnd);
+    
+    mainScrubMove(e); // Snap to initial click
+  };
+
+  progressEl.addEventListener('mousedown', mainScrubStart);
+  progressEl.addEventListener('touchstart', mainScrubStart, { passive: false });
+  // ===== END: Main Timer Scrubbing Logic =====
+
+
+  // Inputs handlers
+  const syncFromInputs = ()=>{
+    // This function now reads from inputs and updates state
+    // It does NOT save to local storage (except for global settings)
+    state.main = parseMin(mainInput.value);
+    state.first = parseMin(firstInput.value);
+    state.second = parseMin(secondInput.value);
+    state.yellow = parseMin(yellowInput.value);
+    state.red = parseMin(redInput.value);
+    state.grace = parseMin(graceInput.value);
+    state.spacing = Math.max(100, parseInt(spaceInput.value||'100',10)||100);
+    
+    // Sync quick timers
+    state.prepTime = parseMin(prepInput.value);
+    state.cexTime = parseMin(cexInput.value);
+    state.rebTime = parseMin(rebInput.value);
+    
+    // Global settings ARE saved
+    state.mode = modeSel.value;
+    state.volume = parseFloat(volumeInput.value);
+    
+    // NEW: Handle MP3 URL change
+    const newMp3Url = mp3Url.value || null;
+    if (newMp3Url !== state.mp3Url) {
+      state.mp3Url = newMp3Url;
+      soundBank.mp3.url = newMp3Url;
+      soundBank.mp3.buffer = null; // Invalidate buffer
+      if (unlocked && newMp3Url) {
+        loadSound(soundBank.mp3); // Preload new URL
+      }
+    }
+    
+    localStorage.setItem('bellMode', state.mode);
+    if(state.mp3Url) localStorage.setItem('mp3Url', state.mp3Url);
+    localStorage.setItem('volume', String(state.volume));
+    
+    // Only reset if timer is not running
+    if (!raf) {
+      reset();
+    }
+    
+    // Also reset quick timers if not running
+    prep.reset(true); // Pass true to say "don't reset if running"
+    cex.reset(true);
+    reb.reset(true);
+    
+    modeLabel.textContent = state.preset==='Substantive'? translations[currentLang].substantiveSpeech : translations[currentLang].replySpeech;
+    rebuttalLabel.textContent = `${translations[currentLang].rebTitle} (${fmt(state.rebTime)})`;
+  };
+  
+  const syncInputsToState = () => {
+    // This function updates the input fields TO MATCH the state
+    // (e.g., after loading a profile)
+    mainInput.value = fmt(state.main);
+    firstInput.value = fmt(state.first);
+    secondInput.value = fmt(state.second);
+    yellowInput.value = fmt(state.yellow);
+    redInput.value = fmt(state.red);
+    graceInput.value = fmt(state.grace);
+    spaceInput.value = state.spacing;
+    
+    // Sync quick timer inputs
+    prepInput.value = fmt(state.prepTime);
+    cexInput.value = fmt(state.cexTime);
+    rebInput.value = fmt(state.rebTime);
+    
+    // Sync global audio settings
+    // modeSel.value = state.mode; // This is now handled by populateModeSelect
+    volumeInput.value = state.volume;
+    
+    // UPDATED: Toggle icons instead of text
+    muteIconOn.style.display = state.muted ? 'none' : 'block';
+    muteIconOff.style.display = state.muted ? 'block' : 'none';
+    
+    if (state.mp3Url) mp3Url.value = state.mp3Url;
+    
+    populateModeSelect(); // Re-populate and set correct value
+    
+    if (!raf) {
+      reset();
+    }
+    
+    // Reset quick timers
+    prep.reset();
+    cex.reset();
+    reb.reset();
+    
+    rebuttalLabel.textContent = `${translations[currentLang].rebTitle} (${fmt(state.rebTime)})`;
+  };
+  
+  // New function to populate the sound dropdown
+  function populateModeSelect() {
+    const currentMode = state.mode;
+    modeSel.innerHTML = ''; // Clear
+    const trans = translations[currentLang];
+    
+    // Basic options
+    const basics = document.createElement('optgroup');
+    basics.label = trans.standardSounds;
+    basics.innerHTML = `
+      <option value="synth">${trans.synthBell}</option>
+      <!-- <option value="wav">${trans.builtInWAV}</option> --> <!-- REMOVED -->
+      <option value="mp3">${trans.mp3URLOpt}</option>
+    `;
+    modeSel.appendChild(basics);
+    
+    // Uploaded options
+    if (soundBank.uploads.length > 0) { // Use new soundBank
+      const uploads = document.createElement('optgroup');
+      uploads.label = trans.uploadedSounds;
+      soundBank.uploads.forEach((sound, index) => { // Use new soundBank
+        const opt = document.createElement('option');
+        opt.value = `upload_${index}`;
+        opt.textContent = sound.name;
+        uploads.appendChild(opt);
+      });
+      modeSel.appendChild(uploads);
+    }
+    
+    // Try to set the mode, fallback to synth if it's not found (e.g., deleted upload)
+    if (modeSel.querySelector(`option[value="${currentMode}"]`)) {
+      modeSel.value = currentMode;
+    } else {
+      state.mode = 'synth';
+      modeSel.value = 'synth';
+    }
+  }
+  
+  // Add listeners
+  [mainInput,firstInput,secondInput,yellowInput,redInput,graceInput,spaceInput,modeSel,mp3Url,volumeInput, prepInput, cexInput, rebInput].forEach(el=> el.addEventListener('change', syncFromInputs));
+  
+  mp3File.addEventListener('change', (e)=>{ 
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    let firstUploadIndex = soundBank.uploads.length; // Use new soundBank
+    
+    Array.from(files).forEach(file => {
+      const url = URL.createObjectURL(file);
+      const newSound = { name: file.name, url: url, buffer: null };
+      soundBank.uploads.push(newSound); // Use new soundBank
+      if (unlocked) { // Only preload if audio is enabled
+        loadSound(newSound);
+      }
+    });
+    
+    populateModeSelect();
+    
+    // Select the first of the *newly* uploaded files
+    state.mode = `upload_${firstUploadIndex}`;
+    modeSel.value = state.mode;
+    
+    // Clear the input to allow uploading the same file again
+    e.target.value = null; 
+  });
+
+  // Presets
+  function applyPreset(key){
+    state.preset=key;
+    // This function no longer changes inputs directly
+    // It just sets the preset key, which is snapshot
+    // and used for logic (e.g. continuous bell)
+    // The actual time values are part of the loaded profile state
+    
+    // We MUST still update the label
+    modeLabel.textContent = state.preset==='Substantive'? translations[currentLang].substantiveSpeech : translations[currentLang].replySpeech;
+  }
+
+  // Quick timers helper
+  function miniTimer(clockEl, fillEl, stateKey, endBellCount = 0){
+    let snapshotDur = state[stateKey];
+    let rem = state[stateKey]; 
+    let st=null, acc=0, r=null;
+    
+    // ===== NEW: Mini Timer Scrubbing Logic =====
+    const progressContainerEl = fillEl.parentElement;
+    let isScrubbing = false;
+
+    const scrubMove = (e) => {
+      if (!isScrubbing) return;
+      e.preventDefault();
+      
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      if (typeof clientX === 'undefined') return;
+      
+      const rect = progressContainerEl.getBoundingClientRect();
+      let pct = (clientX - rect.left) / rect.width;
+      pct = Math.max(0, Math.min(1, pct));
+      
+      // Update mini-timer state
+      // We can only do this if the timer is PAUSED (r === null)
+      if (r !== null) { // Timer is running, don't scrub
+          scrubEnd();
+          return;
+      }
+      
+      acc = snapshotDur * pct; // Set elapsed time
+      rem = snapshotDur - acc; // Set remaining time
+      
+      paint(); // Redraw the clock and bar
+    };
+
+    const scrubEnd = () => {
+      isScrubbing = false;
+      document.removeEventListener('mousemove', scrubMove);
+      document.removeEventListener('mouseup', scrubEnd);
+      document.removeEventListener('touchmove', scrubMove);
+      document.removeEventListener('touchend', scrubEnd);
+    };
+
+    const scrubStart = (e) => {
+      // Only scrub if PAUSED
+      if (r !== null) return; 
+
+      // Snapshot duration on scrub start
+      snapshotDur = state[stateKey];
+
+      isScrubbing = true;
+      document.removeEventListener('mousemove', scrubMove);
+      document.addEventListener('mouseup', scrubEnd);
+      document.addEventListener('touchmove', scrubMove, { passive: false });
+      document.addEventListener('touchend', scrubEnd);
+      
+      scrubMove(e); // Snap to initial click
+    };
+
+    progressContainerEl.addEventListener('mousedown', scrubStart);
+    progressContainerEl.addEventListener('touchstart', scrubStart, { passive: false });
+    // ===== END: Mini Timer Scrubbing Logic =====
+
+
+    const paint = ()=>{ 
+      const displayRem = (r === null && acc === 0) ? state[stateKey] : rem;
+      clockEl.textContent = fmt(displayRem); 
+      const pct = snapshotDur === 0 ? 0 : 100 - Math.round((rem/snapshotDur)*100); 
+      fillEl.style.width = Math.max(0,Math.min(100,pct))+"%"; 
+      // if (!isPresenter) broadcastPresenterState(); // REMOVED from paint()
+    };
+    
+    const lp = (ts)=>{ 
+      if(st===null) st=ts; 
+      const el=(ts-st)+acc; 
+      rem=Math.max(0,snapshotDur-el); 
+      paint(); 
+      if(rem>0) {
+        r=requestAnimationFrame(lp); 
+      } else {
+        cancelAnimationFrame(r);
+        r = null;
+        if (endBellCount > 0) {
+          playBell(endBellCount);
+        }
+      }
+    };
+    
+    const start=()=>{ 
+      if(r) return; 
+      if (acc === 0) { // Fresh start
+        snapshotDur = state[stateKey]; // Snapshot from global state
+      }
+      rem = snapshotDur - acc;
+      st = null; // Reset start time
+      r = requestAnimationFrame(lp); 
+      if (!isPresenter) broadcastPresenterState(); // NEW: Broadcast on start
+    };
+    
+    const pause=()=>{ 
+      if(!r) return;
+      cancelAnimationFrame(r);
+      r=null;
+      const now = performance.now();
+      if(st) acc += (now - st); // Only add if st is set
+      st=null;
+      if (!isPresenter) broadcastPresenterState(); // NEW: Broadcast on pause
+    };
+    
+    const reset=(dontPauseIfRunning = false)=>{
+      if (dontPauseIfRunning && r) return; // Don't reset if running
+      
+      if(r) cancelAnimationFrame(r);
+      r=null; st=null; acc=0;
+      rem = state[stateKey]; // Reset to current global state
+      snapshotDur = state[stateKey]; // Reset snapshot
+      paint();
+      if (!isPresenter) broadcastPresenterState(); // This one is correct
+    };
+    
+    paint(); // Initial paint
+    
+    return { start, pause, reset, paint };
+  }
+  
+  // Create mini timers
+  const prep = miniTimer(prepClock, prepFill, 'prepTime', 1);
+  const cex = miniTimer(cexClock, cexFill, 'cexTime', 1);
+  const reb = miniTimer(rebClock, rebFill, 'rebTime', 2);
+  
+  // Wire up mini timer buttons
+  prepStart.onclick = ()=>{ 
+    const btn = prepStart;
+    if(btn.textContent === translations[currentLang].start){ 
+      prep.start(); 
+      btn.textContent = translations[currentLang].pause; 
+    } else { 
+      prep.pause(); 
+      btn.textContent = translations[currentLang].start; 
+    } 
+  };
+  prepReset.onclick = ()=>{ prep.reset(); prepStart.textContent = translations[currentLang].start; };
+  
+  // Rebuttal prep buttons
+  cexStart.onclick = ()=>{ 
+    const btn = cexStart;
+    if(btn.textContent === translations[currentLang].start){ 
+      cex.start(); 
+      btn.textContent = translations[currentLang].pause; 
+    } else { 
+      cex.pause(); 
+      btn.textContent = translations[currentLang].start; 
+    } 
+  };
+  cexReset.onclick = ()=>{ cex.reset(); cexStart.textContent = translations[currentLang].start; };
+
+  // Reply timer buttons
+  rebStart.onclick = ()=>{ 
+    const btn = rebStart;
+    if(btn.textContent === translations[currentLang].start){ 
+      reb.start(); 
+      btn.textContent = translations[currentLang].pause; 
+    } else { 
+      reb.pause(); // Bug fix: was prep.pause()
+      btn.textContent = translations[currentLang].start; // Bug fix: was prepStart
+    } 
+    // if (!isPresenter) broadcastPresenterState(); // REMOVED (handled by start/pause)
+  };
+  rebReset.onclick = ()=>{ reb.reset(); rebStart.textContent = translations[currentLang].start; /* if (!isPresenter) broadcastPresenterState(); */ }; // reset() handles this
+
+  // Render main
+  function render(forceState = false){
+    // Use snapshot if timer is running, otherwise use current state
+    const source = (raf && !forceState) ? timerSnapshot : state;
+    
+    const total = source.main;
+    const currentRemaining = inGrace ? graceRemaining : remaining;
+    
+    clockEl.textContent = fmt(currentRemaining);
+    if (inGrace) {
+      clockEl.textContent = '-' + fmt(graceRemaining);
+    }
+    
+    // background color by thresholds
+    const bg = currentRemaining <= source.red ? 'var(--bg-red)' : currentRemaining <= source.yellow ? 'var(--bg-yellow)' : 'var(--bg-green)';
+    const fg = currentRemaining <= source.red ? 'var(--fg-red)' : currentRemaining <= source.yellow ? 'var(--fg-yellow)' : 'var(--fg-green)';
+    const bd = currentRemaining <= source.red ? 'var(--bd-red)' : currentRemaining <= source.yellow ? 'var(--bd-yellow)' : 'var(--bd-green)';
+    
+    if (inGrace) {
+      // Flashing red for grace period
+      const flash = Math.floor(performance.now() / 500) % 2 === 0;
+      wrap.style.background = flash ? 'var(--bg-red)' : 'var(--bg-card)';
+      wrap.style.color = flash ? 'var(--fg-red)' : 'var(--fg)';
+      document.documentElement.style.setProperty('--bd', flash ? 'var(--bd-red)' : 'var(--bd-green)');
+    } else {
+      wrap.style.background = bg;
+      wrap.style.color = fg;
+      document.documentElement.style.setProperty('--bd', bd);
+    }
+
+    // progress segments
+    const a = Math.min(source.first || 0, total);
+    const b = Math.min(Math.max(0, (source.second || 0) - (source.first || 0)), total);
+    const c = Math.max(0, total - (a + b));
+    const pct = n => total === 0 ? 0 : (n/total)*100;
+    const fillPct = total === 0 ? 100 : pct(total-remaining);
+    
+    fillEl.style.width = fillPct+"%";
+    segA.style.width = pct(a)+"%"; segB.style.width = pct(b)+"%"; segC.style.width = pct(c)+"%";
+
+    capA.textContent = `0 → 1st: ${source.first?fmt(source.first):'-'}`;
+    capB.textContent = `1st → 2nd: ${(source.first&&source.second)?fmt(source.second-source.first):'-'}`;
+    capC.textContent = `2nd → Final: ${source.second?fmt(total-source.second):fmt(total-(source.first||0))}`;
+
+    metaEl.textContent = `Main: ${fmt(total)}${source.first?` · 1st ${fmt(source.first)}`:''}${source.second?` · 2nd ${fmt(source.second)}`:''}`;
+    
+    if (inGrace) {
+      metaEl.textContent = `${translations[currentLang].gracePeriodLabel} ${fmt(source.grace)}`;
+    }
+    
+    // if (!isPresenter) broadcastPresenterState(); // REMOVED from render()
+  }
+
+  // Fire bells as elapsed passes markers
+  function checkBells(){
+    const elapsed = timerSnapshot.main - remaining;
+    if(!fired.first && timerSnapshot.first>0 && elapsed>=timerSnapshot.first){ playBell(1); fired.first=true; }
+    if(!fired.second && timerSnapshot.second>0 && elapsed>=timerSnapshot.second){ playBell(1); fired.second=true; } 
+  }
+  
+  // ===== Profile Management =====
+  
+  function getProfiles() {
+    return JSON.parse(localStorage.getItem(PROFILES_DB_KEY) || '[]');
+  }
+  
+  function findProfileByName(name) {
+    const defaultProfile = DEFAULT_PROFILES.find(p => p.name === name);
+    if (defaultProfile) {
+      return defaultProfile;
+    }
+    return getProfiles().find(p => p.name === name);
+  }
+
+  function loadProfilesToDropdown() {
+    const profiles = getProfiles();
+    const selectedValue = profileSelect.value;
+    profileSelect.innerHTML = ''; // Clear
+    const trans = translations[currentLang];
+    
+    // Add default
+    const defaultGroup = document.createElement('optgroup');
+    defaultGroup.label = trans.builtInProfiles;
+    DEFAULT_PROFILES.forEach(profile => {
+      const opt = document.createElement('option');
+      opt.value = profile.name;
+      opt.textContent = profile.name;
+      defaultGroup.appendChild(opt);
+    });
+    profileSelect.appendChild(defaultGroup);
+
+    // Add saved
+    if (profiles.length > 0) {
+      const customGroup = document.createElement('optgroup');
+      customGroup.label = trans.customProfiles;
+      profiles.forEach(profile => {
+        const opt = document.createElement('option');
+        opt.value = profile.name;
+        opt.textContent = profile.name;
+        customGroup.appendChild(opt);
+      });
+      profileSelect.appendChild(customGroup);
+    }
+    
+    // Restore selection
+    profileSelect.value = selectedValue || DEFAULT_PROFILES[0].name;
+  }
+  
+  function loadSelectedProfile(name) {
+    const profileName = name || profileSelect.value;
+    if (!profileName) return;
+    
+    const profile = findProfileByName(profileName);
+    if (!profile) {
+      // Use a custom modal in a real app
+      console.error('Error: Could not find profile.');
+      return;
+    }
+    
+    // Load profile data
+    // Use deep copies to prevent mutation of the stored profile
+    speakerOrder = JSON.parse(JSON.stringify(profile.speakerOrder)); 
+    Object.assign(state, JSON.parse(JSON.stringify(profile.settings)));
+    
+    // Sync all UI elements
+    syncInputsToState();
+    initSpeakerProgress();
+    setActiveSpeaker(0);
+    
+    // Glocal settings must be re-synced from state
+    localStorage.setItem('bellMode', state.mode);
+    if(state.mp3Url) localStorage.setItem('mp3Url', state.mp3Url);
+    localStorage.setItem('volume', String(state.volume));
+    
+    // Re-apply language to new UI elements
+    updateLanguage(currentLang);
+  }
+  
+  function saveCurrentProfile() {
+    const name = prompt(translations[currentLang].profilePrompt, 'My Custom Debate');
+    if (!name || name.trim() === '') return;
+    if (isDefaultProfile(name.trim())) {
+      // Use a custom modal in a real app
+      console.error(translations[currentLang].cannotOverwriteDefault);
+      return;
+    }
+    
+    // Read current values from inputs into state *before* saving
+    syncFromInputs();
+    
+    const newProfile = {
+      name: name.trim(),
+      speakerOrder: speakerOrder, // Save current order
+      settings: state, // Save current settings,
+    };
+    
+    let profiles = getProfiles();
+    const existingIndex = profiles.findIndex(p => p.name === newProfile.name);
+    
+    if (existingIndex > -1) {
+      // Overwrite
+      profiles[existingIndex] = newProfile;
+    } else {
+      // Add new
+      profiles.push(newProfile);
+    }
+    
+    localStorage.setItem(PROFILES_DB_KEY, JSON.stringify(profiles));
+    loadProfilesToDropdown();
+    profileSelect.value = newProfile.name; // Select the new profile
+  }
+  
+  function deleteSelectedProfile() {
+    const profileName = profileSelect.value;
+    if (isDefaultProfile(profileName)) {
+      // Use a custom modal in a real app
+      console.error(translations[currentLang].cannotDeleteDefault);
+      return;
+    }
+    
+    // Use a custom modal in a real app
+    // if (typeof confirm === 'function' && !confirm(`Are you sure you want to delete profile: "${profileName}"?`)) {
+    //   return;
+    // }
+    
+    let profiles = getProfiles();
+    profiles = profiles.filter(p => p.name !== profileName);
+    localStorage.setItem(PROFILES_DB_KEY, JSON.stringify(profiles));
+    loadProfilesToDropdown();
+    // Load the first default profile
+    loadSelectedProfile(DEFAULT_PROFILES[0].name);
+  }
+  
+  function exportProfiles() {
+    const profiles = getProfiles();
+    const dataStr = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(profiles, null, 2));
+    const a = document.createElement('a');
+    a.href = dataStr;
+    a.download = 'debate_timer_profiles.json';
+    a.click();
+    a.remove();
+  }
+  
+  function importProfiles(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importedProfiles = JSON.parse(e.target.result);
+        if (!Array.isArray(importedProfiles)) throw new Error('Not an array');
+        
+        let existingProfiles = getProfiles();
+        const profileMap = new Map();
+        
+        // Add existing
+        existingProfiles.forEach(p => profileMap.set(p.name, p));
+        // Add/overwrite with imported
+        importedProfiles.forEach(p => {
+          if (p.name && p.speakerOrder && p.settings && !isDefaultProfile(p.name)) { // Don't import default profiles
+            profileMap.set(p.name, p);
+          }
+        });
+        
+        const mergedProfiles = Array.from(profileMap.values());
+        localStorage.setItem(PROFILES_DB_KEY, JSON.stringify(mergedProfiles));
+        loadProfilesToDropdown();
+        // Use a custom modal/alert in a real app
+        // alert('Profiles imported successfully!');
+        if (!isPresenter) broadcastPresenterState(); // RE-ADDED
+      } catch (err) { // <-- FIX: Added this catch block
+        console.error("Import failed:", err);
+        // alert('Error importing file. Make sure it is a valid profile JSON.');
+      }
+    };
+    reader.readAsText(file);
+    // Clear input to allow re-importing same file
+    event.target.value = null;
+  }
+  
+  // Wire up profile buttons
+  loadProfileBtn.onclick = () => loadSelectedProfile(); // Use arrow to call with no args
+  saveProfileBtn.onclick = saveCurrentProfile;
+  deleteProfileBtn.onclick = deleteSelectedProfile;
+  exportProfilesBtn.onclick = exportProfiles;
+  importProfilesInput.onchange = importProfiles;
+
+  // Initial paint
+  // Load saved lang *first*
+  const savedLang = localStorage.getItem('debateTimerLang') || 'en';
+  updateLanguage(savedLang);
+  
+  // Original init calls (most are now inside updateLanguage)
+  // syncInputsToState(); // Set inputs from default state
+  // initSpeakerProgress(); // Build speaker UI
+  // setActiveSpeaker(0); // Set to first speaker
+  // loadProfilesToDropdown(); // Load profiles
+
+  // ===== Tests =====
+  const tests = [
+    {name:'formatTime 61000 -> 1:01', run:()=> fmt(61000)==='1:01'},
+    {name:'parse m:ss 2:30 -> 150000', run:()=> parseMin('2:30')===150000},
+    {name:'parse m only 3 -> 180000', run:()=> parseMin('3')===180000},
+    {name:'threshold order yellow>red', run:()=> 60000>30000},
+    {name:'spacing clamp', run:()=> Math.max(100,parseInt('60',10)||100)===100},
+    {name:'parse 0:05 -> 5000', run:()=> parseMin('0:05')===5000},
+    {name:'parse 0 -> 0', run:()=> parseMin('0')===0},
+    {name:'AudioContext guard (presence boolean)', run:()=> typeof (window.AudioContext||window.webkitAudioContext)!=='undefined' || true },
+    {name:'Fixed digit bug', run:()=> allDigitsFixed('123') && !allDigitsFixed('1g3') }
+  ];
+  const testList = $('#testList');
+  const showTests = ()=>{ testList.innerHTML=''; tests.forEach(t=>{ const li=document.createElement('li'); let ok=false; try{ ok=t.run(); }catch{ ok=false } li.textContent=(ok?'PASS ':'FAIL ')+t.name; li.style.color=ok?'#065f46':'#7f1d1d'; testList.appendChild(li); }); };
+  testsBtn.addEventListener('click', showTests);
+  
+  // ===== NEW: Presenter Mode Logic =====
+  
+  // 1. Function to send state to presenter
+  function broadcastPresenterState() {
+    const data = {
+      // Main Timer State
+      mainClock: clockEl.textContent,
+      mainFill: fillEl.style.width,
+      wrapBg: wrap.style.background,
+      wrapFg: wrap.style.color,
+      wrapBd: document.documentElement.style.getPropertyValue('--bd'),
+      mainMeta: metaEl.textContent,
+      capA: capA.textContent,
+      capB: capB.textContent,
+      capC: capC.textContent,
+      segA: segA.style.width,
+      segB: segB.style.width,
+      segC: segC.style.width,
+      
+      // Mini Timers
+      prepClock: prepClock.textContent,
+      prepFill: prepFill.style.width,
+      cexClock: cexClock.textContent,
+      cexFill: cexFill.style.width,
+      rebClock: rebClock.textContent,
+      rebFill: rebFill.style.width,
+      
+      // Speaker State
+      speakerOrder: speakerOrder,
+      activeSpeakerIndex: activeSpeakerIndex,
+      
+      // Card Visibility
+      showPrep: prepTimerContainer.style.display,
+      showMain: mainSpeechCard.style.display,
+      showCex: crossExCard.style.display,
+      showReb: rebuttalCard.style.display,
+      
+      // Language
+      currentLang: currentLang
+    };
+    
+    // Set localStorage for initial load
+    localStorage.setItem(PRESENTER_STATE_KEY, JSON.stringify(data));
+    // Post to BroadcastChannel for live updates
+    syncChannel.postMessage(data);
+  }
+  
+  // 2. Function to apply state in presenter
+  function applyPresenterState(stateData, isFromChannel = false) { // Added flag
+    let data;
+    try {
+      if (isFromChannel) {
+        data = stateData; // Data is already a JS object
+      } else if (stateData) {
+        data = JSON.parse(stateData); // Data is a JSON string from localStorage
+      }
+      
+      if (!data) return; // No data to apply
+      
+    } catch (e) {
+      console.error("Failed to parse presenter state:", e);
+      return;
+    }
+
+    try {
+      // Language
+      if (data.currentLang !== currentLang) {
+        updateLanguage(data.currentLang);
+      }
+      
+      // Main Timer
+      clockEl.textContent = data.mainClock;
+      fillEl.style.width = data.mainFill;
+      wrap.style.background = data.wrapBg;
+      wrap.style.color = data.wrapFg;
+      document.documentElement.style.setProperty('--bd', data.wrapBd);
+      metaEl.textContent = data.mainMeta;
+      capA.textContent = data.capA;
+      capB.textContent = data.capB;
+      capC.textContent = data.capC;
+      segA.style.width = data.segA;
+      segB.style.width = data.segB;
+      segC.style.width = data.segC;
+      
+      // Mini Timers
+      prepClock.textContent = data.prepClock;
+      prepFill.style.width = data.prepFill;
+      cexClock.textContent = data.cexClock;
+      cexFill.style.width = data.cexFill;
+      rebClock.textContent = data.rebClock;
+      rebFill.style.width = data.rebFill;
+      
+      // Speaker State
+      if (JSON.stringify(speakerOrder) !== JSON.stringify(data.speakerOrder)) {
+        speakerOrder = data.speakerOrder;
+        initSpeakerProgress(); // Redraw speaker bar
+      }
+      setActiveSpeaker(data.activeSpeakerIndex, true); // Force update active
+      
+      // Card Visibility
+      prepTimerContainer.style.display = data.showPrep;
+      mainSpeechCard.style.display = data.showMain;
+      crossExCard.style.display = data.showCex;
+      rebuttalCard.style.display = data.showReb;
+      
+    } catch (e) {
+      console.error("Failed to apply presenter state:", e);
+    }
+  }
+  
+  // 3. Wire up the button in the main window
+  if (!isPresenter) {
+    presenterBtn.onclick = () => {
+      const url = window.location.href.split('?')[0] + '?presenter=true';
+      window.open(url, 'presenterWindow', 'width=800,height=600,menubar=no,toolbar=no,location=no,status=no');
+    };
+  }
+  
+  // 4. Activate listener mode if this IS the presenter window
+  if (isPresenter) {
+    // Hide all controls
+    $('header').style.display = 'none';
+    $('#settingsContainer').style.display = 'none';
+    $('#prepTimerContainer .btn').forEach(btn => btn.style.display = 'none');
+    $('#prevSpeakerBtn').style.display = 'none';
+    $('#nextSpeakerBtn').style.display = 'none';
+    $('#resetOrderBtn').style.display = 'none';
+    $('#mainSpeechCard .row').forEach(row => row.style.display = 'none');
+    $('#crossExCard .row').forEach(row => row.style.display = 'none');
+    $('#rebuttalCard .row').forEach(row => row.style.display = 'none');
+    $('#tests').style.display = 'none';
+    
+    // Disable interactions
+    progressEl.style.pointerEvents = 'none';
+    speakerProgress.style.pointerEvents = 'none';
+    $$('.bar').forEach(bar => bar.style.pointerEvents = 'none');
+    
+    // Fullscreen view
+    document.body.style.padding = '0';
+    const container = $('.container');
+    container.style.maxWidth = '100vw';
+    container.style.padding = '24px';
+    wrap.style.minHeight = '100vh';
+    
+    // Start listening
+    /* // OLD:
+    window.addEventListener('storage', (e) => {
+      if (e.key === PRESENTER_STATE_KEY) {
+        applyPresenterState(e.newValue);
+      }
+    });
+    */
+    
+    // NEW: Listen on the BroadcastChannel
+    syncChannel.onmessage = (e) => {
+      applyPresenterState(e.data, true); // Pass true flag
+    };
+    
+    // Apply initial state (from localStorage)
+    applyPresenterState(localStorage.getItem(PRESENTER_STATE_KEY), false);
+  }
+  // ===== END: Presenter Mode Logic =====
+
+})();
+</script>
+</body>
+</html>
+
+<!doctype html>
+<html lang="en"> <!-- Set initial lang -->
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title data-lang-title="pageTitle">AP Debate Timer — HTML</title> <!-- Added data-lang-title -->
+<style>
+  :root{
+    --bg-green:#d1fae5; --fg-green:#064e3b; --bd-green:#34d399;
+    --bg-yellow:#fef3c7; --fg-yellow:#92400e; --bd-yellow:#f59e0b;
+    --bg-red:#fecaca; --fg-red:#7f1d1d; --bd-red:#f87171;
+    --bg-card:#ffffff; --bd:#e5e7eb; --fg:#111827; --muted:#6b7280;
+    --track:#e5e7eb; --fill:#111827;
+  }
+  html,body{height:100%}
+  body{margin:0;font:16px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";}
+  .wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;gap:24px;padding:24px;transition:background-color .25s,color .25s; box-sizing: border-box;} /* Added box-sizing */
+  .container{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:16px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:12px; flex-wrap: wrap;} /* Added flex-wrap */
+  h1{font-size:24px;margin:0}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{appearance:none;border:1px solid var(--bd);background:#fff;border-radius:12px;padding:10px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-weight:600}
+  .btn:active{transform:translateY(1px)}
+  .card{background:var(--bg-card);border:1px solid var(--bd);border-radius:16px;padding:16px}
+  .title{font-weight:700}
+  .muted{color:var(--muted)}
+  .clock{font-size:76px;font-weight:900;text-align:center; line-height: 1.1;} /* Added line-height */
+  
+  /* Main Progress Bar */
+  .progress{
+    height:12px;
+    background:var(--track);
+    border-radius:999px;
+    position:relative;
+    overflow:hidden;
+    display: flex; /* <-- ADDED: This lays out the bell segments horizontally */
+    cursor: pointer; /* NEW: Add pointer cursor */
+  }
+  .fill{
+    position:absolute;
+    left:0;
+    top:0; /* Added */
+    bottom:0; /* Added */
+    background:var(--fill); /* Added */
+  }
+
+  /* Speaker Progress Bar Styles */
+  .speaker-progress-bar {
+    display: flex; /* Changed from grid to flex */
+    flex-wrap: wrap; /* Added wrap */
+    gap: 4px;
+    border-radius: 8px;
+    background-color: var(--track);
+    padding: 4px;
+  }
+  .speaker-box {
+    font-size: 12px; /* Increased from 11px */
+    font-weight: 700;
+    padding: 8px 4px;
+    border-radius: 6px;
+    text-align: center;
+    background-color: #fff;
+    border: 1px solid var(--bd);
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none; /* Added prefix for iOS */
+    transition: background-color 0.2s, box-shadow 0.2s, opacity 0.2s;
+    flex: 1 1 50px; /* Added flex-basis for responsiveness */
+    min-width: 50px; /* Ensures a minimum tap target size */
+  }
+  .speaker-box:active { cursor: grabbing; }
+  .speaker-box.team-prop, .speaker-box.team-gov, .speaker-box.team-aff { color: #15803d; border-color: #86efac; } /* Added Aff */
+  .speaker-box.team-opp, .speaker-box.team-neg { color: #b91c1c; border-color: #fca5a5; } /* Added Neg */
+  .speaker-box.team-none { color: #374151; border-color: #d1d5db; }
+  .speaker-box.active-speaker {
+    box-shadow: 0 0 0 3px var(--fg, #111827);
+    font-weight: 900;
+  }
+  
+  /* New styles for drag/drop and inactive */
+  .speaker-box.dragging {
+    opacity: 0.5;
+    background: #e0f2fe;
+  }
+  .speaker-box.drag-over {
+    background: #fef9c3;
+    border-style: dashed;
+  }
+  .speaker-box.inactive {
+    opacity: 0.4;
+    background: #f3f4f6;
+    text-decoration: line-through;
+    cursor: not-allowed;
+  }
+
+  /* New Help Modal Styles */
+  #helpModal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 100;
+  }
+  #helpModal .card {
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  #helpModal h2 {
+    margin: 0 0 12px 0;
+    font-size: 20px;
+  }
+  #helpModal p, #helpModal ul {
+    margin: 8px 0;
+    line-height: 1.6;
+  }
+  #helpModal li {
+    margin-bottom: 6px;
+  }
+  #helpModal .row {
+    justify-content: flex-end;
+    margin-top: 16px;
+  }
+  
+  /* Mini Timers */
+  .label{display:flex;flex-direction:column;gap:6px}
+  .bar{height:8px;background:rgba(17,24,39,.12);border-radius:8px;overflow:hidden}
+  .bar>.bfill{height:100%;background:#111827}
+
+  /* NEW: Add cursor to mini-timer bars */
+  .bar {
+    cursor: pointer;
+  }
+
+  /* Responsive Media Queries */
+  @media (max-width:800px){
+    .grid-3, .grid-4 { grid-template-columns:repeat(2,minmax(0,1fr)) } /* 2 cols */
+  }
+  
+  @media (max-width: 600px) {
+    .grid-3, .grid-4 { grid-template-columns: 1fr } /* 1 col */
+    .clock { font-size: 60px; } /* Scale down large clock */
+    .caps { grid-template-columns: 1fr; } /* Stack bell time caps */
+  }
+  
+  @media (max-width: 400px) {
+    .clock { font-size: 48px; } /* Scale down large clock further */
+    .btn { padding: 8px 10px; font-size: 14px; } /* Make buttons slightly smaller */
+  }
+</style>
+</head>
+<body>
+  <!-- 
+    REMOVED: The <audio> tag is no longer needed.
+    We are moving to 100% Web Audio API.
+  -->
+  <!-- <audio id="silentUnlockAudio" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" loop muted playsinline></audio> -->
+
+  <div id="app" class="wrap">
+    <div class="container">
+      <header>
+        <h1><span data-lang="appTitle">Debate Timer</span></h1>
+        <div class="row">
+          <!-- New Help and Lang buttons -->
+          <button id="helpBtn" class="btn" data-lang="help">Help</button>
+          <button id="langToggleBtn" class="btn">한국어</button>
+          <button id="settingsBtn" class="btn" data-lang="toggleSettings">Toggle Settings</button> <!-- New Settings Button -->
+          <button id="presenterBtn" class="btn" data-lang="presenter">Presenter Mode</button> <!-- RE-ADDED -->
+          
+          <!-- UPDATED Mute Button -->
+          <button id="muteBtn" class="btn"> <!-- data-lang="sound" removed -->
+            <!-- NEW: Speaker Icons -->
+            <svg id="muteIconOn" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 20px; height: 20px; stroke-width: 2; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round;">
+              <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+            <svg id="muteIconOff" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 20px; height: 20px; stroke-width: 2; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; display: none;">
+              <path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"></path>
+            </svg>
+            <!-- Text "Sound" removed -->
+          </button>
+          
+          <button id="enableBtn" class="btn" data-lang="enableSound">Initialize Sound</button>
+          <button id="testsBtn" class="btn" data-lang="tests">Tests</button>
+          
+          <!-- NEW: Moved Volume Slider Here -->
+          <label class="label" style="flex-direction: row; align-items: center; gap: 8px; margin-left: 8px;">
+            <span data-lang="volume" style="font-weight: 600;">Volume</span>
+            <input id="volumeInput" type="range" min="0" max="1" step="0.05" value="0.5" style="width: 80px;" />
+          </label>
+        </div>
+      </header>
+      
+      <!-- New Collapsible Settings Card -->
+      <div class="card" id="settingsContainer" style="display:none">
+        <!-- Profile Management -->
+        <div class="card" style="margin-bottom: 16px;">
+          <div class="title" style="margin-bottom:8px" data-lang="profiles">Profiles</div>
+          <div class="grid grid-4" style="align-items:flex-end;">
+            <label class="label"><span data-lang="loadProfile">Load Profile</span>
+              <select id="profileSelect" class="input"></select>
+            </label>
+            <button id="loadProfileBtn" class="btn" data-lang="load">Load</button>
+            <button id="saveProfileBtn" class="btn" data-lang="saveCurrent">Save Current</button>
+            <button id="deleteProfileBtn" class="btn" style="background-color: var(--bg-red); color: var(--fg-red);" data-lang="deleteSelected">Delete Selected</button>
+          </div>
+          <div class="row" style="margin-top: 12px;">
+            <button id="exportProfilesBtn" class="btn" data-lang="exportAll">Export All</button>
+            <label class="btn">
+              <span data-lang="import">Import</span>
+              <input id="importProfilesInput" type="file" accept=".json" style="display:none" />
+            </label>
+          </div>
+        </div>
+
+        <!-- Timer Settings -->
+        <div class="card">
+          <div class="title" style="margin-bottom:8px" data-lang="timerSettings">Timer Settings</div>
+          <div class="grid grid-3">
+            <label class="label"><span data-lang="mainTime">Main (m:ss)</span>
+              <input id="mainInput" class="input" value="3:00" />
+            </label>
+            <label class="label"><span data-lang="firstBell">1st Bell from start (m:ss)</span>
+              <input id="firstInput" class="input" value="1:00" />
+            </label>
+            <label class="label"><span data-lang="secondBell">2nd Bell from start (m:ss)</span>
+              <input id="secondInput" class="input" value="2:00" />
+            </label>
+            <label class="label"><span data-lang="yellowTime">Yellow at remaining (m:ss)</span>
+              <input id="yellowInput" class="input" value="1:00" />
+            </label>
+            <label class="label"><span data-lang="redTime">Red at remaining (m:ss)</span>
+              <input id="redInput" class="input" value="0:30" />
+            </label>
+            <label class="label"><span data-lang="gracePeriod">Grace Period (m:ss)</span>
+              <input id="graceInput" class="input" value="0:30" />
+            </label>
+            
+            <!-- Quick Timer Inputs -->
+            <label class="label"><span data-lang="prepTime">Prep Time (m:ss)</span>
+              <input id="prepInput" class="input" value="20:00" />
+            </label>
+            <label class="label"><span data-lang="cexTime">Cross-Ex / Shared (m:ss)</span>
+              <input id="cexInput" class="input" value="1:00" />
+            </label>
+            <label class="label"><span data-lang="rebTime">Rebuttal / Reply (m:ss)</span>
+              <input id="rebInput" class="input" value="3:00" />
+            </label>
+            
+            <!-- Audio Settings -->
+            <label class="label"><span data-lang="bellSpacing">Bell spacing (ms)</span>
+              <input id="spaceInput" class="input" value="100" />
+            </label>
+            <label class="label"><span data-lang="bellMode">Bell mode</span>
+              <select id="modeSel" class="input">
+                <!-- Options will be populated by JS -->
+              </select>
+            </label>
+            <!-- MOVED: Volume slider was here -->
+            <label class="label"><span data-lang="mp3Url">MP3 URL</span>
+              <input id="mp3Url" class="input" placeholder="https://example.com/bell.mp3" />
+            </label>
+            <label class="label"><span data-lang="uploadSounds">Upload Sound(s)</span>
+              <input id="mp3File" type="file" accept="audio/*" multiple /> <!-- Added multiple -->
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Speaker Progress -->
+      <div class="card">
+        <div class="title" style="margin-bottom:8px" data-lang="speakerProgress">Speaker Progress</div>
+        <div class="speaker-progress-bar" id="speakerProgress">
+          <!-- Speakers will be generated by JS -->
+        </div>
+        <div class="row" style="justify-content:space-between;margin-top:8px">
+          <div>
+            <button id="prevSpeakerBtn" class="btn" data-lang="previous">Previous</button>
+            <button id="nextSpeakerBtn" class="btn" data-lang="next">Next</button>
+          </div>
+          <!-- Prep timer is part of this card -->
+          <div id="prepTimerContainer" class="row">
+            <!-- Prep input is now in settings -->
+            <div class="clock" id="prepClock" style="font-size:20px;font-weight:700;padding:0 8px">20:00</div>
+            <button id="prepStart" class="btn" data-lang="start">Start</button>
+            <button id="prepReset" class="btn" data-lang="reset">Reset</button>
+          </div>
+          <button id="resetOrderBtn" class="btn" data-lang="resetOrder">Reset Order</button>
+        </div>
+        <div class="bar" style="margin-top:8px"><div class="bfill" id="prepFill" style="width:0%"></div></div>
+        <div class="note" data-lang="speakerNote">Click to select, Double-click to toggle, Drag to reorder.</div>
+      </div>
+
+      <!-- Main Timer Card -->
+      <div class="card" id="mainSpeechCard">
+        <div class="row" style="justify-content:space-between">
+          <div class="title" id="modeLabel" data-lang="substantiveSpeech">Substantive Speech</div>
+          <div class="muted" id="meta"></div>
+        </div>
+        <div class="clock" id="clock">3:00</div>
+        <div class="progress" id="progress">
+          <div class="fill" id="fill"></div>
+          <div class="seg" id="segA"></div>
+          <div class="seg" id="segB"></div>
+          <div class="seg" id="segC"></div>
+        </div>
+        <div class="caps">
+          <div id="capA">0 → 1st: -</div>
+          <div id="capB">1st → 2nd: -</div>
+          <div id="capC">2nd → Final: -</div>
+        </div>
+        <div class="row" style="justify-content:center;margin-top:10px">
+          <button id="startBtn" class="btn" data-lang="start">Start</button>
+          <button id="resetBtn" class="btn" data-lang="reset">Reset</button>
+          <button id="singleBtn" class="btn" data-lang="single">Single</button>
+          <button id="doubleBtn" class="btn" data-lang="double">Double</button>
+          <button id="stopBellBtn" class="btn" style="display:none" data-lang="stopBell">Stop Bell</button>
+          <button id="testContBellBtn" class="btn" data-lang="testStopCont">Test/Stop Cont.</button>
+        </div>
+        <div class="note" id="statusNote"><span data-lang="statusPrefix">Status:</span> <span data-lang-status="idle">idle</span></div>
+      </div>
+
+      <div class="grid grid-3">
+        <!-- Rebuttal Prep Timer -> Renamed to Cross-Ex -->
+        <div class="card" id="crossExCard">
+          <div class="title" data-lang="cexTitle">Cross-Ex / Shared</div>
+          <!-- Input now in settings -->
+          <div class="clock" id="cexClock">1:00</div>
+          <div class="bar"><div class="bfill" id="cexFill" style="width:0%"></div></div>
+          <div class="row" style="justify-content:center;margin-top:8px">
+            <button id="cexStart" class="btn" data-lang="start">Start</button>
+            <button id="cexReset" class="btn" data-lang="reset">Reset</button>
+          </div>
+        </div>
+        
+        <!-- Reply Timer Card -> Renamed to Rebuttal -->
+        <div class="card" id="rebuttalCard">
+          <div class="title" id="rebuttalLabel" data-lang="rebTitle">Rebuttal / Reply (3:00)</div>
+          <!-- Input now in settings -->
+          <div class="clock" id="rebClock">3:00</div>
+          <div class="bar"><div class="bfill" id="rebFill" style="width:0%"></div></div>
+          <div class="row" style="justify-content:center;margin-top:8px">
+            <button id="rebStart" class="btn" data-lang="start">Start</button>
+            <button id="rebReset" class="btn" data-lang="reset">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings card moved into collapsible section -->
+
+      <div class="card" id="tests" style="display:none">
+        <div class="title" style="margin-bottom:6px" data-lang="tests">Tests</div>
+        <ul class="tests" id="testList"></ul>
+        <div class="note" data-lang="testNote">Note: Blob URLs from uploads are temporary. Use a public URL to persist across refresh.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- New Help Modal -->
+  <div id="helpModal" style="display:none">
+    <div class="card">
+      <h2 data-lang="helpTitle">Help</h2>
+      <p data-lang="helpIntro">This is a flexible timer for various debate formats.</p>
+      
+      <h3 data-lang="helpProfilesTitle" style="margin-top:16px;margin-bottom:8px;">Profiles</h3>
+      <ul data-lang-list="helpProfilesList">
+        <li>Load a built-in profile (like Simson, AP, Policy) or save your own.</li>
+        <li>"Save Current" saves all timer settings and the current speaker order as a new custom profile.</li>
+      </ul>
+
+      <h3 data-lang="helpSpeakersTitle" style="margin-top:16px;margin-bottom:8px;">Speaker Progress</h3>
+      <ul data-lang-list="helpSpeakersList">
+        <li>Click a speaker to select them. This will show the correct timer card (Main, Prep, etc.).</li>
+        <li>Double-click a speaker to toggle them active/inactive. Inactive speakers are skipped by "Next"/"Previous".</li>
+        <li>Drag and drop (or tap and drag on mobile) to reorder speakers.</li>
+        <li>"Reset Order" restores the profile's default speaker order.</li>
+      </ul>
+
+      <h3 data-lang="helpTimersTitle" style="margin-top:16px;margin-bottom:8px;">Timers</h3>
+      <ul data-lang-list="helpTimersList">
+        <li>The main timer card (e.g., "Substantive Speech") changes based on the selected speaker.</li>
+        <li>"Substantive" speeches (from "Main" time) have 1st/2nd bells and grace periods.</li>
+        <li>"Reply" speeches (from "Rebuttal" time) are simpler timers with a final double bell.</li>
+        <li>"Cross-Ex" and "Prep" timers are separate mini-timers.</li>
+        <li>"Initialize Sound" must be clicked once to allow the browser to play audio. This is a security requirement for most browsers, especially on mobile.</li>
+      </ul>
+
+      <div class="row">
+        <button id="closeHelpBtn" class="btn" data-lang="close">Close</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  // ===== Utilities =====
+  const $ = (s, o = document) => o.querySelector(s);
+  const $$ = (s, o = document) => o.querySelectorAll(s);
+  
   // NEW: Check for presenter mode
   const isPresenter = new URLSearchParams(window.location.search).get('presenter') === 'true';
   const PRESENTER_STATE_KEY = 'debateTimerPresenterState';
