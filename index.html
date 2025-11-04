@@ -13,10 +13,12 @@
     --prop-bg:#dbeafe; --prop-border:#93c5fd; --prop-fg:#1e3a8a;
     --opp-bg:#fee2e2; --opp-border:#fca5a5; --opp-fg:#7f1d1d;
     --prep-bg:#f3f4f6; --prep-border:#d1d5db; --prep-fg:#374151;
+    --grace-fg: #7f1d1d; /* Color for grace text in presenter */
   }
   :root.dark{
     --bg:#1f2937; --fg:#f9fafb; --card:#111827; --bd:#374151;
     --track:#374151; --fill:#f9fafb; --muted:#9ca3af;
+    --grace-fg: #f9fafb;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -83,9 +85,19 @@
   #startBtn .icon-pause { display: none; }
   #startBtn .icon-play { display: block; }
 
-/* Presenter grace mode */
-.presenter-grace #pClock { color: var(--grace-fg); }
-.presenter-grace { animation: gracePulse 1.6s ease-in-out infinite !important; }
+  /* Presenter grace mode */
+  .presenter-grace #pClock { color: var(--grace-fg); }
+  .presenter-grace { animation: gracePulse 1.6s ease-in-out infinite !important; }
+  /* This is the animation definition for the presenter window */
+  @keyframes gracePulse {
+    0% { background: var(--bg); color: var(--fg); }
+    50% { background: var(--bad-bg); color: var(--bad-fg); }
+    100% { background: var(--bg); color: var(--fg); }
+  }
+  /* Ensure presenter-grace state overrides clock color */
+  .presenter-grace.state-grace #pClock {
+    color: var(--bad-fg);
+  }
 </style>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@700;900&display=swap" rel="stylesheet">
@@ -560,21 +572,32 @@ function applyBodyState(state){
   // const isPresenter = new URLSearchParams(location.search).get('presenter')==='true';
   // if(isPresenter){ ... }
 
+  // ---------- FIX: This is the updated sync function ----------
   function syncOut(full=false){
     // Calculate state here, just for the message
     const left = mainRemain;
     const warn = left <= yellow && left > red && mode==='main' && !inGrace;
     const bad = left <= red && left > 0 && mode==='main' && !inGrace;
     let bodyState = null;
-    if(inGrace) bodyState = 'state-grace';
+    let metaText = (titleEl?.textContent||'') + (metaEl.textContent? ' — '+metaEl.textContent : '');
+    let remainTime = mainRemain;
+
+    if(inGrace) {
+      bodyState = 'state-grace';
+      remainTime = graceRemain; // <-- FIX 1: Send grace time
+      
+      const s = speakers[activeIdx];
+      const role = s ? (s.role || '') : '';
+      metaText = `${role} — ${currentLang.grace}`; // <-- FIX 2: Send grace meta
+    }
     else if(bad) bodyState = 'state-bad';
     else if(warn) bodyState = 'state-warn';
 
     const payload={
       type:'state', 
       full, 
-      main:{remain: mainRemain, total:mainTotal, running:mainRunning}, 
-      meta: (titleEl?.textContent||'') + (metaEl.textContent? ' — '+metaEl.textContent : ''), 
+      main:{remain: remainTime, total:mainTotal, running:mainRunning}, 
+      meta: metaText, 
       inGrace,
       state: bodyState,
       theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
@@ -1225,3 +1248,5 @@ function applyBodyState(state){
 </script>
 </body>
 </html>
+
+
