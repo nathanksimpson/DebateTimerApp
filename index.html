@@ -99,148 +99,189 @@
   .presenter-grace.state-grace #pClock {
     color: var(--bad-fg);
   }
+  
+  /* --- Presenter Mode Root (hidden by default) --- */
+  #presenterRoot {
+    display: none; /* Hidden by default */
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    text-align: center;
+  }
+  #pClock {
+    font-family: "Rubik", ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    font-weight: 900;
+    font-size: 22vw;
+    line-height: 1;
+    letter-spacing: 2px;
+  }
+  #pMeta {
+    margin-top: 12px;
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 2vw; /* Make meta text responsive */
+  }
+  
 </style>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@700;900&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="wrap">
-    <div class="container">
-      <header>
-        <h1 data-lang-key="debateTimerTitle">Debate Timer</h1>
-        <div class="row">
-          <label class="label" style="margin-right:8px">
-            <span style="font-weight:700" data-lang-key="debateStyle">Debate Style</span>
-            <select id="formatSelect" class="input">
-              <option value="SIMSON">Simson</option>
-              <option value="AP">AP</option>
-              <option value="BP">BP</option>
-              <option value="WSDC">WSDC</option>
-              <option value="PF">PF</option>
-              <option value="CX">Policy / CX</option>
-              <option value="LD">Lincoln–Douglas</option>
-              <option value="CUSTOM">Custom</option>
-            </select>
-          </label>
-          <button id="helpBtn" class="btn" data-lang-key="help">Help</button>
-          <button id="themeBtn" class="btn">Dark Mode</button>
-          <button id="presenterBtn" class="btn" data-lang-key="presenterMode">Presenter Mode</button>
-          <button id="toggleQuickTimers" class="btn">Show Quick Timers</button>
-          <button id="enableBtn" class="btn" data-lang-key="initSound">Initialize Sound</button>
-          <button id="muteBtn" class="btn" title="Mute (M)">
-            <svg class="icon-on" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-            <svg class="icon-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M23 9l-6 6"></path><path d="M17 9l6 6"></path></svg>
-          </button>
-          <label class="label" style="flex-direction:row;align-items:center;gap:8px"><span style="font-weight:700" data-lang-key="volume">Volume</span><input id="volume" type="range" min="0" max="1" step="0.05" value="0.6"/></label>
-          <label class="label" style="flex-direction:row;align-items:center;gap:8px">
-            <span style="font-weight:700" data-lang-key="lang">Lang</span>
-            <select id="langSelect" class="input" style="padding-top:10px; padding-bottom:10px;">
-              <option value="en">English</option>
-              <option value="ko">한국어</option>
-            </select>
-          </label>
-        </div>
-      </header>
 
-      <!-- Speaker Progress --><div class="card">
-        <div style="font-weight:800;margin-bottom:8px" data-lang-key="spkProgress">Speaker Progress</div>
-        <div id="spkBar" class="speaker-progress"></div>
-        <div class="row" style="justify-content:space-between;margin-top:8px">
+  <!-- 
+    FIX: This root is for the main application. 
+    It will be hidden if `?presenter=true` is in the URL.
+  -->
+  <div id="mainAppRoot">
+    <div class="wrap">
+      <div class="container">
+        <header>
+          <h1 data-lang-key="debateTimerTitle">Debate Timer</h1>
           <div class="row">
-            <button id="prevBtn" class="btn" data-lang-key="prev">Previous</button>
-            <button id="nextBtn" class="btn" data-lang-key="next">Next</button>
+            <label class="label" style="margin-right:8px">
+              <span style="font-weight:700" data-lang-key="debateStyle">Debate Style</span>
+              <select id="formatSelect" class="input">
+                <option value="SIMSON">Simson</option>
+                <option value="AP">AP</option>
+                <option value="BP">BP</option>
+                <option value="WSDC">WSDC</option>
+                <option value="PF">PF</option>
+                <option value="CX">Policy / CX</option>
+                <option value="LD">Lincoln–Douglas</option>
+                <option value="CUSTOM">Custom</option>
+              </select>
+            </label>
+            <button id="helpBtn" class="btn" data-lang-key="help">Help</button>
+            <button id="themeBtn" class="btn">Dark Mode</button>
+            <button id="presenterBtn" class="btn" data-lang-key="presenterMode">Presenter Mode</button>
+            <button id="toggleQuickTimers" class="btn">Show Quick Timers</button>
+            <button id="enableBtn" class="btn" data-lang-key="initSound">Initialize Sound</button>
+            <button id="muteBtn" class="btn" title="Mute (M)">
+              <svg class="icon-on" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+              <svg class="icon-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M23 9l-6 6"></path><path d="M17 9l6 6"></path></svg>
+            </button>
+            <label class="label" style="flex-direction:row;align-items:center;gap:8px"><span style="font-weight:700" data-lang-key="volume">Volume</span><input id="volume" type="range" min="0" max="1" step="0.05" value="0.6"/></label>
+            <label class="label" style="flex-direction:row;align-items:center;gap:8px">
+              <span style="font-weight:700" data-lang-key="lang">Lang</span>
+              <select id="langSelect" class="input" style="padding-top:10px; padding-bottom:10px;">
+                <option value="en">English</option>
+                <option value="ko">한국어</option>
+              </select>
+            </label>
           </div>
-          <button id="resetOrder" class="btn" data-lang-key="resetOrder">Reset Order</button>
-        </div>
-        <div class="note" data-lang-key="spkNote">Click = select • Double-click = toggle active • Drag = reorder</div>
-      </div>
-
-      <!-- Main Timer Card --><div class="card" id="mainCard">
-        <div class="row" style="justify-content:space-between"><div id="mainTitle" style="font-weight:800">Substantive Speech</div><div id="meta" class="muted"></div></div>
-        <div id="clock" class="clock">7:00</div>
-        <div id="mainProgress" class="progress"><div id="fill" class="fill"></div></div>
-        <div class="row" style="justify-content:center;margin-top:10px">
-          <button id="startBtn" class="btn btn-icon" title="Start/Pause (Space)">
-            <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l12 8-12 8V4z"></path></svg>
-            <svg class="icon-pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"></path></svg>
-          </button>
-          <button id="resetBtn" class="btn btn-icon" title="Reset (R)">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M1 4v6h6"></path>
-              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-            </svg>
-          </button>
-          <button id="singleBtn" class="btn btn-icon" title="Single Bell (1)">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-          </button>
-          <button id="doubleBtn" class="btn btn-icon" title="Double Bell (2)">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-            <span style="font-size: 14px; font-weight: 700; margin-left: -4px; line-height: 1;">2</span>
-          </button>
-          <button id="testContBtn" class="btn btn-icon" title="Start continuous bell test">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 21px; height: 21px;">
-              <path d="M1 4v6h6"></path>
-              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-            </svg>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="width: 19px; height: 19px; margin-left: -6px; margin-top: -2px;">
-              <path d="M10 10C6 10 6 14 10 14c4 0 4-4 8-4 4 0 4 4 0 4s-4-4-8-4z"></path>
-            </svg>
-          </button>
-          <button id="stopBellBtn" class="btn btn-icon" title="Stop continuous bell">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.73 21a2 2 0 0 1-3.46 0"></path><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="m1 1 22 22"></path></svg>
-          </button>
-        </div>
-        <div class="note"><strong data-lang-key="status">Status:</strong> <span id="status">idle</span></div>
-      </div>
-
-      <!-- Quick Timers --><div id="quickTimersPanel" class="grid grid-3">
-        <div class="card">
-          <div style="font-weight:800;margin-bottom:6px" data-lang-key="crossEx">Cross-Ex / Shared</div>
-          <div id="cexClock" class="clock" style="font-size:32px">01:00</div>
-          <div class="progress" style="margin-top:8px"><div id="cexFill" class="fill"></div></div>
-          <div class="row" style="justify-content:center;margin-top:8px"><button id="cexStart" class="btn" data-lang-key="start">Start</button><button id="cexReset" class="btn" data-lang-key="reset">Reset</button></div>
-        </div>
-        <div class="card">
-          <div style="font-weight:800;margin-bottom:6px" data-lang-key="rebuttal">Rebuttal / Reply</div>
-          <div id="rebClock" class="clock" style="font-size:32px">04:00</div>
-          <div class="progress" style="margin-top:8px"><div id="rebFill" class="fill"></div></div>
-          <div class="row" style="justify-content:center;margin-top:8px"><button id="rebStart" class="btn" data-lang-key="start">Start</button><button id="rebReset" class="btn" data-lang-key="reset">Reset</button></div>
-        </div>
-        <div class="card">
-          <div style="font-weight:800;margin-bottom:6px" data-lang-key="prep">Prep</div>
-          <div id="prepClock" class="clock" style="font-size:32px">01:00</div>
-          <div class="progress" style="margin-top:8px"><div id="prepFill" class="fill"></div></div>
-          <div class="row" style="justify-content:center;margin-top:8px"><button id="prepStart" class="btn" data-lang-key="start">Start</button><button id="prepReset" class="btn" data-lang-key="reset">Reset</button></div>
-        </div>
-      </div>
-
-      <!-- Settings (hideable) --><div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-weight:800;" data-lang-key="settingsTitle">Timer Settings</span><button id="toggleSettings" class="btn" style="padding:6px 10px;font-size:14px">Hide</button></div>
-        <div id="settingsPanel">
-          <div class="grid grid-3">
-            <label class="label"><span data-lang-key="mainTime">Main (m:ss)</span><input id="mainInput" class="input" value="3:00"/></label>
-            <label class="label"><span data-lang-key="firstBell">1st Bell from start (m:ss)</span><input id="firstInput" class="input" value="1:00"/></label>
-            <label class="label"><span data-lang-key="secondBell">2nd Bell from start (m:ss)</span><input id="secondInput" class="input" value="2:00"/></label>
-            <label class="label"><span data-lang-key="yellowAt">Yellow at remaining (m:ss)</span><input id="yellowInput" class="input" value="1:00"/></label>
-            <label class="label"><span data-lang-key="redAt">Red at remaining (m:ss)</span><input id="redInput" class="input" value="0:30"/></label>
-            <label class="label"><span data-lang-key="gracePeriod">Grace Period (m:ss)</span><input id="graceInput" class="input" value="0:30"/></label>
-            <label class="label"><span data-lang-key="prepTime">Prep Time (m:ss)</span><input id="prepInput" class="input" value="1:00"/></label>
-            <label class="label"><span data-lang-key="crossExTime">Cross-Ex (m:ss)</span><input id="cexInput" class="input" value="1:00"/></label>
-            <label class="label"><span data-lang-key="rebuttalTime">Rebuttal (m:ss)</span><input id="rebInput" class="input" value="3:00"/></label>
-            <label class="label"><span data-lang-key="bellSpacing">Bell spacing (ms)</span><input id="spaceInput" class="input" value="100"/></label>
+        </header>
+  
+        <!-- Speaker Progress --><div class="card">
+          <div style="font-weight:800;margin-bottom:8px" data-lang-key="spkProgress">Speaker Progress</div>
+          <div id="spkBar" class="speaker-progress"></div>
+          <div class="row" style="justify-content:space-between;margin-top:8px">
+            <div class="row">
+              <button id="prevBtn" class="btn" data-lang-key="prev">Previous</button>
+              <button id="nextBtn" class="btn" data-lang-key="next">Next</button>
+            </div>
+            <button id="resetOrder" class="btn" data-lang-key="resetOrder">Reset Order</button>
           </div>
-          <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
-            <button id="exportBtn" class="btn" data-lang-key="exportSettings">Export Settings</button>
-            <button id="importBtn" class="btn" data-lang-key="importSettings">Import Settings</button>
-            <input id="importFile" type="file" accept="application/json" style="display:none">
+          <div class="note" data-lang-key="spkNote">Click = select • Double-click = toggle active • Drag = reorder</div>
+        </div>
+  
+        <!-- Main Timer Card --><div class="card" id="mainCard">
+          <div class="row" style="justify-content:space-between"><div id="mainTitle" style="font-weight:800">Substantive Speech</div><div id="meta" class="muted"></div></div>
+          <div id="clock" class="clock">7:00</div>
+          <div id="mainProgress" class="progress"><div id="fill" class="fill"></div></div>
+          <div class="row" style="justify-content:center;margin-top:10px">
+            <button id="startBtn" class="btn btn-icon" title="Start/Pause (Space)">
+              <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l12 8-12 8V4z"></path></svg>
+              <svg class="icon-pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"></path></svg>
+            </button>
+            <button id="resetBtn" class="btn btn-icon" title="Reset (R)">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 4v6h6"></path>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+              </svg>
+            </button>
+            <button id="singleBtn" class="btn btn-icon" title="Single Bell (1)">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            </button>
+            <button id="doubleBtn" class="btn btn-icon" title="Double Bell (2)">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+              <span style="font-size: 14px; font-weight: 700; margin-left: -4px; line-height: 1;">2</span>
+            </button>
+            <button id="testContBtn" class="btn btn-icon" title="Start continuous bell test">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 21px; height: 21px;">
+                <path d="M1 4v6h6"></path>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="width: 19px; height: 19px; margin-left: -6px; margin-top: -2px;">
+                <path d="M10 10C6 10 6 14 10 14c4 0 4-4 8-4 4 0 4 4 0 4s-4-4-8-4z"></path>
+              </svg>
+            </button>
+            <button id="stopBellBtn" class="btn btn-icon" title="Stop continuous bell">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.73 21a2 2 0 0 1-3.46 0"></path><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="m1 1 22 22"></path></svg>
+            </button>
+          </div>
+          <div class="note"><strong data-lang-key="status">Status:</strong> <span id="status">idle</span></div>
+        </div>
+  
+        <!-- Quick Timers --><div id="quickTimersPanel" class="grid grid-3">
+          <div class="card">
+            <div style="font-weight:800;margin-bottom:6px" data-lang-key="crossEx">Cross-Ex / Shared</div>
+            <div id="cexClock" class="clock" style="font-size:32px">01:00</div>
+            <div class="progress" style="margin-top:8px"><div id="cexFill" class="fill"></div></div>
+            <div class="row" style="justify-content:center;margin-top:8px"><button id="cexStart" class="btn" data-lang-key="start">Start</button><button id="cexReset" class="btn" data-lang-key="reset">Reset</button></div>
+          </div>
+          <div class="card">
+            <div style="font-weight:800;margin-bottom:6px" data-lang-key="rebuttal">Rebuttal / Reply</div>
+            <div id="rebClock" class="clock" style="font-size:32px">04:00</div>
+            <div class="progress" style="margin-top:8px"><div id="rebFill" class="fill"></div></div>
+            <div class="row" style="justify-content:center;margin-top:8px"><button id="rebStart" class="btn" data-lang-key="start">Start</button><button id="rebReset" class="btn" data-lang-key="reset">Reset</button></div>
+          </div>
+          <div class="card">
+            <div style="font-weight:800;margin-bottom:6px" data-lang-key="prep">Prep</div>
+            <div id="prepClock" class="clock" style="font-size:32px">01:00</div>
+            <div class="progress" style="margin-top:8px"><div id="prepFill" class="fill"></div></div>
+            <div class="row" style="justify-content:center;margin-top:8px"><button id="prepStart" class="btn" data-lang-key="start">Start</button><button id="prepReset" class="btn" data-lang-key="reset">Reset</button></div>
           </div>
         </div>
+  
+        <!-- Settings (hideable) --><div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-weight:800;" data-lang-key="settingsTitle">Timer Settings</span><button id="toggleSettings" class="btn" style="padding:6px 10px;font-size:14px">Hide</button></div>
+          <div id="settingsPanel">
+            <div class="grid grid-3">
+              <label class="label"><span data-lang-key="mainTime">Main (m:ss)</span><input id="mainInput" class="input" value="3:00"/></label>
+              <label class="label"><span data-lang-key="firstBell">1st Bell from start (m:ss)</span><input id="firstInput" class="input" value="1:00"/></label>
+              <label class="label"><span data-lang-key="secondBell">2nd Bell from start (m:ss)</span><input id="secondInput" class="input" value="2:00"/></label>
+              <label class="label"><span data-lang-key="yellowAt">Yellow at remaining (m:ss)</span><input id="yellowInput" class="input" value="1:00"/></label>
+              <label class="label"><span data-lang-key="redAt">Red at remaining (m:ss)</span><input id="redInput" class="input" value="0:30"/></label>
+              <label class="label"><span data-lang-key="gracePeriod">Grace Period (m:ss)</span><input id="graceInput" class="input" value="0:30"/></label>
+              <label class="label"><span data-lang-key="prepTime">Prep Time (m:ss)</span><input id="prepInput" class="input" value="1:00"/></label>
+              <label class="label"><span data-lang-key="crossExTime">Cross-Ex (m:ss)</span><input id="cexInput" class="input" value="1:00"/></label>
+              <label class="label"><span data-lang-key="rebuttalTime">Rebuttal (m:ss)</span><input id="rebInput" class="input" value="3:00"/></label>
+              <label class="label"><span data-lang-key="bellSpacing">Bell spacing (ms)</span><input id="spaceInput" class="input" value="100"/></label>
+            </div>
+            <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+              <button id="exportBtn" class="btn" data-lang-key="exportSettings">Export Settings</button>
+              <button id="importBtn" class="btn" data-lang-key="importSettings">Import Settings</button>
+              <input id="importFile" type="file" accept="application/json" style="display:none">
+            </div>
+          </div>
+        </div>
+  
       </div>
+    </div>
+  </div><!-- End #mainAppRoot -->
 
+  <!-- 
+    FIX: This root is for the PRESENTER view. 
+    It is hidden by default and will be shown if `?presenter=true` is in the URL.
+  -->
+  <div id="presenterRoot">
+    <div class="presenter-wrap">
+      <div id="pClock">00:00</div>
+      <div id="pMeta">Presenter</div>
     </div>
   </div>
 
-  <!-- Help Modal --><div id="helpModal">
+  <!-- Help Modal (lives outside main app root) --><div id="helpModal">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
         <h2 style="margin:0" data-lang-key="helpTitle">Help</h2>
@@ -288,92 +329,12 @@ function applyBodyState(state){
 }
 
 (function(){
-  // --- FIX: Check for presenter mode *inside* IIFE to ensure `return` works ---
+  // --- FIX: Check for presenter mode *immediately* ---
   const isPresenter = new URLSearchParams(location.search).get('presenter')==='true';
   if(isPresenter){
-    // FIX: Write a full HTML document to the presenter window
-    // This injects all necessary styles for themes, fonts, and animations.
-    document.open();
-    document.write(`
-      <!doctype html>
-      <html lang="en">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Presenter</title>
-        <style>
-          /* ---------- THEME (Copied from main) ---------- */
-          :root{
-            --bg:#f9fafb; --fg:#111827; --card:#ffffff; --bd:#e5e7eb;
-            --track:#e5e7eb; --fill:#111827; --muted:#6b7280;
-            --ok-bg:#d1fae5; --ok-fg:#065f46; --warn-bg:#fef3c7; --warn-fg:#92400e; --bad-bg:#fee2e2; --bad-fg:#7f1d1d;
-            --prop-bg:#dbeafe; --prop-border:#93c5fd; --prop-fg:#1e3a8a;
-            --opp-bg:#fee2e2; --opp-border:#fca5a5; --opp-fg:#7f1d1d;
-            --prep-bg:#f3f4f6; --prep-border:#d1d5db; --prep-fg:#374151;
-            --grace-fg: #7f1d1d; /* Color for grace text in presenter */
-          }
-          :root.dark{
-            --bg:#1f2937; --fg:#f9fafb; --card:#111827; --bd:#374151;
-            --track:#374151; --fill:#f9fafb; --muted:#9ca3af;
-            --grace-fg: #f9fafb;
-          }
-          *{box-sizing:border-box}
-          html,body{height:100%}
-          body{
-            margin:0; background:var(--bg); color:var(--fg);
-            font:16px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; 
-            display:flex; align-items:center; justify-content:center; min-height:100vh;
-            -webkit-font-smoothing: antialiased;
-          }
-          
-          /* STATE COLORS (Copied from main) */
-          body.state-warn{background:var(--warn-bg); color:var(--warn-fg)}
-          body.state-bad{background:var(--bad-bg); color:var(--bad-fg)}
-          
-          /* Presenter-specific grace animation (copied from main) */
-          body.presenter-grace #pClock { color: var(--grace-fg); }
-          body.presenter-grace { animation: gracePulse 1.6s ease-in-out infinite !important; }
-          
-          @keyframes gracePulse {
-            0% { background: var(--bg); color: var(--fg); }
-            50% { background: var(--bad-bg); color: var(--bad-fg); }
-            100% { background: var(--bg); color: var(--fg); }
-          }
-          /* Ensure presenter-grace state overrides clock color (copied from main) */
-          body.presenter-grace.state-grace #pClock {
-            color: var(--bad-fg);
-          }
-          
-          /* Copied from main .clock for font */
-          #pClock {
-            font-family: "Rubik", ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-            font-weight: 900;
-            font-size: 22vw;
-            line-height: 1;
-            letter-spacing: 2px;
-          }
-          #pMeta {
-            margin-top: 12px;
-            color: var(--muted);
-            font-weight: 700;
-            font-size: 2vw; /* Make meta text responsive */
-          }
-          .presenter-wrap {
-            text-align: center;
-          }
-        </style>
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@700;900&display=swap" rel="stylesheet">
-      </head>
-      <body>
-        <div class="presenter-wrap">
-          <div id="pClock">00:00</div>
-          <div id="pMeta">Presenter</div>
-        </div>
-      </body>
-      </html>
-    `);
-    document.close();
+    // Hide main app, show presenter root
+    document.getElementById('mainAppRoot').style.display = 'none';
+    document.getElementById('presenterRoot').style.display = 'flex'; // Use flex to center it
       
     // Listen for sync messages
     const channel = new BroadcastChannel('debate_timer_sync_v1');
@@ -390,14 +351,14 @@ function applyBodyState(state){
         if(pm) pm.textContent = m.meta||'';
         
         // Apply grace pulse
-        // Note: 'presenter-grace' class is now applied to the BODY of the presenter window
+        // Note: 'presenter-grace' class is applied to the BODY
         document.body.classList.toggle('presenter-grace', m.inGrace);
 
         // Apply visual state (using global function)
         applyBodyState(m.state);
       }
     };
-    return; // Stop script execution for presenter window
+    return; // STOP script execution for presenter window
   }
 
   // ---------- Utilities ----------
