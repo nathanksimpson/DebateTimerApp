@@ -1060,13 +1060,10 @@ function applyBodyState(state){
     startBtn.classList.add('running');
     graceRemain = parseTime(graceInput.value);
     
-    // Simson-specific bell logic
-    if(formatSelect.value === 'SIMSON' && mode==='main'){
-      ding({type:'single'});
-      setTimeout(()=>ding({type:'single'}), spacing);
-    } else {
-      ding({type:'double'});
-    }
+    // --- FIX: All substantive speeches get a double bell ---
+    ding({type:'double'});
+    // --- END FIX ---
+    
     stopContinuous();
     applyBodyState('state-grace');
   }
