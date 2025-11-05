@@ -870,7 +870,8 @@ function applyBodyState(state){
       
       // Don't add prep time if it's 0:00
       const prepTime = (preset.settings && preset.settings.prep) || '00:00';
-      if(i < baseSpeakers.length-1 && parseTime(prepTime) > 0){
+      // --- FIX: Do not add in-line prep for AP format ---
+      if(i < baseSpeakers.length-1 && parseTime(prepTime) > 0 && presetName !== 'AP'){
         const next = baseSpeakers[i+1];
         const nextSide = (next && next.side) || 'neutral';
         speakers.push({type:'prep', role:currentLang.prep, side:nextSide, initials:'Prep', belongsToIndex:i+1});
