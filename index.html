@@ -269,7 +269,7 @@
               <label class="label"><span data-lang-key="prepTime">Prep Time (m:ss)</span><input id="prepInput" class="input" value="1:00"/></label>
               <label class="label"><span data-lang-key="crossExTime">Cross-Ex (m:ss)</span><input id="cexInput" class="input" value="1:00"/></label>
               <label class="label"><span data-lang-key="rebuttalTime">Rebuttal (m:ss)</span><input id="rebInput" class="input" value="3:00"/></label>
-              <label class="label"><span data-lang-key="bellSpacing">Bell spacing (ms)</span><input id="spaceInput" class="input" value="100"/></label>
+              <label class="label"><span data-lang-key="bellSpacing">Bell spacing (ms)</span><input id="spaceInput" class="input" value="250"/></label>
             </div>
             <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
               <button id="exportBtn" class="btn" data-lang-key="exportSettings">Export Settings</button>
@@ -675,7 +675,7 @@ function applyBodyState(state){
         {role_en:'OR', role_ko:'야당 답변 (OR)', side:'opp', initials:'OR'}
       ],
       // NOTE: Simson between-speech prep is 1:00. Add a 20:00 round prep at the very beginning via sequence builder.
-      settings: { main:'3:00', first:'1:00', second:'2:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'1:00', cex:'1:00', reb:'3:00', spacing:'100', roundPrep:'20:00' }
+      settings: { main:'3:00', first:'1:00', second:'2:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'1:00', cex:'1:00', reb:'3:00', spacing:'250', roundPrep:'20:00' }
     },
     AP: {
       label: 'Asian Parliamentary',
@@ -689,7 +689,7 @@ function applyBodyState(state){
         {role_en:'Opposition Reply', role_ko:'야당 답변', side:'opp', initials:'OR'},
         {role_en:'Government Reply', role_ko:'여당 답변', side:'prop', initials:'GR'}
       ],
-      settings: { main:'7:00', first:'1:00', second:'6:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'30:00', cex:'1:00', reb:'4:00', spacing:'100', roundPrep:'00:00' }
+      settings: { main:'7:00', first:'1:00', second:'6:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'30:00', cex:'1:00', reb:'4:00', spacing:'250', roundPrep:'00:00' }
     },
     BP: {
       label: 'British Parliamentary',
@@ -705,7 +705,7 @@ function applyBodyState(state){
         {role_en:'Opposition Reply', role_ko:'야당 답변', side:'opp', initials:'OR'},
         {role_en:'Government Reply', role_ko:'여당 답변', side:'prop', initials:'GR'}
       ],
-      settings: { main:'7:00', first:'1:00', second:'6:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'1:00', reb:'4:00', spacing:'100', roundPrep:'15:00' }
+      settings: { main:'7:00', first:'1:00', second:'6:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'1:00', reb:'4:00', spacing:'250', roundPrep:'15:00' }
     },
     WSDC: {
       label: 'WSDC',
@@ -719,7 +719,7 @@ function applyBodyState(state){
         {role_en:'Opp Reply', role_ko:'반대 답변', side:'opp', initials:'OR'},
         {role_en:'Prop Reply', role_ko:'찬성 답변', side:'prop', initials:'PR'}
       ],
-      settings: { main:'8:00', first:'1:00', second:'7:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'1:00', reb:'4:00', spacing:'100', roundPrep:'00:00' }
+      settings: { main:'8:00', first:'1:00', second:'7:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'1:00', reb:'4:00', spacing:'250', roundPrep:'00:00' }
     },
     PF: {
       label: 'Public Forum',
@@ -736,7 +736,7 @@ function applyBodyState(state){
         {role_en:'Final Focus 1 (A)', role_ko:'최종 1 (A팀)', side:'prop', initials:'AFF'},
         {role_en:'Final Focus 2 (B)', role_ko:'최종 2 (B팀)', side:'opp', initials:'BFF'}
       ],
-      settings: { main:'4:00', first:'1:00', second:'3:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'3:00', reb:'2:00', spacing:'100', roundPrep:'00:00' }
+      settings: { main:'4:00', first:'1:00', second:'3:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'3:00', reb:'2:00', spacing:'250', roundPrep:'00:00' }
     },
     CX: {
       label: 'Policy / CX',
@@ -754,7 +754,7 @@ function applyBodyState(state){
         {role_en:'2nd Neg Rebuttal', role_ko:'2차 부정 반박', side:'opp', initials:'2NR'},
         {role_en:'2nd Aff Rebuttal', role_ko:'2차 긍정 반박', side:'prop', initials:'2AR'}
       ],
-      settings: { main:'8:00', first:'1:00', second:'7:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'3:00', reb:'5:00', spacing:'100', roundPrep:'00:00' }
+      settings: { main:'8:00', first:'1:00', second:'7:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'3:00', reb:'5:00', spacing:'250', roundPrep:'00:00' }
     },
     LD: {
       label: 'Lincoln–Douglas',
@@ -767,7 +767,7 @@ function applyBodyState(state){
         {role_en:'Neg Rebuttal', role_ko:'부정 반박', side:'opp', initials:'NR'},
         {role_en:'2nd Aff Rebuttal', role_ko:'2차 긍정 반박', side:'prop', initials:'2AR'}
       ],
-      settings: { main:'6:00', first:'1:00', second:'5:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'3:00', reb:'4:00', spacing:'100', roundPrep:'00:00' }
+      settings: { main:'6:00', first:'1:00', second:'5:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'3:00', reb:'4:00', spacing:'250', roundPrep:'00:00' }
     },
     CUSTOM: {
       label: 'Custom',
@@ -821,12 +821,12 @@ function applyBodyState(state){
   }
   loadSettings();
 
-  let firstBell = parseTime(firstInput.value), secondBell = parseTime(secondInput.value), spacing = +spaceInput.value || 100;
+  let firstBell = parseTime(firstInput.value), secondBell = parseTime(secondInput.value), spacing = +spaceInput.value || 250;
   let yellow=parseTime(yellowInput.value), red=parseTime(redInput.value), grace=parseTime(graceInput.value);
 
   function syncFromInputs(){
     mainTotal=parseTime(mainInput.value); firstBell=parseTime(firstInput.value); secondBell=parseTime(secondInput.value);
-    yellow=parseTime(yellowInput.value); red=parseTime(redInput.value); grace=parseTime(graceInput.value); spacing=+spaceInput.value||100;
+    yellow=parseTime(yellowInput.value); red=parseTime(redInput.value); grace=parseTime(graceInput.value); spacing=+spaceInput.value||250;
     prepRemain=parseTime(prepInput.value); cexRemain=parseTime(cexInput.value); rebRemain=parseTime(rebInput.value);
     if(mode==='main'){ mainRemain=Math.min(mainRemain, mainTotal); }
     
@@ -1047,7 +1047,9 @@ function applyBodyState(state){
       mainRunning = false;
       startBtn.classList.remove('running');
       if (mode === 'reb' || mode === 'cex') {
-        ding({type:'double'});
+        // FIX: Use spaced double bell
+        ding({type:'single'}); 
+        setTimeout(()=>ding({type:'single'}), spacing);
       } else {
         ding({type:'single'}); // Prep timer ends with single
       }
@@ -1060,8 +1062,9 @@ function applyBodyState(state){
     startBtn.classList.add('running');
     graceRemain = parseTime(graceInput.value);
     
-    // --- FIX: All substantive speeches get a double bell ---
-    ding({type:'double'});
+    // --- FIX: All substantive speeches get a SPACED double bell ---
+    ding({type:'single'});
+    setTimeout(()=>ding({type:'single'}), spacing);
     // --- END FIX ---
     
     stopContinuous();
@@ -1136,7 +1139,7 @@ function applyBodyState(state){
     await releaseWakeLock();
   };
   singleBtn.onclick=()=> ding({type:'single'});
-  doubleBtn.onclick=()=>{ ding({type:'single'}); setTimeout(()=>ding({type:'single'}), spacing||100) };
+  doubleBtn.onclick=()=>{ ding({type:'single'}); setTimeout(()=>ding({type:'single'}), spacing) };
   testContBtn.onclick=()=>{ stopContinuous(); document.body.classList.add('state-grace'); contBellInterval = setInterval(()=> ding({type:'single'}), 250); };
   stopBellBtn.onclick=()=>{
     stopContinuous();
@@ -1172,7 +1175,7 @@ function applyBodyState(state){
         if(getRemain()===0){ 
           running=false; 
           startBtn.textContent = currentLang.start; 
-          ding({type:'double'}) 
+          ding({type:'single'}); setTimeout(()=>ding({type:'single'}), spacing);
         } 
         draw() 
       } 
@@ -1553,9 +1556,6 @@ function applyBodyState(state){
   }
   init();
 
-  // ---------- Presenter + Sync safety ----------
-  // BUGFIX: Removed redundant timer that caused flashing
-  // setInterval(()=>{ syncOut(); }, 800);
 
   // ---------- Self-tests (basic) ----------
   try{
