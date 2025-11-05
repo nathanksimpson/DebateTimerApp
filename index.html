@@ -224,7 +224,7 @@
                 <path d="M1 4v6h6"></path>
                 <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
               </svg>
-              <svg xmlns="http://www.w3.org/2D0/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="width: 19px; height: 19px; margin-left: -6px; margin-top: -2px;">
+              <svg xmlns="http://www.w3.org/2D/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="width: 19px; height: 19px; margin-left: -6px; margin-top: -2px;">
                 <path d="M10 10C6 10 6 14 10 14c4 0 4-4 8-4 4 0 4 4 0 4s-4-4-8-4z"></path>
               </svg>
             </button>
@@ -686,12 +686,89 @@ function applyBodyState(state){
         {role_en:'Deputy Leader of Opposition', role_ko:'야당부대표', side:'opp', initials:'DLO'},
         {role_en:'Government Whip', role_ko:'여당 원내총무', side:'prop', initials:'GW'},
         {role_en:'Opposition Whip', role_ko:'야당 원내총무', side:'opp', initials:'OW'},
-        {role_en:'Government Reply', role_ko:'여당 답변', side:'prop', initials:'GR'},
-        {role_en:'Opposition Reply', role_ko:'야당 답변', side:'opp', initials:'OR'}
+        {role_en:'Opposition Reply', role_ko:'야당 답변', side:'opp', initials:'OR'},
+        {role_en:'Government Reply', role_ko:'여당 답변', side:'prop', initials:'GR'}
       ],
-      settings: { main:'7:00', first:'1:00', second:'6:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'20:00', cex:'1:00', reb:'4:00', spacing:'100', roundPrep:'00:00' }
+      settings: { main:'7:00', first:'1:00', second:'6:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'30:00', cex:'1:00', reb:'4:00', spacing:'100', roundPrep:'00:00' }
     },
-    // Other presets can be added similarly...
+    BP: {
+      label: 'British Parliamentary',
+      base: [
+        {role_en:'Prime Minister', role_ko:'총리', side:'prop', initials:'PM'},
+        {role_en:'Leader of Opposition', role_ko:'야당대표', side:'opp', initials:'LO'},
+        {role_en:'Deputy Prime Minister', role_ko:'부총리', side:'prop', initials:'DPM'},
+        {role_en:'Deputy Leader of Opposition', role_ko:'야당부대표', side:'opp', initials:'DLO'},
+        {role_en:'Member of Government', role_ko:'여당 의원', side:'prop', initials:'MG'},
+        {role_en:'Member of Opposition', role_ko:'야당 의원', side:'opp', initials:'MO'},
+        {role_en:'Government Whip', role_ko:'여당 원내총무', side:'prop', initials:'GW'},
+        {role_en:'Opposition Whip', role_ko:'야당 원내총무', side:'opp', initials:'OW'},
+        {role_en:'Opposition Reply', role_ko:'야당 답변', side:'opp', initials:'OR'},
+        {role_en:'Government Reply', role_ko:'여당 답변', side:'prop', initials:'GR'}
+      ],
+      settings: { main:'7:00', first:'1:00', second:'6:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'1:00', reb:'4:00', spacing:'100', roundPrep:'15:00' }
+    },
+    WSDC: {
+      label: 'WSDC',
+      base: [
+        {role_en:'1st Prop', role_ko:'1번 찬성', side:'prop', initials:'P1'},
+        {role_en:'1st Opp', role_ko:'1번 반대', side:'opp', initials:'O1'},
+        {role_en:'2nd Prop', role_ko:'2번 찬성', side:'prop', initials:'P2'},
+        {role_en:'2nd Opp', role_ko:'2번 반대', side:'opp', initials:'O2'},
+        {role_en:'3rd Prop', role_ko:'3번 찬성', side:'prop', initials:'P3'},
+        {role_en:'3rd Opp', role_ko:'3번 반대', side:'opp', initials:'O3'},
+        {role_en:'Opp Reply', role_ko:'반대 답변', side:'opp', initials:'OR'},
+        {role_en:'Prop Reply', role_ko:'찬성 답변', side:'prop', initials:'PR'}
+      ],
+      settings: { main:'8:00', first:'1:00', second:'7:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'1:00', reb:'4:00', spacing:'100', roundPrep:'00:00' }
+    },
+    PF: {
+      label: 'Public Forum',
+      base: [
+        {role_en:'Speaker 1 (Team A)', role_ko:'발표자 1 (A팀)', side:'prop', initials:'A1'},
+        {role_en:'Speaker 2 (Team B)', role_ko:'발표자 2 (B팀)', side:'opp', initials:'B1'},
+        {role_en:'Crossfire (1 & 2)', role_ko:'교차조사 (1 & 2)', side:'neutral', initials:'C1-2'},
+        {role_en:'Speaker 3 (Team A)', role_ko:'발표자 3 (A팀)', side:'prop', initials:'A2'},
+        {role_en:'Speaker 4 (Team B)', role_ko:'발표자 4 (B팀)', side:'opp', initials:'B2'},
+        {role_en:'Crossfire (3 & 4)', role_ko:'교차조사 (3 & 4)', side:'neutral', initials:'C3-4'},
+        {role_en:'Summary 1 (Team A)', role_ko:'요약 1 (A팀)', side:'prop', initials:'AS'},
+        {role_en:'Summary 2 (Team B)', role_ko:'요약 2 (B팀)', side:'opp', initials:'BS'},
+        {role_en:'Grand Crossfire', role_ko:'전체 교차조사', side:'neutral', initials:'GC'},
+        {role_en:'Final Focus 1 (A)', role_ko:'최종 1 (A팀)', side:'prop', initials:'AFF'},
+        {role_en:'Final Focus 2 (B)', role_ko:'최종 2 (B팀)', side:'opp', initials:'BFF'}
+      ],
+      settings: { main:'4:00', first:'1:00', second:'3:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'3:00', reb:'2:00', spacing:'100', roundPrep:'00:00' }
+    },
+    CX: {
+      label: 'Policy / CX',
+      base: [
+        {role_en:'1st Aff Constructive', role_ko:'1차 긍정 입론', side:'prop', initials:'1AC'},
+        {role_en:'Cross-Ex (by 2NC)', role_ko:'교차조사 (2NC)', side:'opp', initials:'CX'},
+        {role_en:'1st Neg Constructive', role_ko:'1차 부정 입론', side:'opp', initials:'1NC'},
+        {role_en:'Cross-Ex (by 1AC)', role_ko:'교차조사 (1AC)', side:'prop', initials:'CX'},
+        {role_en:'2nd Aff Constructive', role_ko:'2차 긍정 입론', side:'prop', initials:'2AC'},
+        {role_en:'Cross-Ex (by 1NC)', role_ko:'교차조사 (1NC)', side:'opp', initials:'CX'},
+        {role_en:'2nd Neg Constructive', role_ko:'2차 부정 입론', side:'opp', initials:'2NC'},
+        {role_en:'Cross-Ex (by 2AC)', role_ko:'교차조사 (2AC)', side:'prop', initials:'CX'},
+        {role_en:'1st Neg Rebuttal', role_ko:'1차 부정 반박', side:'opp', initials:'1NR'},
+        {role_en:'1st Aff Rebuttal', role_ko:'1차 긍정 반박', side:'prop', initials:'1AR'},
+        {role_en:'2nd Neg Rebuttal', role_ko:'2차 부정 반박', side:'opp', initials:'2NR'},
+        {role_en:'2nd Aff Rebuttal', role_ko:'2차 긍정 반박', side:'prop', initials:'2AR'}
+      ],
+      settings: { main:'8:00', first:'1:00', second:'7:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'3:00', reb:'5:00', spacing:'100', roundPrep:'00:00' }
+    },
+    LD: {
+      label: 'Lincoln–Douglas',
+      base: [
+        {role_en:'Aff Constructive', role_ko:'긍정 입론', side:'prop', initials:'AC'},
+        {role_en:'Cross-Ex', role_ko:'교차조사', side:'opp', initials:'CX'},
+        {role_en:'Neg Constructive', role_ko:'부정 입론', side:'opp', initials:'NC'},
+        {role_en:'Cross-Ex', role_ko:'교차조사', side:'prop', initials:'CX'},
+        {role_en:'1st Aff Rebuttal', role_ko:'1차 긍정 반박', side:'prop', initials:'1AR'},
+        {role_en:'Neg Rebuttal', role_ko:'부정 반박', side:'opp', initials:'NR'},
+        {role_en:'2nd Aff Rebuttal', role_ko:'2차 긍정 반박', side:'prop', initials:'2AR'}
+      ],
+      settings: { main:'6:00', first:'1:00', second:'5:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'3:00', reb:'4:00', spacing:'100', roundPrep:'00:00' }
+    },
     CUSTOM: {
       label: 'Custom',
       base: [],
@@ -713,7 +790,7 @@ function applyBodyState(state){
   const prepInput=$('#prepInput'), cexInput=$('#cexInput'), rebInput=$('#rebInput'), spaceInput=$('#spaceInput');
   const startBtn=$('#startBtn'), resetBtn=$('#resetBtn'), singleBtn=$('#singleBtn'), doubleBtn=$('#doubleBtn'), testContBtn=$('#testContBtn'), stopBellBtn=$('#stopBellBtn');
   const prepClock=$('#prepClock'), prepFill=$('#prepFill'), prepStart=$('#prepStart'), prepReset=$('#prepReset');
-  const cexClock=$('#cexClock'), cexFill=$('#cexFill'), cexStart=$('#cexStart'), cexReset=$('#cexReset');
+  const cexClock=$('#cexClock'), cexFill=$('#cexFill'), cexStart=$$('#cexStart'), cexReset=$('#cexReset');
   const rebClock=$('#rebClock'), rebFill=$('#rebFill'), rebStart=$('#rebStart'), rebReset=$('#rebReset');
 
   // Global timer state
@@ -790,7 +867,10 @@ function applyBodyState(state){
       const side = sp.side || 'neutral';
       
       speakers.push({type:'spk', role: role, side: side, initials: initials, baseIndex:i});
-      if(i < baseSpeakers.length-1){
+      
+      // Don't add prep time if it's 0:00
+      const prepTime = (preset.settings && preset.settings.prep) || '00:00';
+      if(i < baseSpeakers.length-1 && parseTime(prepTime) > 0){
         const next = baseSpeakers[i+1];
         const nextSide = (next && next.side) || 'neutral';
         speakers.push({type:'prep', role:currentLang.prep, side:nextSide, initials:'Prep', belongsToIndex:i+1});
@@ -806,7 +886,14 @@ function applyBodyState(state){
       const el = document.createElement('div');
       const sideClass = s.type==='prep' ? 'prep' : (s.side==='opp'?'opp':'prop');
       el.className = 'spk ' + sideClass + (idx===activeIdx? ' active':'') + (s.disabled? ' inactive':'');
-      el.textContent = s.initials || s.role;
+      
+      let textContent = s.initials || s.role;
+      // Use role_en or role_ko for initials if initials field is missing
+      if (!s.initials) {
+        textContent = s[langSelect.value === 'ko' ? 'role_ko' : 'role_en'] || s.role_en || 'SPK';
+      }
+      el.textContent = textContent;
+
       el.title = s.role + (s.type==='prep' && s.role!==currentLang.roundPrep ? ` — ${currentLang.prepFor} ${baseSpeakers[s.belongsToIndex]?.initials||''}`:'');
       el.draggable = s.type !== 'prep';
       el.addEventListener('click', ()=>{
@@ -832,7 +919,12 @@ function applyBodyState(state){
         }
 
         buildSequenceForPreset(formatSelect.value);
+        // Find new index of the item that was at `to`
+        activeIdx = speakers.findIndex(spk => spk.baseIndex === toBase && spk.type === 'spk');
+        if (activeIdx === -1) activeIdx = 0; // fallback
+        
         drawSpeakers();
+        applyForSpeaker();
       });
       spkBar.appendChild(el);
     });
@@ -846,18 +938,51 @@ function applyBodyState(state){
     // Settings are now applied by formatSelect.onchange
     const presetName = formatSelect.value;
     const preset = PRESETS[presetName] || PRESETS.SIMSON;
+    const settings = preset.settings || PRESETS.SIMSON.settings; // Fallback to SIMSON settings
 
     inGrace = false; graceRemain = 0; // leaving any grace state when switching
 
     if(s.type==='prep'){
       mode='prep';
-      const total = (s.role === currentLang.roundPrep) ? parseTime(preset.settings.roundPrep||'20:00') : parseTime(preset.settings.prep||prepInput.value);
+      const total = (s.role === currentLang.roundPrep) ? parseTime(settings.roundPrep||'20:00') : parseTime(settings.prep||prepInput.value);
       mainTotal = total; mainRemain = total;
       titleEl.textContent = s.role === currentLang.roundPrep ? currentLang.roundPrep : `${currentLang.prep} — (${s.side==='prop'?'Prop':(s.side==='opp'?'Opp':'')})`;
     } else if(s.type==='spk'){
-      const isReply = s.role.toLowerCase().includes('reply') || s.role.includes('답변') || s.initials==='GR' || s.initials==='OR' || s.initials==='Pro FF' || s.initials==='Con FF';
-      if(isReply){ mode='reb'; mainTotal = parseTime(rebInput.value); titleEl.textContent = `${s.role} — ${currentLang.replyRebuttal}`; }
-      else { mode='main'; mainTotal = parseTime(mainInput.value); titleEl.textContent = `${s.role} — ${currentLang.substantive}`; }
+      // Check for special time cases (e.g., PF, CX)
+      const roleKey = s.role_en || s.role; // Use role_en for a stable key
+      
+      if(presetName === 'PF' && roleKey.includes('Crossfire')){
+        mode='cex'; mainTotal = parseTime(settings.cex||'3:00'); titleEl.textContent = `${s.role}`;
+      } else if (presetName === 'PF' && roleKey.includes('Summary')) {
+        mode='reb'; mainTotal = parseTime(settings.reb||'2:00'); titleEl.textContent = `${s.role}`; // Use Rebuttal time for Summary
+      } else if (presetName === 'PF' && roleKey.includes('Final Focus')) {
+        mode='reb'; mainTotal = parseTime(settings.reb||'2:00'); titleEl.textContent = `${s.role}`; // Use Rebuttal time for Final Focus
+      } else if (presetName === 'CX' && roleKey.includes('Cross-Ex')) {
+        mode='cex'; mainTotal = parseTime(settings.cex||'3:00'); titleEl.textContent = `${s.role}`;
+      } else if (presetName === 'CX' && roleKey.includes('Rebuttal')) {
+        mode='reb'; mainTotal = parseTime(settings.reb||'5:00'); titleEl.textContent = `${s.role}`;
+      } else if (presetName === 'LD' && roleKey.includes('Cross-Ex')) {
+        mode='cex'; mainTotal = parseTime(settings.cex||'3:00'); titleEl.textContent = `${s.role}`;
+      } else if (presetName === 'LD' && (roleKey.includes('Constructive') && !roleKey.includes('Aff'))) { // Neg Con
+        mode='main'; mainTotal = parseTime('7:00'); titleEl.textContent = `${s.role} — ${currentLang.substantive}`; // LD Neg Con is 7min
+      } else if (presetName === 'LD' && roleKey.includes('Rebuttal')) {
+        mode='reb'; mainTotal = parseTime(settings.reb||'4:00'); titleEl.textContent = `${s.role}`;
+      }
+      // Default: reply or substantive
+      else {
+        const isReply = s.role.toLowerCase().includes('reply') || s.role.includes('답변') || s.initials==='GR' || s.initials==='OR' || s.initials==='PR';
+      
+        if(isReply){ 
+          mode='reb'; 
+          mainTotal = parseTime(settings.reb||rebInput.value); 
+          titleEl.textContent = `${s.role} — ${currentLang.replyRebuttal}`; 
+        } else { 
+          mode='main'; 
+          mainTotal = parseTime(settings.main||mainInput.value); 
+          titleEl.textContent = `${s.role} — ${currentLang.substantive}`; 
+        }
+      }
+      
       mainRemain = mainTotal;
     }
     mainRunning=false; startBtn.classList.remove('running'); setStatus('idle'); updateMeta(); render(); syncOut(true);
@@ -869,7 +994,9 @@ function applyBodyState(state){
     let roleTxt = '';
     if(s){
       if(s.type==='prep'){
-        roleTxt = s.role === currentLang.roundPrep ? currentLang.roundPrep : `${currentLang.prepFor} ${baseSpeakers[s.belongsToIndex]?.initials||''}`;
+        const belongsTo = baseSpeakers[s.belongsToIndex];
+        const nextInitials = belongsTo ? (belongsTo.initials || belongsTo[langSelect.value === 'ko' ? 'role_ko' : 'role_en']) : '';
+        roleTxt = s.role === currentLang.roundPrep ? currentLang.roundPrep : `${currentLang.prepFor} ${nextInitials}`;
       } else {
         roleTxt = s.role;
       }
@@ -878,8 +1005,8 @@ function applyBodyState(state){
 
     // Interface color state (no emojis). Warn/Bad/Grace via body classes
     const left = mainRemain;
-    const warn = left <= yellow && left > red && mode==='main' && !inGrace;
-    const bad = left <= red && left > 0 && mode==='main' && !inGrace;
+    const warn = left <= yellow && left > red && (mode==='main' || mode==='prep') && !inGrace;
+    const bad = left <= red && left > 0 && (mode==='main' || mode==='prep') && !inGrace;
     if(inGrace) applyBodyState('state-grace');
     else if(bad) applyBodyState('state-bad');
     else if(warn) applyBodyState('state-warn');
@@ -914,10 +1041,25 @@ function applyBodyState(state){
   }
 
   function triggerEndOfSpeech(){
+    // Only 'main' mode (substantive) gets a grace period
+    if(mode !== 'main') {
+      mainRunning = false;
+      startBtn.classList.remove('running');
+      if (mode === 'reb' || mode === 'cex') {
+        ding({type:'double'});
+      } else {
+        ding({type:'single'}); // Prep timer ends with single
+      }
+      stopContinuous();
+      return;
+    }
+    
     inGrace = true;
     mainRunning = true; // keep timer running during grace
     startBtn.classList.add('running');
     graceRemain = parseTime(graceInput.value);
+    
+    // Simson-specific bell logic
     if(formatSelect.value === 'SIMSON' && mode==='main'){
       ding({type:'single'});
       setTimeout(()=>ding({type:'single'}), spacing);
@@ -935,11 +1077,12 @@ function applyBodyState(state){
       if(!inGrace){
         mainRemain = Math.max(0, mainRemain - dt);
         // bells: check when crossing thresholds (first/second)
-        const elapsed = mainTotal - mainRemain;
-        if(Math.abs(elapsed - firstBell) < dt/2) ding({type:'single'});
-        if(Math.abs(elapsed - secondBell) < dt/2) ding({type:'single'});
+        if(mode==='main'){
+          const elapsed = mainTotal - mainRemain;
+          if(Math.abs(elapsed - firstBell) < dt/2) ding({type:'single'});
+          if(Math.abs(elapsed - secondBell) < dt/2) ding({type:'single'});
+        }
         if(mainRemain === 0){
-          mainRunning = false;
           triggerEndOfSpeech();
         }
       } else {
@@ -1000,17 +1143,57 @@ function applyBodyState(state){
   stopBellBtn.onclick=()=>{ stopContinuous(); document.body.classList.remove('state-grace'); };
 
   // quick mini timers (prep/cex/reb)
-  function makeMini(startBtn, resetBtn, clockEl, fillEl, getRemain, setRemain){
-    let running=false, last=0, total=parseTime(clockEl.textContent)||60000;
-    function draw(){ clockEl.textContent = fmt(getRemain()); const pct=clamp(1-(getRemain()/total),0,1); fillEl.style.transform=`scaleX(${pct})` }
-    function raf(ts){ if(!last) last=ts; const dt=ts-last; last=ts; if(running){ setRemain(Math.max(0,getRemain()-dt)); if(getRemain()===0){ running=false; ding({type:'double'}) } draw() } requestAnimationFrame(raf) }
+  function makeMini(startBtn, resetBtn, clockEl, fillEl, getRemain, setRemain, getTotal){
+    let running=false, last=0;
+    function draw(){ 
+      const total = getTotal();
+      clockEl.textContent = fmt(getRemain()); 
+      const pct = (total > 0) ? clamp(1-(getRemain()/total),0,1) : 0;
+      fillEl.style.transform=`scaleX(${pct})` 
+    }
+    function raf(ts){ 
+      if(!last) last=ts; const dt=ts-last; last=ts; 
+      if(running){ 
+        setRemain(Math.max(0,getRemain()-dt)); 
+        if(getRemain()===0){ 
+          running=false; 
+          startBtn.textContent = currentLang.start; 
+          ding({type:'double'}) 
+        } 
+        draw() 
+      } 
+      requestAnimationFrame(raf) 
+    }
     requestAnimationFrame(raf);
-    startBtn.onclick=()=>{ running=!running; startBtn.textContent=running? currentLang.pause : currentLang.start };
-    resetBtn.onclick=()=>{ running=false; startBtn.textContent=currentLang.start; setRemain(total); draw() };
+    startBtn.onclick=()=>{ 
+      running=!running; 
+      startBtn.textContent = running ? currentLang.pause : currentLang.start 
+    };
+    resetBtn.onclick=()=>{ 
+      running=false; 
+      startBtn.textContent = currentLang.start; 
+      setRemain(getTotal()); 
+      draw() 
+    };
+    // Need a function to update total and reset display
+    const updateTotal = () => {
+      if (!running) {
+        setRemain(getTotal());
+        draw();
+      }
+    };
+    return { updateTotal };
   }
-  makeMini(prepStart, prepReset, prepClock, prepFill, ()=>prepRemain, v=>prepRemain = v);
-  makeMini(cexStart, cexReset, cexClock, cexFill, ()=>cexRemain, v=>cexRemain = v);
-  makeMini(rebStart, rebReset, rebClock, rebFill, ()=>rebRemain, v=>rebRemain = v);
+  
+  const miniPrep = makeMini(prepStart, prepReset, prepClock, prepFill, ()=>prepRemain, v=>prepRemain = v, ()=>parseTime(prepInput.value));
+  const miniCex = makeMini(cexStart, cexReset, cexClock, cexFill, ()=>cexRemain, v=>cexRemain = v, ()=>parseTime(cexInput.value));
+  const miniReb = makeMini(rebStart, rebReset, rebClock, rebFill, ()=>rebRemain, v=>rebRemain = v, ()=>parseTime(rebInput.value));
+
+  // Update mini timers when inputs change
+  prepInput.addEventListener('change', miniPrep.updateTotal);
+  cexInput.addEventListener('change', miniCex.updateTotal);
+  rebInput.addEventListener('change', miniReb.updateTotal);
+
 
   // ---------- scrubbing logic (paused-only) ----------
   let isScrubbing = false;
@@ -1091,6 +1274,11 @@ function applyBodyState(state){
         spaceInput.value = settings.spacing;
         // Sync inputs to runtime vars
         syncFromInputs();
+        
+        // Update mini timers
+        miniPrep.updateTotal();
+        miniCex.updateTotal();
+        miniReb.updateTotal();
       }
     }
   
@@ -1100,7 +1288,20 @@ function applyBodyState(state){
   });
 
   // prep input live update
-  prepInput.addEventListener('change', ()=>{ if(mode==='prep'){ mainTotal = parseTime(prepInput.value); mainRemain = mainTotal; render(); } saveSettings(); });
+  prepInput.addEventListener('change', ()=>{ 
+    if(mode==='prep'){ 
+      mainTotal = parseTime(prepInput.value); 
+      if(!mainRunning) mainRemain = mainTotal; 
+      render(); 
+    } 
+    // saveSettings(); // This is now handled by syncFromInputs
+    syncFromInputs();
+    miniPrep.updateTotal(); 
+  });
+  
+  cexInput.addEventListener('change', miniCex.updateTotal);
+  rebInput.addEventListener('change', miniReb.updateTotal);
+
 
   // ---------- Settings Panel Toggle ----------
   const settingsPanel = document.getElementById('settingsPanel');
@@ -1148,9 +1349,17 @@ function applyBodyState(state){
   const importFile = document.getElementById('importFile');
 
   exportBtn.onclick = () => {
+    // Save current settings before exporting
+    syncFromInputs(); 
+    
+    // Determine what to save
+    const isCustom = formatSelect.value === 'CUSTOM';
+    const settingsToSave = isCustom ? PRESETS.CUSTOM.settings : JSON.parse(localStorage.getItem('debateSettings')||'{}');
+    const speakersToSave = isCustom ? PRESETS.CUSTOM.base : baseSpeakers;
+
     const state = {
-      settings: JSON.parse(localStorage.getItem('debateSettings')||'{}'),
-      speakers: baseSpeakers,
+      settings: settingsToSave,
+      speakers: speakersToSave,
       activeIdx,
       theme: localStorage.getItem('debateTheme')||'light',
       preset: formatSelect.value
@@ -1171,29 +1380,58 @@ function applyBodyState(state){
       try{
         const obj = JSON.parse(reader.result);
         if(obj.settings) {
-          localStorage.setItem('debateSettings', JSON.stringify(obj.settings));
+          // localStorage.setItem('debateSettings', JSON.stringify(obj.settings)); // Don't save to general
           localStorage.setItem('customSettings', JSON.stringify(obj.settings)); // SAVE custom settings
           PRESETS.CUSTOM.settings = obj.settings; // Update runtime
         }
         if(obj.theme) setDark(obj.theme==='dark');
         
         if(obj.speakers){ 
-          baseSpeakers = obj.speakers; 
+          // baseSpeakers = obj.speakers; // This will be set by buildSequence
           localStorage.setItem('customSpeakers', JSON.stringify(obj.speakers)); // SAVE custom speakers
           PRESETS.CUSTOM.base = obj.speakers; // Update runtime preset
         }
-        if(typeof obj.activeIdx === 'number') activeIdx = obj.activeIdx;
-
+        
         formatSelect.value = 'CUSTOM'; // SET to custom
         
+        // Load the new custom settings into the inputs
+        const settings = PRESETS.CUSTOM.settings;
+        if (settings && settings.main) {
+          mainInput.value = settings.main;
+          firstInput.value = settings.first;
+          secondInput.value = settings.second;
+          yellowInput.value = settings.yellow;
+          redInput.value = settings.red;
+          graceInput.value = settings.grace;
+          prepInput.value = settings.prep;
+          cexInput.value = settings.cex;
+          rebInput.value = settings.reb;
+          spaceInput.value = settings.spacing;
+        }
+
+        if(typeof obj.activeIdx === 'number') activeIdx = obj.activeIdx;
+        else activeIdx = 0;
+        
         // Reload settings from newly set inputs
-        loadSettings();
+        // loadSettings(); // Don't load general, already loaded custom
         syncFromInputs();
         buildSequenceForPreset('CUSTOM'); // Rebuild with new roles
+        
+        // Ensure activeIdx is valid
+        if (activeIdx >= speakers.length) activeIdx = 0;
+        
         drawSpeakers(); 
         applyForSpeaker(); 
         updateMeta();
+        
+        // Update mini timers
+        miniPrep.updateTotal();
+        miniCex.updateTotal();
+        miniReb.updateTotal();
+        
       }catch(err){ console.warn('Import failed:', err); }
+      // Reset file input so same file can be loaded again
+      e.target.value = null;
     };
     reader.readText(file);
   };
@@ -1244,36 +1482,60 @@ function applyBodyState(state){
     // NEW: Load custom preset from localStorage
     try {
       const customSpeakers = JSON.parse(localStorage.getItem('customSpeakers'));
-      if (customSpeakers && customSpeakers.length > 0) {
+      if (customSpeakers && Array.isArray(customSpeakers) && customSpeakers.length > 0) {
         PRESETS.CUSTOM.base = customSpeakers;
       }
       const customSettings = JSON.parse(localStorage.getItem('customSettings'));
-      if (customSettings) {
+      if (customSettings && customSettings.main) {
         PRESETS.CUSTOM.settings = customSettings;
       }
     } catch(e) { console.warn('Could not load custom preset', e); }
     
-    formatSelect.value = 'SIMSON';
+    const savedPreset = localStorage.getItem('debatePreset') || 'SIMSON';
+    formatSelect.value = PRESETS[savedPreset] ? savedPreset : 'SIMSON';
     
     const savedLang = localStorage.getItem('debateLang') || 'en';
-    setLanguage(savedLang);
+    setLanguage(savedLang); // This also builds+draws speakers
     
-    // This will load default "SIMSON" settings
-    const preset = PRESETS[formatSelect.value];
-    if (preset.settings && preset.settings.main) {
-        mainInput.value = preset.settings.main;
-        firstInput.value = preset.settings.first;
-        secondInput.value = preset.settings.second;
-        yellowInput.value = preset.settings.yellow;
-        redInput.value = preset.settings.red;
-        graceInput.value = preset.settings.grace;
-        prepInput.value = preset.settings.prep;
-        cexInput.value = preset.settings.cex;
-        rebInput.value = preset.settings.reb;
-        spaceInput.value = preset.settings.spacing;
+    // This will load settings for the selected preset
+    const preset = PRESETS[formatSelect.value] || PRESETS.SIMSON;
+    let settingsToLoad = preset.settings;
+
+    // If custom is selected, try to load its settings, otherwise fallback
+    if (formatSelect.value === 'CUSTOM') {
+      settingsToLoad = PRESETS.CUSTOM.settings || PRESETS.SIMSON.settings;
+    }
+    
+    // If NOT custom, load general settings (user overrides)
+    if (formatSelect.value !== 'CUSTOM') {
+       try{ 
+         const s = JSON.parse(localStorage.getItem('debateSettings')||'null'); 
+         if(s && s.main) settingsToLoad = s; 
+       }catch(e){}
+    }
+    
+    if (settingsToLoad && settingsToLoad.main) {
+        mainInput.value = settingsToLoad.main;
+        firstInput.value = settingsToLoad.first;
+        secondInput.value = settingsToLoad.second;
+        yellowInput.value = settingsToLoad.yellow;
+        redInput.value = settingsToLoad.red;
+        graceInput.value = settingsToLoad.grace;
+        prepInput.value = settingsToLoad.prep;
+        cexInput.value = settingsToLoad.cex;
+        rebInput.value = settingsToLoad.reb;
+        spaceInput.value = settingsToLoad.spacing;
     }
     
     syncFromInputs();
+    
+    // Update mini timers with initial values
+    miniPrep.updateTotal();
+    miniCex.updateTotal();
+    miniReb.updateTotal();
+    
+    // Re-call applyForSpeaker to ensure correct timer mode (e.g. for PF/CX)
+    applyForSpeaker();
   }
   init();
 
@@ -1299,4 +1561,3 @@ function applyBodyState(state){
 </script>
 </body>
 </html>
-
