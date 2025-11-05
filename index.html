@@ -1141,7 +1141,23 @@ function applyBodyState(state){
   singleBtn.onclick=()=> ding({type:'single'});
   doubleBtn.onclick=()=>{ ding({type:'single'}); setTimeout(()=>ding({type:'single'}), spacing||100) };
   testContBtn.onclick=()=>{ stopContinuous(); document.body.classList.add('state-grace'); contBellInterval = setInterval(()=> ding({type:'single'}), 250); };
-  stopBellBtn.onclick=()=>{ stopContinuous(); document.body.classList.remove('state-grace'); };
+  stopBellBtn.onclick=()=>{
+    stopContinuous();
+    document.body.classList.remove('state-grace');
+    // NEW: Also stop and reset the grace timer
+    if (inGrace) {
+      inGrace = false;
+      mainRunning = false;
+      startBtn.classList.remove('running');
+      mainRemain = 0; // Set to 0 to show time is up
+      graceRemain = 0;
+      setStatus('idle');
+      updateMeta();
+      render();
+      syncOut();
+      releaseWakeLock(); // Release lock as timer has stopped
+    }
+  };
 
   // quick mini timers (prep/cex/reb)
   function makeMini(startBtn, resetBtn, clockEl, fillEl, getRemain, setRemain, getTotal){
@@ -1541,7 +1557,8 @@ function applyBodyState(state){
   init();
 
   // ---------- Presenter + Sync safety ----------
-  setInterval(()=>{ syncOut(); }, 800);
+  // BUGFIX: Removed redundant timer that caused flashing
+  // setInterval(()=>{ syncOut(); }, 800);
 
   // ---------- Self-tests (basic) ----------
   try{
