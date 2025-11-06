@@ -135,6 +135,25 @@
     font-size: 2vw; /* Make meta text responsive */
   }
   
+  /* --- NEW: Mirror Mode Styles --- */
+  body.mirror-mode .wrap {
+    padding: 24px; /* Keep some padding */
+  }
+  body.mirror-mode .container {
+    max-width: 100%; /* Allow main card to be centered */
+  }
+  /* Hide everything except the main timer card */
+  body.mirror-mode #mainAppRoot header,
+  body.mirror-mode #mainAppRoot .card:first-child, /* Speaker Progress card */
+  body.mirror-mode #quickTimersPanel,
+  body.mirror-mode #mainAppRoot .card:last-child { /* Settings card */
+    display: none;
+  }
+  /* Make main timer title clickable to exit */
+  body.mirror-mode #mainTitle {
+    cursor: pointer;
+  }
+  
 </style>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@700;900&display=swap" rel="stylesheet">
@@ -167,6 +186,8 @@
             <button id="helpBtn" class="btn" data-lang-key="help">Help</button>
             <button id="themeBtn" class="btn">Dark Mode</button>
             <button id="presenterBtn" class="btn" data-lang-key="presenterMode">Presenter Mode</button>
+            <!-- NEW Mirror Mode Button -->
+            <button id="mirrorBtn" class="btn" data-lang-key="mirrorMode">Mirror Mode</button>
             <button id="toggleQuickTimers" class="btn">Show Quick Timers</button>
             <button id="enableBtn" class="btn" data-lang-key="initSound">Initialize Sound</button>
             <button id="muteBtn" class="btn" title="Mute (M)">
@@ -307,9 +328,12 @@
         <li data-lang-key="quickStart2">Adjust times in <strong>Timer Settings</strong> if needed.</li>
         <li data-lang-key="quickStart3">Use <strong>Speaker Progress</strong> to pick who is speaking.</li>
         <li data-lang-key="quickStart4">Press <strong>Presenter Mode</strong> to open the projector view.</li>
+        <li data-lang-key="quickStart5">Or, use <strong>Mirror Mode</strong> to simplify this screen for mirroring.</li>
       </ol>
       <h3 data-lang-key="presenterHelpTitle">Presenter Mode</h3>
-      <p data-lang-key="presenterHelpDesc">Opens a clean, large timer-only display in a separate window. It mirrors start/pause/reset and bells in real time. Use your browser’s move-to-display / fullscreen options on the projector.</p>
+      <p data-lang-key="presenterHelpDesc">Opens a clean, large timer-only display in a separate window. It mirrors start/pause/reset and bells in real time. Use your browser’s move-to-display / fullscreen options on the projector. (Requires M-series iPad or Android DeX).</p>
+      <h3 data-lang-key="mirrorHelpTitle">Mirror Mode</h3>
+      <p data-lang-key="mirrorHelpDesc">Simplifies the main screen to show *only* the timer. This is for devices that can only mirror their display (like iPhones or older iPads). <strong>Click the speech title to exit Mirror Mode.</strong></p>
       <h3 data-lang-key="shortcutsTitle">Keyboard Shortcuts</h3>
       <ul>
         <li data-lang-key="scSpace"><strong>Space</strong> — Start/Pause main timer</li>
@@ -395,6 +419,7 @@ function applyBodyState(state){
       lightMode: 'Light Mode',
       darkMode: 'Dark Mode',
       presenterMode: 'Presenter Mode',
+      mirrorMode: 'Mirror Mode',
       showQuickTimers: 'Show Quick Timers',
       hideQuickTimers: 'Hide Quick Timers',
       initSound: 'Initialize Sound',
@@ -447,8 +472,11 @@ function applyBodyState(state){
       quickStart2: 'Adjust times in <strong>Timer Settings</strong> if needed.',
       quickStart3: 'Use <strong>Speaker Progress</strong> to pick who is speaking.',
       quickStart4: 'Press <strong>Presenter Mode</strong> to open the projector view.',
+      quickStart5: 'Or, use <strong>Mirror Mode</strong> to simplify this screen for mirroring.',
       presenterHelpTitle: 'Presenter Mode',
-      presenterHelpDesc: 'Opens a clean, large timer-only display in a separate window. It mirrors start/pause/reset and bells in real time. Use your browser’s move-to-display / fullscreen options on the projector.',
+      presenterHelpDesc: 'Opens a clean, large timer-only display in a separate window. It mirrors start/pause/reset and bells in real time. Use your browser’s move-to-display / fullscreen options on the projector. (Requires M-series iPad or Android DeX).',
+      mirrorHelpTitle: 'Mirror Mode',
+      mirrorHelpDesc: 'Simplifies the main screen to show *only* the timer. This is for devices that can only mirror their display (like iPhones or older iPads). <strong>Click the speech title to exit Mirror Mode.</strong>',
       shortcutsTitle: 'Keyboard Shortcuts',
       scSpace: '<strong>Space</strong> — Start/Pause main timer',
       scR: '<strong>R</strong> — Reset current timer',
@@ -483,6 +511,7 @@ function applyBodyState(state){
       lightMode: '라이트 모드',
       darkMode: '다크 모드',
       presenterMode: '발표자 모드',
+      mirrorMode: '미러 모드',
       showQuickTimers: '빠른 타이머 표시',
       hideQuickTimers: '빠른 타이머 숨기기',
       initSound: '소리 초기화',
@@ -535,8 +564,11 @@ function applyBodyState(state){
       quickStart2: '필요한 경우 <strong>타이머 설정</strong>에서 시간을 조정하세요.',
       quickStart3: '<strong>발표자 진행</strong>을 사용해 현재 발표자를 선택하세요.',
       quickStart4: '<strong>발표자 모드</strong>를 눌러 프로젝터용 창을 여세요.',
+      quickStart5: '또는, <strong>미러 모드</strong>를 사용해 화면을 단순화하세요.',
       presenterHelpTitle: '발표자 모드',
-      presenterHelpDesc: '별도 창에 크고 깔끔한 타이머 전용 디스플레이를 엽니다. 시작/일시정지/초기화 및 벨소리가 실시간으로 동기화됩니다. 프로젝터에서 브라우저의 전체화면 기능을 사용하세요.',
+      presenterHelpDesc: '별도 창에 크고 깔끔한 타이머 전용 디스플레이를 엽니다. 시작/일시정지/초기화 및 벨소리가 실시간으로 동기화됩니다. (M-시리즈 iPad 또는 Android DeX 필요).',
+      mirrorHelpTitle: '미러 모드',
+      mirrorHelpDesc: '메인 화면을 타이머만 표시하도록 단순화합니다. (iPhone 또는 구형 iPad처럼) 화면 미러링만 가능한 기기용입니다. <strong>미러 모드를 종료하려면 발표 제목을 클릭하세요.</strong>',
       shortcutsTitle: '키보드 단축키',
       scSpace: '<strong>Space</strong> — 시작/일시정지',
       scR: '<strong>R</strong> — 현재 타이머 초기화',
@@ -625,6 +657,16 @@ function applyBodyState(state){
       presenterWin = window.open(window.location.pathname+'?presenter=true', 'presenter', 'width=1000,height=700');
       if(presenterWin){ presenterWin.focus(); setTimeout(()=>syncOut(true),150); }
     }else{ presenterWin.focus(); }
+  };
+  
+  // ---------- NEW: Mirror Mode ----------
+  const mirrorBtn = $('#mirrorBtn');
+  mirrorBtn.onclick = () => {
+    document.body.classList.toggle('mirror-mode');
+  };
+  // Click title to exit mirror mode
+  $('#mainTitle').onclick = () => {
+    document.body.classList.remove('mirror-mode');
   };
 
   // ---------- Sync Function ----------
@@ -1560,7 +1602,7 @@ function applyBodyState(state){
   // ---------- Self-tests (basic) ----------
   try{
     console.assert(parseTime('0:30')===30000, 'parseTime 0:30 failed');
-    console.assert(parseTime('1:30')===90000, 'parseTime 1:30 failed');
+    console.assert(parseTime('1:30')===90000, 'parseTime 1:3g0 failed');
     // Additional tests
     console.assert(parseTime('20:00')===1200000, 'parseTime 20:00 failed');
     console.assert(PRESETS.SIMSON.settings.prep==='1:00', 'Simson prep should be 1:00');
