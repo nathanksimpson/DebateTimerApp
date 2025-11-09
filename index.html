@@ -40,6 +40,10 @@
   body.main-mode #mainAppRoot {
     display: block;
   }
+  /* Hide main app in presenter mode (explicit) */
+  body.presenter-mode #mainAppRoot {
+    display: none !important;
+  }
   /* Show presenter root when in presenter mode */
   body.presenter-mode #presenterRoot {
     display: flex; /* Use flex to center it */
@@ -1236,6 +1240,16 @@ function applyBodyState(state){
     else if(bad) bodyState = 'state-bad';
     else if(warn) bodyState = 'state-warn';
 
+    // Prepare speaker progress data for presenter mode
+    const lang = langSelect.value || 'en';
+    const roleKey = `role_${lang}`;
+    const speakerData = speakers.map((s, i) => ({
+      role: s[roleKey] || s.role_en || '',
+      side: s.side || 'neutral',
+      active: s.active !== false,
+      isActive: i === activeIdx
+    }));
+
     const payload={
       type:'state', 
       full, 
@@ -1243,7 +1257,9 @@ function applyBodyState(state){
       meta: metaText, 
       inGrace,
       state: bodyState,
-      theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+      theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+      speakers: speakerData,
+      activeIdx: activeIdx
     };
     channel.postMessage(payload);
   }
@@ -1404,6 +1420,10 @@ function applyBodyState(state){
       if(graceRemain >= grace && !contBellInterval){
         ding(); contBellInterval=setInterval(ding, (+spaceInput.value || 250));
       }
+      // Apply grace state animation during grace period
+      if(++tick % 2 === 1) {
+        applyBodyState('state-grace');
+      }
     }else{
       mainRemain -= delta;
       // Bell checks (only on odd ticks, ~10fps)
@@ -1434,6 +1454,8 @@ function applyBodyState(state){
     mainRemain = 0;
     inGrace = true;
     graceRemain = 0;
+    // Apply grace state animation immediately
+    applyBodyState('state-grace');
     // Play double bell
     ding();
     setTimeout(ding, (+spaceInput.value || 250));
