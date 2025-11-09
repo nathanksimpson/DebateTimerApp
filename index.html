@@ -1,8 +1,8 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!DOCTYPE html>
+<!-- saved from url=(0077)file:///Users/nathankellysimpson/Desktop/ChatGPT_Debate_Timer_Final_Base.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Debate Timer — SimsonTimer Final</title>
 <style>
   /* ---------- THEME ---------- */
@@ -21,6 +21,7 @@
   :root.dark{
     --bg:#1f2937; --fg:#f9fafb; --card:#111827; --bd:#374151;
     --track:#374151; --fill:#f9fafb; --muted:#9ca3af;
+    --warn-bg:#78350f; --warn-fg:#fbbf24; --bad-bg:#7f1d1d; --bad-fg:#fca5a5;
     --grace-fg: #f9fafb;
     /* NEW: Active/Inverted State Colors (Dark) */
     --btn-active-bg: #f9fafb;
@@ -67,19 +68,20 @@
   .label{display:flex;flex-direction:column;gap:6px}
   input.input, select.input, textarea.input{padding:10px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--fg)}
   .note{font-size:14px;color:var(--muted)}
-  .speaker-progress{display:flex;flex-wrap:wrap;gap:9px;padding:6px 4px}
-  .spk{font-size:13px;font-weight:800;padding:10px 10px;border-radius:10px;background:var(--card);border:2px solid var(--bd);cursor:grab;user-select:none;min-width:58px;text-align:center;display:flex;align-items:center;justify-content:center}
+  .speaker-progress{display:flex;flex-wrap:nowrap;gap:9px;padding:6px 4px}
+  .spk{font-size:13px;font-weight:800;padding:10px 10px;border-radius:10px;background:var(--card);border:2px solid var(--bd);cursor:grab;user-select:none;flex:1;min-width:0;text-align:center;display:flex;align-items:center;justify-content:center}
   .spk.inactive{opacity:.4;text-decoration:line-through}
-  .spk.active{box-shadow:0 0 0 3px rgba(0,0,0,0.06) inset}
-  .spk.prop{background:var(--prop-bg);border-color:var(--prop-border);color:var(--prop-fg)}
-  .spk.opp{background:var(--opp-bg);border-color:var(--opp-border);color:var(--opp-fg)}
-  .spk.prep{background:var(--prep-bg);border-color:var(--prep-border);color:var(--prep-fg)}
   
-  /* --- NEW: Active speaker inverted color --- */
-  .spk.active.prop { background: var(--prop-fg); color: var(--prop-bg); }
-  .spk.active.opp { background: var(--opp-fg); color: var(--opp-bg); }
-  .spk.active.prep { background: var(--prep-fg); color: var(--prep-bg); }
-  .spk.active.neutral { background: var(--fg); color: var(--bg); }
+  /* --- NEW: Inverted Active Speaker --- */
+  .spk.prop{background:var(--prop-bg);border-color:var(--prop-border);color:var(--prop-fg)}
+  .spk.prop.active { background: var(--prop-fg); color: var(--prop-bg); }
+  
+  .spk.opp{background:var(--opp-bg);border-color:var(--opp-border);color:var(--opp-fg)}
+  .spk.opp.active { background: var(--opp-fg); color: var(--opp-bg); }
+  
+  .spk.prep{background:var(--prep-bg);border-color:var(--prep-border);color:var(--prep-fg)}
+  .spk.prep.active { background: var(--prep-fg); color: var(--prep-bg); }
+  /* --- End Inverted Active Speaker --- */
   
   /* Modals */
   #helpModal, #confirmModal {position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
@@ -147,29 +149,126 @@
     stroke-linejoin: round;
   }
   /* Specific icons that *should* be filled */
-  .dark #themeBtn .icon-dark, /* Moon in dark mode */
-  #themeBtn .icon-light, /* Sun in light mode */
-  #muteBtn .icon-on, /* Mute On */
-  #muteBtn.muted .icon-off { /* Mute Off */
+  /* FIX: Swapped moon/sun */
+  .dark #themeBtn .icon-light, /* Sun in dark mode */
+  #themeBtn .icon-dark, /* Moon in light mode */
+  #muteBtn svg { /* Mute button icons */
     fill: currentColor;
     stroke: none;
   }
   
-  /* Theme button logic (Sun/Moon swap) */
+  /* Theme button logic */
   #themeBtn .icon-light { display: none; } /* Hide sun in light mode */
-  .dark #themeBtn .icon-dark { display: none; } /* Hide moon in dark mode */
   .dark #themeBtn .icon-light { display: inline-block; } /* Show sun in dark mode */
+  .dark #themeBtn .icon-dark { display: none; } /* Hide moon in dark mode */
   
-  /* Mute button logic */
-  #muteBtn .icon-off { display: none; }
-  #muteBtn.muted .icon-on { display: none; }
-  #muteBtn.muted .icon-off { display: inline-block; }
+  /* Mute button logic - standard icon switch, no color inversion */
+  #muteBtn .icon-muted { display: none; }
+  #muteBtn.muted .icon-unmuted { display: none; }
+  #muteBtn.muted .icon-muted { display: inline-block; }
+  /* Prevent active class from causing color inversion on mute button */
+  #muteBtn.active {
+    background: var(--card);
+    color: var(--fg);
+  }
   
-  /* Toggle Notes/Timers button logic (Slash icons) */
-  #toggleQuickTimers .icon-no-slash, #toggleNotesBtn .icon-no-slash { display: none; }
-  #toggleQuickTimers.open .icon-slash, #toggleNotesBtn.open .icon-slash { display: none; }
-  #toggleQuickTimers.open .icon-no-slash, #toggleNotesBtn.open .icon-no-slash { display: inline-block; }
+  /* NEW: Slash-through icons for toggles */
+  #toggleQuickTimers .icon-no-slash { display: none; }
+  #toggleQuickTimers.active .icon-slash { display: none; }
+  #toggleQuickTimers.active .icon-no-slash { display: inline-block; }
   
+  /* Notes icon states */
+  #toggleNotesBtn .icon-slash { display: none; }
+  #toggleNotesBtn .icon-empty { display: inline-block; }
+  /* Corner indicator hidden by default */
+  #toggleNotesBtn .corner-indicator {
+    display: none;
+  }
+  /* Hide note lines when there are no notes */
+  #toggleNotesBtn:not(.has-notes) .note-line {
+    display: none;
+  }
+  
+  /* When panel is OPEN, show icon with corner indicator */
+  #toggleNotesBtn:not(.panel-hidden) .icon-empty { display: none; }
+  #toggleNotesBtn:not(.panel-hidden) .icon-slash { 
+    display: inline-block !important;
+    visibility: visible !important;
+  }
+  
+  /* Closed and no notes: White BG, 50% Grey Note Icon */
+  #toggleNotesBtn.panel-hidden:not(.has-notes) svg {
+    stroke: #6b7280;
+    opacity: 1;
+  }
+  #toggleNotesBtn.panel-hidden:not(.has-notes) .corner-indicator {
+    display: none;
+  }
+  /* Dark mode: use lighter grey */
+  .dark #toggleNotesBtn.panel-hidden:not(.has-notes) svg {
+    stroke: #9ca3af;
+    opacity: 1;
+  }
+  
+  /* Open and no notes: Darkened BG, 50% Grey Note Icon with corner indicator */
+  #toggleNotesBtn:not(.panel-hidden):not(.has-notes) {
+    background: var(--bd) !important;
+  }
+  /* Use darker grey/black for visibility against grey background */
+  #toggleNotesBtn:not(.panel-hidden):not(.has-notes) svg {
+    stroke: #374151 !important;
+    opacity: 1 !important;
+  }
+  /* Corner indicator: dark in light mode */
+  #toggleNotesBtn:not(.panel-hidden):not(.has-notes) .corner-indicator {
+    fill: #1f2937 !important;
+    stroke: none !important;
+    display: block !important;
+  }
+  /* Dark mode: use lighter color for visibility against darker grey background */
+  .dark #toggleNotesBtn:not(.panel-hidden):not(.has-notes) svg {
+    stroke: #d1d5db !important;
+    opacity: 1 !important;
+  }
+  /* Corner indicator: light in dark mode */
+  .dark #toggleNotesBtn:not(.panel-hidden):not(.has-notes) .corner-indicator {
+    fill: #f3f4f6 !important;
+    stroke: none !important;
+    display: block !important;
+  }
+  
+  /* Closed and has notes: White BG with black note icon */
+  #toggleNotesBtn.panel-hidden.has-notes svg {
+    stroke: var(--fg);
+    opacity: 1;
+  }
+  #toggleNotesBtn.panel-hidden.has-notes .corner-indicator {
+    display: none;
+  }
+  
+  /* Open with notes: Darkened BG with black notes icon and corner indicator */
+  #toggleNotesBtn:not(.panel-hidden).has-notes {
+    background: var(--bd) !important;
+  }
+  #toggleNotesBtn:not(.panel-hidden).has-notes svg {
+    stroke: var(--fg);
+    opacity: 1;
+  }
+  /* Corner indicator: dark in light mode */
+  #toggleNotesBtn:not(.panel-hidden).has-notes .corner-indicator {
+    fill: #1f2937 !important;
+    stroke: none !important;
+    display: block !important;
+  }
+  /* Corner indicator: light in dark mode */
+  .dark #toggleNotesBtn:not(.panel-hidden).has-notes .corner-indicator {
+    fill: #f3f4f6 !important;
+    stroke: none !important;
+    display: block !important;
+  }
+  
+  /* Note: var(--fg) automatically inverts in dark mode (black->white), opacity stays consistent */
+
   /* Main Timer Button Logic */
   /* This holds the Start/Pause text */
   .btn-main-timer {
@@ -249,10 +348,6 @@
   body.mirror-mode #mainAppRoot .card:last-child { /* Settings card */
     display: none;
   }
-  /* Make main timer title clickable to exit */
-  body.mirror-mode #mainTitle {
-    cursor: pointer;
-  }
   
   /* --- Bigger Mirror Mode Timer --- */
   body.mirror-mode #mainCard { /* Target main card specifically */
@@ -260,6 +355,13 @@
     box-shadow: none;
     background: transparent;
     padding: 0;
+  }
+  body.mirror-mode #exitMirrorBtn {
+    display: block !important;
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 100;
   }
   body.mirror-mode #clock {
     font-size: 20vw; /* Make it huge like presenter mode */
@@ -269,10 +371,10 @@
   }
   
 </style>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@700;900&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+<link href="./Debate Timer — SimsonTimer Cursor Version_files/css2" rel="stylesheet">
 </head>
-<body>
+<body class="main-mode">
 
   <!-- 
     FIX: This root is for the main application. 
@@ -287,13 +389,13 @@
             <label class="label">
               <span style="font-weight:700" data-lang-key="debateStyle">Debate Style</span>
               <select id="formatSelect" class="input">
-                <option value="SIMSON">Simson</option>
                 <option value="AP">AP</option>
                 <option value="BP">BP</option>
                 <option value="WSDC">WSDC</option>
                 <option value="PF">PF</option>
                 <option value="CX">Policy / CX</option>
                 <option value="LD">Lincoln–Douglas</option>
+                <option value="SIMSON">Simson</option>
                 <option value="CUSTOM">Custom</option>
               </select>
             </label>
@@ -314,35 +416,72 @@
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
             </button>
             <button id="themeBtn" class="btn btn-icon" title="Toggle Dark Mode (D)">
-              <svg class="icon-light" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+              <!-- FIX: Swapped moon/sun -->
               <svg class="icon-dark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+              <svg class="icon-light" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                <circle cx="12" cy="12" r="4"></circle>
+                <polygon points="12,0 13,4 11,4"></polygon>
+                <polygon points="12,24 13,20 11,20"></polygon>
+                <polygon points="0,12 4,13 4,11"></polygon>
+                <polygon points="24,12 20,13 20,11"></polygon>
+                <polygon points="3.5,3.5 5.5,5.5 4.5,6.5 2.5,4.5"></polygon>
+                <polygon points="20.5,20.5 22.5,22.5 21.5,23.5 19.5,21.5"></polygon>
+                <polygon points="3.5,20.5 5.5,18.5 4.5,17.5 2.5,19.5"></polygon>
+                <polygon points="20.5,3.5 22.5,5.5 21.5,6.5 19.5,4.5"></polygon>
+              </svg>
             </button>
             <button id="presenterBtn" class="btn btn-icon" title="Presenter Mode (P)">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
             </button>
             <button id="mirrorBtn" class="btn btn-icon" title="Mirror Mode">
-              <!-- Mirror Icon -->
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-1M10 21h9a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1"></path></svg>
+              <!-- Mirror/Display Icon (OS-style: two overlapping displays) -->
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 100%; height: 100%;">
+                <g transform="translate(12, 12) scale(0.85) translate(-12, -12)">
+                  <rect x="1" y="2" width="11" height="9" rx="1" opacity="0.5"></rect>
+                  <rect x="11" y="5.5" width="11" height="9" rx="1"></rect>
+                  <line x1="3" y1="11" x2="3" y2="13"></line>
+                  <line x1="5" y1="11" x2="5" y2="13"></line>
+                  <line x1="13" y1="14.5" x2="13" y2="16.5"></line>
+                  <line x1="15" y1="14.5" x2="15" y2="16.5"></line>
+                  <line x1="17" y1="14.5" x2="17" y2="16.5"></line>
+                  <line x1="19" y1="14.5" x2="19" y2="16.5"></line>
+                </g>
+              </svg>
             </button>
-            <button id="toggleQuickTimers" class="btn btn-icon" title="Toggle Quick Timers">
-              <svg class="icon-slash" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 3v6h6"></path><path d="M3.4 13A9 9 0 1 0 3.4 5V3"></path><path d="M12 6v6l4 2"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-              <svg class="icon-no-slash" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 3v6h6"></path><path d="M3.4 13A9 9 0 1 0 3.4 5V3"></path><path d="M12 6v6l4 2"></path></svg>
+            <button id="toggleQuickTimers" class="btn btn-icon" title="Show Quick Timers">
+              <!-- NEW: Slash icon logic -->
+              <svg class="icon-slash" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 4v6h6"></path><path d="M3.4 14A9 9 0 1 0 3.4 6V4"></path><path d="M12 7v6l4 2"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+              <svg class="icon-no-slash" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 4v6h6"></path><path d="M3.4 14A9 9 0 1 0 3.4 6V4"></path><path d="M12 7v6l4 2"></path></svg>
             </button>
-            <button id="toggleNotesBtn" class="btn btn-icon" title="Toggle Speaker Notes">
-              <svg class="icon-slash" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-              <svg class="icon-no-slash" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            <button id="toggleNotesBtn" class="btn btn-icon panel-hidden has-notes" title="Show Speaker Notes">
+              <!-- Notes icon: outline version -->
+              <svg class="icon-empty" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line class="note-line" x1="16" y1="13" x2="8" y2="13"></line>
+                <line class="note-line" x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline class="note-line" points="10 9 9 9 8 9"></polyline>
+              </svg>
+              <svg class="icon-slash" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line class="note-line" x1="16" y1="13" x2="8" y2="13"></line>
+                <line class="note-line" x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline class="note-line" points="10 9 9 9 8 9"></polyline>
+                <!-- Corner indicator: dark in light mode, light in dark mode -->
+                <rect class="corner-indicator" x="18" y="2" width="4" height="4" rx="1"></rect>
+              </svg>
             </button>
-            <button id="enableBtn" class="btn" data-lang-key="initSound" style="padding: 10px 14px;">Initialize Sound</button>
             <button id="muteBtn" class="btn btn-icon" title="Mute (M)">
-              <svg class="icon-on" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-              <svg class="icon-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M23 9l-6 6"></path><path d="M17 9l6 6"></path></svg>
+              <svg class="icon-unmuted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+              <svg class="icon-muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M1 1l22 22" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"></path></svg>
             </button>
           </div>
         </header>
   
         <!-- Speaker Progress --><div class="card">
           <div style="font-weight:800;margin-bottom:8px" data-lang-key="spkProgress">Speaker Progress</div>
-          <div id="spkBar" class="speaker-progress"></div>
+          <div id="spkBar" class="speaker-progress"><div class="spk prep active" draggable="true" data-idx="0">Round Prep</div><div class="spk prop" draggable="true" data-idx="1">PM</div><div class="spk prep" draggable="true" data-idx="2">Prep</div><div class="spk opp" draggable="true" data-idx="3">LO</div><div class="spk prep" draggable="true" data-idx="4">Prep</div><div class="spk prop" draggable="true" data-idx="5">DPM</div><div class="spk prep" draggable="true" data-idx="6">Prep</div><div class="spk opp" draggable="true" data-idx="7">DLO</div><div class="spk prep" draggable="true" data-idx="8">Prep</div><div class="spk prop" draggable="true" data-idx="9">GW</div><div class="spk prep" draggable="true" data-idx="10">Prep</div><div class="spk opp" draggable="true" data-idx="11">OW</div><div class="spk prep" draggable="true" data-idx="12">Prep</div><div class="spk prop" draggable="true" data-idx="13">GR</div><div class="spk prep" draggable="true" data-idx="14">Prep</div><div class="spk opp" draggable="true" data-idx="15">OR</div></div>
           <div class="row" style="justify-content:space-between;margin-top:8px">
             <div class="row">
               <button id="prevBtn" class="btn" data-lang-key="prev">Previous</button>
@@ -354,9 +493,15 @@
         </div>
   
         <!-- Main Timer Card --><div class="card" id="mainCard">
-          <div class="row" style="justify-content:space-between"><div id="mainTitle" style="font-weight:800">Substantive Speech</div><div id="meta" class="muted"></div></div>
-          <div id="clock" class="clock">7:00</div>
-          <div id="mainProgress" class="progress"><div id="fill" class="fill"></div></div>
+          <div class="row" style="justify-content:space-between"><div id="mainTitle" style="font-weight:800">Round Prep</div><div id="meta" class="muted">Prep</div></div>
+          <button id="exitMirrorBtn" class="btn btn-icon" style="display:none;position:fixed;top:24px;right:24px;z-index:100" title="Exit Mirror Mode">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          <div id="clock" class="clock">20:00</div>
+          <div id="mainProgress" class="progress"><div id="fill" class="fill" style="transform: scaleX(0);"></div></div>
           <div class="row" style="justify-content:center;margin-top:10px">
             <button id="startBtn" class="btn btn-main-timer" title="Start/Pause (Space)">
               <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6 4l12 8-12 8V4z"></path></svg>
@@ -379,84 +524,88 @@
               <span class="label-text" data-lang-key="double">Double</span>
             </button>
             <button id="testContBtn" class="btn btn-main-timer" title="Start continuous bell test">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 21px; height: 21px;">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                 <path d="M1 4v6h6"></path>
                 <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
               </svg>
-              <svg xmlns="http://www.w3.org/2D/svg" viewBox="0 0 24 24" style="width: 19px; height: 19px; margin-left: -6px; margin-top: -2px;">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 19px; height: 19px; margin-left: -6px; margin-top: -2px;">
                 <path d="M10 10C6 10 6 14 10 14c4 0 4-4 8-4 4 0 4 4 0 4s-4-4-8-4z"></path>
               </svg>
-              <span class="label-text" data-lang-key="cont">Cont.</span>
+              <span class="label-text" data-lang-key="continuous">Continuous</span>
             </button>
             <button id="stopBellBtn" class="btn btn-main-timer" title="Stop continuous bell">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.73 21a2 2 0 0 1-3.46 0"></path><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="m1 1 22 22"></path></svg>
-              <span class="label-text" data-lang-key="stop">Stop</span>
+              <span class="label-text" data-lang-key="stopBell">Stop Bell</span>
             </button>
           </div>
-          <div class="note"><strong data-lang-key="status">Status:</strong> <span id="status">idle</span></div>
+          <div class="note"><strong data-lang-key="status">Status:</strong> <span id="status">Successfully purged 2 custom format(s)</span></div>
         </div>
         
         <!-- NEW Notes Card (Hideable) -->
-        <div id="notesPanel" class="card">
-          <div class="row" style="justify-content:space-between; margin-bottom: 12px;">
-            <div style="font-weight:800;margin-bottom:8px" data-lang-key="speakerNotes">Speaker Notes</div>
-            <div class="row">
-              <button id="exportNotesBtn" class="btn" data-lang-key="exportNotes">Export Notes</button>
-              <button id="importNotesBtn" class="btn" data-lang-key="importNotes">Import Notes</button>
-              <button id="clearNotesBtn" class="btn" data-lang-key="clearAllNotes">Clear All Notes</button>
-              <input id="importNotesFile" type="file" accept="application/json,text/plain" style="display:none">
+        <div id="notesPanel" class="card" style="max-height: 0px; padding-top: 0px; padding-bottom: 0px; border-width: 0px;">
+          <div class="row" style="justify-content:space-between; align-items:flex-start; margin-bottom:12px">
+            <div style="font-weight:800" data-lang-key="speakerNotes">Speaker Notes</div>
+            <div class="row" style="gap:8px">
+              <button id="exportNotesBtn" class="btn" style="padding:6px 10px;font-size:14px" data-lang-key="exportNotes">Export Notes</button>
+              <button id="importNotesBtn" class="btn" style="padding:6px 10px;font-size:14px" data-lang-key="importNotes">Import Notes</button>
+              <button id="clearNotesBtn" class="btn" style="padding:6px 10px;font-size:14px" data-lang-key="clearAllNotes">Clear All Notes</button>
             </div>
           </div>
-          <textarea id="notesArea" class="input" style="width:100%;min-height:110px;font:inherit" data-lang-key="notesPlaceholder"></textarea>
+          <textarea id="notesArea" class="input" style="width:100%;min-height:110px;font:inherit" data-lang-key="notesPlaceholder" placeholder="" disabled="">Type notes for the current speaker...</textarea>
+          <input id="importNotesFile" type="file" accept="application/json" style="display:none">
         </div>
   
-        <!-- Quick Timers --><div id="quickTimersPanel" class="grid grid-4">
+        <!-- Quick Timers --><div id="quickTimersPanel" class="grid grid-4" style="max-height: 0px;">
           <div class="card">
             <div style="font-weight:800;margin-bottom:6px" data-lang-key="crossEx">Cross-Ex / Shared</div>
-            <div id="cexClock" class="clock" style="font-size:32px">01:00</div>
-            <div class="progress" style="margin-top:8px"><div id="cexFill" class="fill"></div></div>
+            <div id="cexClock" class="clock" style="font-size:32px">1:00</div>
+            <div class="progress" style="margin-top:8px"><div id="cexFill" class="fill" style="transform: scaleX(0);"></div></div>
             <div class="row" style="justify-content:center;margin-top:8px"><button id="cexStart" class="btn" data-lang-key="start">Start</button><button id="cexReset" class="btn" data-lang-key="reset">Reset</button></div>
           </div>
           <div class="card">
             <div style="font-weight:800;margin-bottom:6px" data-lang-key="rebuttal">Rebuttal / Reply</div>
-            <div id="rebClock" class="clock" style="font-size:32px">04:00</div>
-            <div class="progress" style="margin-top:8px"><div id="rebFill" class="fill"></div></div>
+            <div id="rebClock" class="clock" style="font-size:32px">3:00</div>
+            <div class="progress" style="margin-top:8px"><div id="rebFill" class="fill" style="transform: scaleX(0);"></div></div>
             <div class="row" style="justify-content:center;margin-top:8px"><button id="rebStart" class="btn" data-lang-key="start">Start</button><button id="rebReset" class="btn" data-lang-key="reset">Reset</button></div>
           </div>
           <div class="card">
             <div style="font-weight:800;margin-bottom:6px" data-lang-key="prep">Prep</div>
-            <div id="prepClock" class="clock" style="font-size:32px">01:00</div>
-            <div class="progress" style="margin-top:8px"><div id="prepFill" class="fill"></div></div>
+            <div id="prepClock" class="clock" style="font-size:32px">1:00</div>
+            <div class="progress" style="margin-top:8px"><div id="prepFill" class="fill" style="transform: scaleX(0);"></div></div>
             <div class="row" style="justify-content:center;margin-top:8px"><button id="prepStart" class="btn" data-lang-key="start">Start</button><button id="prepReset" class="btn" data-lang-key="reset">Reset</button></div>
           </div>
           <div class="card">
             <div style="font-weight:800;margin-bottom:6px" data-lang-key="poi">POI</div>
-            <div id="poiClock" class="clock" style="font-size:32px">00:15</div>
-            <div class="progress" style="margin-top:8px"><div id="poiFill" class="fill"></div></div>
+            <div id="poiClock" class="clock" style="font-size:32px">0:15</div>
+            <div class="progress" style="margin-top:8px"><div id="poiFill" class="fill" style="transform: scaleX(0);"></div></div>
             <div class="row" style="justify-content:center;margin-top:8px"><button id="poiStart" class="btn" data-lang-key="start">Start</button><button id="poiReset" class="btn" data-lang-key="reset">Reset</button></div>
           </div>
         </div>
   
         <!-- Settings (hideable) --><div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-weight:800;" data-lang-key="settingsTitle">Timer Settings</span><button id="toggleSettings" class="btn" style="padding:6px 10px;font-size:14px">Hide</button></div>
-          <div id="settingsPanel">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-weight:800;" data-lang-key="settingsTitle">Timer Settings</span><button id="toggleSettings" class="btn" style="padding:6px 10px;font-size:14px" data-lang-key="hide">Show</button></div>
+          <div id="settingsPanel" style="max-height: 0px;">
             <div class="grid grid-4">
-              <label class="label"><span data-lang-key="mainTime">Main (m:ss)</span><input id="mainInput" class="input" value="3:00"/></label>
-              <label class="label"><span data-lang-key="firstBell">1st Bell from start (m:ss)</span><input id="firstInput" class="input" value="1:00"/></label>
-              <label class="label"><span data-lang-key="secondBell">2nd Bell from start (m:ss)</span><input id="secondInput" class="input" value="2:00"/></label>
-              <label class="label"><span data-lang-key="yellowAt">Yellow at remaining (m:ss)</span><input id="yellowInput" class="input" value="1:00"/></label>
-              <label class="label"><span data-lang-key="redAt">Red at remaining (m:ss)</span><input id="redInput" class="input" value="0:30"/></label>
-              <label class="label"><span data-lang-key="gracePeriod">Grace Period (m:ss)</span><input id="graceInput" class="input" value="0:30"/></label>
-              <label class="label"><span data-lang-key="prepTime">Prep Time (m:ss)</span><input id="prepInput" class="input" value="1:00"/></label>
-              <label class="label"><span data-lang-key="crossExTime">Cross-Ex (m:ss)</span><input id="cexInput" class="input" value="1:00"/></label>
-              <label class="label"><span data-lang-key="rebuttalTime">Rebuttal (m:ss)</span><input id="rebInput" class="input" value="3:00"/></label>
-              <label class="label"><span data-lang-key="poiTime">POI Time (m:ss)</span><input id="poiInput" class="input" value="0:15"/></label>
-              <label class="label"><span data-lang-key="bellSpacing">Bell spacing (ms)</span><input id="spaceInput" class="input" value="250"/></label>
+              <label class="label"><span data-lang-key="mainTime">Main (m:ss)</span><input id="mainInput" class="input" value="3:00"></label>
+              <label class="label"><span data-lang-key="firstBell">1st Bell from start (m:ss)</span><input id="firstInput" class="input" value="1:00"></label>
+              <label class="label"><span data-lang-key="secondBell">2nd Bell from start (m:ss)</span><input id="secondInput" class="input" value="2:00"></label>
+              <label class="label"><span data-lang-key="gracePeriod">Grace Period (m:ss)</span><input id="graceInput" class="input" value="0:30"></label>
+              <label class="label"><span data-lang-key="yellowAt">Yellow at remaining (m:ss)</span><input id="yellowInput" class="input" value="1:00"></label>
+              <label class="label"><span data-lang-key="redAt">Red at remaining (m:ss)</span><input id="redInput" class="input" value="0:30"></label>
+              <label class="label"><span data-lang-key="prepTime">Prep Time (m:ss)</span><input id="prepInput" class="input" value="1:00"></label>
+              <label class="label"><span data-lang-key="crossExTime">Cross-Ex (m:ss)</span><input id="cexInput" class="input" value="1:00"></label>
+              <label class="label"><span data-lang-key="rebuttalTime">Rebuttal (m:ss)</span><input id="rebInput" class="input" value="3:00"></label>
+              <label class="label"><span data-lang-key="poiTime">POI Time (m:ss)</span><input id="poiInput" class="input" value="0:15"></label>
+              <label class="label"><span data-lang-key="bellSpacing">Bell spacing (ms)</span><input id="spaceInput" class="input" value="250"></label>
             </div>
             <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
               <button id="exportBtn" class="btn" data-lang-key="exportSettings">Export Settings</button>
               <button id="importBtn" class="btn" data-lang-key="importSettings">Import Settings</button>
+              <button id="purgeCustomFormatsBtn" class="btn" style="background: #dc2626; color: white;">Purge Custom Formats</button>
               <input id="importFile" type="file" accept="application/json" style="display:none">
+            </div>
+            <div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">
+              <button id="enableBtn" class="btn" data-lang-key="initSound" style="padding: 8px 12px; font-size: 0.85em; opacity: 0.7;">Initialize Sound</button>
             </div>
           </div>
         </div>
@@ -479,55 +628,64 @@
   <!-- Help Modal (lives outside main app root) --><div id="helpModal">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-        <h2 style="margin:0" data-lang-key="helpTitle">Help</h2>
-        <button id="closeHelp" class="btn" data-lang-key="close">Close</button>
+        <h2 style="margin:0" data-lang-key="helpTitle">Help &amp; Features</h2>
+        <button id="closeHelp" class="btn btn-icon" title="Close" style="padding: 8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px;">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
-      <hr style="border:0;border-top:1px solid var(--bd);margin:12px 0"/>
-      <h3 data-lang-key="quickStart">Quick Start</h3>
-      <ol>
-        <li data-lang-key="quickStart1"><strong><u>Click <strong>Initialize Sound</strong> once.</u></strong> (Mobile browsers require a gesture to enable audio).</li>
-        <li data-lang-key="quickStart2">Select your <strong>Debate Style</strong> from the dropdown.</li>
-        <li data-lang-key="quickStart3">Use <strong>Speaker Progress</strong> to pick who is speaking.</li>
-        <li data-lang-key="quickStart4">Press <strong>Start</strong> (or Spacebar) to begin.</li>
-        <li data-lang-key="quickStart5">Use <strong>Presenter Mode</strong> or <strong>Mirror Mode</strong> for your audience.</li>
-      </ol>
+      <hr style="border:0;border-top:1px solid var(--bd);margin:12px 0">
       
-      <h3 data-lang-key="headerIcons">Header Icons</h3>
+      <h3 data-lang-key="helpHeaderButtons">Header Buttons</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li data-lang-key="helpInitSound" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><strong>Sound:</strong> Audio initializes automatically on any interaction (click, touch, or key press). If sound doesn't work, use the failsafe button in Settings panel.</li>
+        <li data-lang-key="helpDebateStyle" style="margin-bottom: 8px;"><strong>Debate Style:</strong> Select your format (AP, BP, etc.). This loads all speakers and default times.</li>
+        <li data-lang-key="helpVolume" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><strong>Volume:</strong> Controls the bell sound level.</li>
+        <li data-lang-key="helpLang" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><strong>Lang:</strong> Switches between English and Korean.</li>
+        <li data-lang-key="helpHelp" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><strong>Help:</strong> Opens this help window. (Shortcut: H)</li>
+        <li data-lang-key="helpTheme" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><strong>Theme:</strong> Toggles Dark/Light mode. (Shortcut: D)</li>
+        <li data-lang-key="helpPresenter" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><strong>Presenter:</strong> Opens a large, clean timer in a new window for an external display. (Shortcut: P)</li>
+        <li data-lang-key="helpMirror" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><strong>Mirror:</strong> Hides all controls on the main screen. Use this when *mirroring* your device to a display. <strong>Click the X button to exit.</strong></li>
+        <li data-lang-key="helpQuickTimers" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><strong>Quick Timers:</strong> Shows/hides the extra timers (Cross-Ex, Prep, etc.). Icon has a slash when hidden.</li>
+        <li data-lang-key="helpNotes" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><strong>Notes:</strong> Shows/hides the speaker notes panel. Icon has a slash when hidden. Lights up if the current speaker has notes.</li>
+        <li data-lang-key="helpMute" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><strong>Mute:</strong> Toggles all bell sounds on/off. (Shortcut: M)</li>
+      </ul>
+
+      <h3 data-lang-key="helpSpeakerProgress">Speaker Progress</h3>
       <ul>
-        <li data-lang-key="helpIcon"><strong>Help (H):</strong> Shows this help window.</li>
-        <li data-lang-key="themeIcon"><strong>Theme (D):</strong> Toggles between Light and Dark mode.</li>
-        <li data-lang-key="presenterIcon"><strong>Presenter (P):</strong> Opens a clean, large timer-only display in a separate window. It mirrors all timer activity in real time. (Requires M-series iPad or Android DeX to extend display).</li>
-        <li data-lang-key="mirrorIcon"><strong>Mirror Mode:</strong> Simplifies the main screen to show *only* the giant timer. This is for devices that can only mirror their display (like iPhones or older iPads). <strong>Click the speech title to exit Mirror Mode.</strong></li>
-        <li data-lang-key="timersIcon"><strong>Quick Timers:</strong> Toggles the visibility of the four mini-timers (Cross-Ex, Rebuttal, Prep, POI). Icon shows a slash when hidden.</li>
-        <li data-lang-key="notesIcon"><strong>Speaker Notes:</strong> Toggles the notes panel. Icon shows a slash when hidden. The button will invert its color (be "active") if the *current* speaker has notes.</li>
-        <li data-lang-key="muteIcon"><strong>Mute (M):</strong> Toggles all bell sounds on or off.</li>
+        <li data-lang-key="helpSpkClick"><strong>Click:</strong> Selects a speaker without changing the order.</li>
+        <li data-lang-key="helpSpkDoubleClick"><strong>Double-click:</strong> Toggles a speaker active/inactive (greys them out and skips them).</li>
+        <li data-lang-key="helpSpkDrag"><strong>Drag &amp; Drop:</strong> Re-order the entire speaker flow.</li>
+        <li data-lang-key="helpSpkNextPrev"><strong>Next/Previous:</strong> Moves to the next/previous speaker. (Shortcut: → / ←)</li>
+      </ul>
+
+      <h3 data-lang-key="helpMainTimer">Main Timer Controls</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li data-lang-key="helpMainStart" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><strong>Start/Pause (Play/Pause):</strong> Toggles the main timer. (Shortcut: Space)</li>
+        <li data-lang-key="helpMainReset" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><strong>Reset (Circular Arrow):</strong> Resets the current timer. (Shortcut: R)</li>
+        <li data-lang-key="helpMainScrub" style="margin-bottom: 8px;"><strong>Progress Bar:</strong> Click or drag on the progress bar to "scrub" the timer to any point.</li>
+        <li data-lang-key="helpMainBells" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><strong>Bell Icons (1, 2, Loop, Mute):</strong> Play bells manually or stop a continuous bell. (Shortcut: 1, 2)</li>
       </ul>
       
-      <h3 data-lang-key="mainTimerTitle">Main Timer Controls</h3>
+      <h3 data-lang-key="helpTimerLogic">Timer Logic</h3>
       <ul>
-        <li data-lang-key="startPauseIcon"><strong>Start/Pause (Space):</strong> Toggles the main timer.</li>
-        <li data-lang-key="resetIcon"><strong>Reset (R):</strong> Resets the current timer to its starting time.</li>
-        <li data-lang-key="singleIcon"><strong>Single (1):</strong> Plays a single bell.</li>
-        <li data-lang-key="doubleIcon"><strong>Double (2):</strong> Plays two bells, spaced by the "Bell Spacing" setting.</li>
-        <li data-lang-key="contIcon"><strong>Cont.:</strong> Tests the continuous bell.</li>
-        <li data-lang-key="stopIcon"><strong>Stop Bell:</strong> Stops the continuous bell *and* immediately ends any grace period.</li>
+        <li data-lang-key="helpTimerLogicSub"><strong>Substantive Speeches:</strong> Use Main, 1st Bell, 2nd Bell, Yellow/Red, and Grace times.</li>
+        <li data-lang-key="helpTimerLogicBells">Bells ring at 1st Bell, 2nd Bell, and a double-bell rings at the end (0:00).</li>
+        <li data-lang-key="helpTimerLogicGrace">After 0:00, the <strong>Grace Period</strong> counts up, and the screen flashes.</li>
+        <li data-lang-key="helpTimerLogicCont">After the grace period, a <strong>continuous bell</strong> rings until you press "Stop Bell" or "Reset".</li>
+        <li data-lang-key="helpTimerLogicReply"><strong>Reply Speeches:</strong> Use the "Rebuttal" time and end with a double-bell.</li>
       </ul>
-      
-      <h3 data-lang-key="timerLogicTitle">Timer Logic</h3>
+
+      <h3 data-lang-key="helpNotesData">Notes &amp; Data</h3>
       <ul>
-        <li data-lang-key="timerLogic1"><strong>Substantive:</strong> Uses "Main Time". Plays a single bell at "1st Bell" and "2nd Bell" times.</li>
-        <li data-lang-key="timerLogic2"><strong>Reply/Rebuttal:</strong> Uses "Rebuttal Time". Plays a double bell at the end (no grace period).</li>
-        <li data-lang-key="timerLogic3"><strong>Grace Period:</strong> When a "Substantive" speech hits 0:00, it plays a double bell and starts counting *up* for the "Grace Period" time.</li>
-        <li data-lang-key="timerLogic4"><strong>Continuous Bell:</strong> If the grace period ends, a continuous bell will ring until "Stop Bell" is pressed.</li>
-      </ul>
-      
-      <h3 data-Jlang-key="notesDataTitle">Notes & Data</h3>
-      <ul>
-        <li data-lang-key="notesData1">Notes are saved per-speaker, per-format (e.g., "AP - Prime Minister").</li>
-        <li data-lang-key="notesData2">`<strong>Export Notes:</strong> Saves a ".txt" file of all your notes, organized by format and speaker.</li>
-        <li data-lang-key="notesData3"><strong>Import Notes:</strong> Imports notes from a ".json" or ".txt" file and merges them with your current notes.</li>
-        <li data-lang-key="notesData4"><strong>Clear All Notes:</strong> Deletes all notes from the app. This cannot be undone.</li>
-        <li data-lang-key="notesData5"><strong>Export Settings:</strong> Saves a ".json" file of all your *timer settings* (for all formats) and your *custom speaker list*. This does NOT include notes.</li>
+        <li data-lang-key="helpNotesPerSpeaker">Notes are saved per-speaker, per-format (e.g., "AP - Prime Minister").</li>
+        <li data-lang-key="helpNotesExportTxt"><strong>Export Notes:</strong> Saves a ".txt" file of all your notes, organized by format.</li>
+        <li data-lang-key="helpNotesImport"><strong>Import Notes:</strong> Merges notes from a `.json` file.</li>
+        <li data-lang-key="helpNotesClear"><strong>Clear All Notes:</strong> Deletes all saved notes (with confirmation).</li>
+        <li data-lang-key="helpSettingsExport"><strong>Export Settings:</strong> Saves your "Custom" preset and all timer settings to a `.json` file.</li>
+        <li data-lang-key="helpSettingsImport"><strong>Import Settings:</strong> Loads a `.json` file as your new "Custom" preset.</li>
       </ul>
     </div>
   </div>
@@ -537,9 +695,9 @@
     <div class="card">
       <h3 id="confirmTitle" style="margin-top:0">Are you sure?</h3>
       <p id="confirmText">This action cannot be undone.</p>
-      <div class="row" style="justify-content:flex-end; margin-top: 20px;">
-        <button id="confirmCancel" class="btn">Cancel</button>
-        <button id="confirmOK" class="btn" style="background:var(--bad-bg);color:var(--bad-fg);">OK</button>
+      <div class="row" style="justify-content:flex-end; gap: 12px;">
+        <button id="confirmCancel" class="btn" data-lang-key="cancel">Cancel</button>
+        <button id="confirmOK" class="btn" style="background:var(--bad-bg);color:var(--bad-fg);border-color:var(--bad-fg)" data-lang-key="ok">OK</button>
       </div>
     </div>
   </div>
@@ -583,6 +741,7 @@ function applyBodyState(state){
         if(pm) pm.textContent = m.meta||'';
         
         // Apply grace pulse
+        // Note: 'presenter-grace' class is applied to the BODY
         document.body.classList.toggle('presenter-grace', m.inGrace);
 
         // Apply visual state (using global function)
@@ -591,6 +750,97 @@ function applyBodyState(state){
     };
     return; // STOP script execution for presenter window
   }
+  
+  // ---------- DOM Elements: Header ----------
+  const formatSelect = $('#formatSelect');
+  const volume = $('#volume');
+  const langSelect = $('#langSelect');
+  const helpBtn = $('#helpBtn');
+  const themeBtn = $('#themeBtn');
+  const presenterBtn = $('#presenterBtn');
+  const mirrorBtn = $('#mirrorBtn');
+  const toggleQuickTimers = $('#toggleQuickTimers');
+  const toggleNotesBtn = $('#toggleNotesBtn');
+  const enableBtn = $('#enableBtn');
+  const muteBtn = $('#muteBtn');
+  
+  // ---------- DOM Elements: Speaker Progress ----------
+  const spkBar = $('#spkBar');
+  const prevBtn = $('#prevBtn');
+  const nextBtn = $('#nextBtn');
+  const resetOrder = $('#resetOrder');
+  
+  // ---------- DOM Elements: Main Timer ----------
+  const mainCard = $('#mainCard');
+  const mainTitle = $('#mainTitle');
+  const metaEl = $('#meta');
+  const clock = $('#clock');
+  const mainProgress = $('#mainProgress');
+  const fill = $('#fill');
+  const startBtn = $('#startBtn');
+  const resetBtn = $('#resetBtn');
+  const singleBtn = $('#singleBtn');
+  const doubleBtn = $('#doubleBtn');
+  const testContBtn = $('#testContBtn');
+  const stopBellBtn = $('#stopBellBtn');
+  const status = $('#status');
+  const exitMirrorBtn = $('#exitMirrorBtn');
+  let isScrubbing = false;
+
+  // FIX: Define the setStatus function
+  function setStatus(msg) {
+    if (status) {
+      status.textContent = msg;
+    }
+  }
+
+  // ---------- DOM Elements: Notes Panel ----------
+  const notesPanel = $('#notesPanel');
+  const notesArea = $('#notesArea');
+  const exportNotesBtn = $('#exportNotesBtn');
+  const importNotesBtn = $('#importNotesBtn');
+  const clearNotesBtn = $('#clearNotesBtn');
+  const importNotesFile = $('#importNotesFile');
+  
+  // ---------- DOM Elements: Quick Timers ----------
+  const quickTimersPanel = $('#quickTimersPanel');
+  const cexClock = $('#cexClock'), cexFill = $('#cexFill'), cexStart = $('#cexStart'), cexReset = $('#cexReset');
+  const rebClock = $('#rebClock'), rebFill = $('#rebFill'), rebStart = $('#rebStart'), rebReset = $('#rebReset');
+  const prepClock = $('#prepClock'), prepFill = $('#prepFill'), prepStart = $('#prepStart'), prepReset = $('#prepReset');
+  const poiClock = $('#poiClock'), poiFill = $('#poiFill'), poiStart = $('#poiStart'), poiReset = $('#poiReset');
+
+  // ---------- DOM Elements: Settings Panel ----------
+  const settingsPanel = $('#settingsPanel');
+  const toggleSettings = $('#toggleSettings');
+  const mainInput = $('#mainInput'), firstInput = $('#firstInput'), secondInput = $('#secondInput');
+  const yellowInput = $('#yellowInput'), redInput = $('#redInput'), graceInput = $('#graceInput');
+  const prepInput = $('#prepInput'), cexInput = $('#cexInput'), rebInput = $('#rebInput'), poiInput = $('#poiInput');
+  const spaceInput = $('#spaceInput');
+  const exportBtn = $('#exportBtn'), importBtn = $('#importBtn'), importFile = $('#importFile');
+  const purgeCustomFormatsBtn = $('#purgeCustomFormatsBtn');
+  
+  // ---------- DOM Elements: Modals ----------
+  const helpModal = $('#helpModal');
+  const closeHelp = $('#closeHelp');
+  const confirmModal = $('#confirmModal');
+  const confirmTitle = $('#confirmTitle');
+  const confirmText = $('#confirmText');
+  const confirmCancel = $('#confirmCancel');
+  const confirmOK = $('#confirmOK');
+  
+  // ---------- Audio ----------
+  let audioCtx=null, unlocked=false, masterGain=null, muted=false; let contBellInterval=null;
+
+  // ---------- Runtime state ----------
+  let speakers = [];       // full sequence including prep tokens
+  let activeIdx = 0;       // index into speakers array
+  let mainRemain = 0, mainTotal = 0, firstBell = 0, secondBell = 0;
+  let yellow = 0, red = 0, grace = 0, graceRemain = 0;
+  let mainRunning = false, inGrace = false, mode = 'main';
+  let lastFrame = 0, tick=0;
+  let currentFormat = 'SIMSON';
+  let allNotes = {}; // Separate from settings
+  let mainLoopId = null; // Track animation frame for cleanup
 
   // ---------- Utilities ----------
   const $$ = (s,o=document)=>Array.from(o.querySelectorAll(s));
@@ -600,170 +850,297 @@ function applyBodyState(state){
   // ---------- Translations ----------
   const translations = {
     en: {
-      debateTimerTitle: 'Debate Timer', debateStyle: 'Debate Style', help: 'Help', lightMode: 'Light Mode', darkMode: 'Dark Mode',
-      presenterMode: 'Presenter Mode', mirrorMode: 'Mirror Mode', showQuickTimers: 'Show Quick Timers', hideQuickTimers: 'Hide Quick Timers',
-      showNotes: 'Show Notes', hideNotes: 'Hide Notes', initSound: 'Initialize Sound', volume: 'Volume', lang: 'Lang',
+      // Header
+      debateTimerTitle: 'Debate Timer', debateStyle: 'Debate Style', help: 'Help',
+      lightMode: 'Light Mode', darkMode: 'Dark Mode',
+      presenterMode: 'Presenter Mode', mirrorMode: 'Mirror Mode',
+      showQuickTimers: 'Show Quick Timers', hideQuickTimers: 'Hide Quick Timers',
+      showNotes: 'Show Notes', hideNotes: 'Hide Notes',
+      initSound: 'Initialize Sound', volume: 'Volume', lang: 'Lang',
+      // Speaker Progress
       spkProgress: 'Speaker Progress', prev: 'Previous', next: 'Next', resetOrder: 'Reset Order',
       spkNote: 'Click = select • Double-click = toggle active • Drag = reorder',
-      substantive: 'Substantive Speech', replyRebuttal: 'Reply/Rebuttal', grace: 'Grace', status: 'Status:',
-      statusIdle: 'idle', statusRunning: 'running', statusPaused: 'paused', statusSoundReady: 'Sound ready.',
-      statusSoundFail: 'Sound failed. Please refresh.', start: 'Start', pause: 'Pause', reset: 'Reset',
-      single: 'Single', double: 'Double', cont: 'Cont.', stop: 'Stop',
+      // Main Timer
+      substantive: 'Substantive Speech', replyRebuttal: 'Reply/Rebuttal', grace: 'Grace',
+      status: 'Status:', statusIdle: 'idle', statusRunning: 'running', statusPaused: 'paused',
+      statusSoundReady: 'Sound ready.', statusSoundFail: 'Sound failed. Please refresh.',
+      start: 'Start', pause: 'Pause', reset: 'Reset', single: 'Single', double: 'Double',
+      continuous: 'Continuous', stopBell: 'Stop Bell',
+      // Notes
       speakerNotes: 'Speaker Notes', notesPlaceholder: 'Type notes for the current speaker...',
       exportNotes: 'Export Notes', importNotes: 'Import Notes', clearAllNotes: 'Clear All Notes',
+      // Quick TimTers
       crossEx: 'Cross-Ex / Shared', rebuttal: 'Rebuttal / Reply', prep: 'Prep', poi: 'POI',
-      settingsTitle: 'Timer Settings', hide: 'Hide', show: 'Show', mainTime: 'Main (m:ss)',
-      firstBell: '1st Bell from start (m:ss)', secondBell: '2nd Bell from start (m:ss)',
-      yellowAt: 'Yellow at remaining (m:ss)', redAt: 'Red at remaining (m:ss)',
-      gracePeriod: 'Grace Period (m:ss)', prepTime: 'Prep Time (m:ss)', crossExTime: 'Cross-Ex (m:ss)',
-      rebuttalTime: 'Rebuttal (m:ss)', poiTime: 'POI Time (m:ss)', bellSpacing: 'Bell spacing (ms)',
+      // Settings
+      settingsTitle: 'Timer Settings', hide: 'Hide', show: 'Show',
+      mainTime: 'Main (m:ss)', firstBell: '1st Bell from start (m:ss)', secondBell: '2nd Bell from start (m:ss)',
+      yellowAt: 'Yellow at remaining (m:ss)', redAt: 'Red at remaining (m:ss)', gracePeriod: 'Grace Period (m:ss)',
+      prepTime: 'Prep Time (m:ss)', crossExTime: 'Cross-Ex (m:ss)', rebuttalTime: 'Rebuttal (m:ss)',
+      poiTime: 'POI Time (m:ss)', bellSpacing: 'Bell spacing (ms)',
       exportSettings: 'Export Settings', importSettings: 'Import Settings',
-      helpTitle: 'Help', close: 'Close', quickStart: 'Quick Start',
-      quickStart1: '<strong><u>Click <strong>Initialize Sound</strong> once.</u></strong> (Mobile browsers require a gesture to enable audio).',
-      quickStart2: 'Select your <strong>Debate Style</strong> from the dropdown.',
-      quickStart3: 'Use <strong>Speaker Progress</strong> to pick who is speaking.',
-      quickStart4: 'Press <strong>Start</strong> (or Spacebar) to begin.',
-      quickStart5: 'Use <strong>Presenter Mode</strong> or <strong>Mirror Mode</strong> for your audience.',
-      headerIcons: 'Header Icons',
-      helpIcon: '<strong>Help (H):</strong> Shows this help window.',
-      themeIcon: '<strong>Theme (D):</strong> Toggles between Light and Dark mode.',
-      presenterIcon: '<strong>Presenter (P):</strong> Opens a clean, large timer-only display in a separate window. It mirrors all timer activity in real time. (Requires M-series iPad or Android DeX to extend display).',
-      mirrorIcon: '<strong>Mirror Mode:</strong> Simplifies the main screen to show *only* the giant timer. This is for devices that can only mirror their display (like iPhones or older iPads). <strong>Click the speech title to exit Mirror Mode.</strong>',
-      timersIcon: '<strong>Quick Timers:</strong> Toggles the visibility of the four mini-timers (Cross-Ex, Rebuttal, Prep, POI). Icon shows a slash when hidden.',
-      notesIcon: '<strong>Speaker Notes:</strong> Toggles the notes panel. Icon shows a slash when hidden. The button will invert its color (be "active") if the *current* speaker has notes.',
-      muteIcon: '<strong>Mute (M):</strong> Toggles all bell sounds on or off.',
-      mainTimerTitle: 'Main Timer Controls',
-      startPauseIcon: '<strong>Start/Pause (Space):</strong> Toggles the main timer.',
-      resetIcon: '<strong>Reset (R):</strong> Resets the current timer to its starting time.',
-      singleIcon: '<strong>Single (1):</strong> Plays a single bell.',
-      doubleIcon: '<strong>Double (2):</strong> Plays two bells, spaced by the "Bell Spacing" setting.',
-      contIcon: '<strong>Cont.:</strong> Tests the continuous bell.',
-      stopIcon: '<strong>Stop Bell:</strong> Stops the continuous bell *and* immediately ends any grace period.',
-      timerLogicTitle: 'Timer Logic',
-      timerLogic1: '<strong>Substantive:</strong> Uses "Main Time". Plays a single bell at "1st Bell" and "2nd Bell" times.',
-      timerLogic2: '<strong>Reply/Rebuttal:</strong> Uses "Rebuttal Time". Plays a double bell at the end (no grace period).',
-      timerLogic3: '<strong>Grace Period:</strong> When a "Substantive" speech hits 0:00, it plays a double bell and starts counting *up* for the "Grace Period" time.',
-      timerLogic4: '<strong>Continuous Bell:</strong> If the grace period ends, a continuous bell will ring until "Stop Bell" is pressed.',
-      notesDataTitle: 'Notes & Data',
-      notesData1: 'Notes are saved per-speaker, per-format (e.g., "AP - Prime Minister").',
-      notesData2: '<strong>Export Notes:</strong> Saves a ".txt" file of all your notes, organized by format and speaker.',
-      notesData3: '<strong>Import Notes:</strong> Imports notes from a ".json" or ".txt" file and merges them with your current notes.',
-      notesData4: '<strong>Clear All Notes:</strong> Deletes all notes from the app. This cannot be undone.',
-      notesData5: '<strong>Export Settings:</strong> Saves a ".json" file of all your *timer settings* (for all formats) and your *custom speaker list*. This does NOT include notes.',
+      // Help Modal
+      helpTitle: 'Help & Features', close: 'Close',
+      helpHeaderButtons: 'Header Buttons',
+      // ***** THIS IS THE FIX *****
+      helpInitSound: '<strong>Sound:</strong> Audio initializes automatically on any interaction (click, touch, or key press). If sound doesn\'t work, use the failsafe button in Settings panel.',
+      helpDebateStyle: '<strong>Debate Style:</strong> Select your format (AP, BP, etc.). This loads all speakers and default times.',
+      helpVolume: '<strong>Volume:</strong> Controls the bell sound level.',
+      helpLang: '<strong>Lang:</strong> Switches between English and Korean.',
+      helpHelp: '<strong>Help:</strong> Opens this help window. (Shortcut: H)',
+      helpTheme: '<strong>Theme:</strong> Toggles Dark/Light mode. (Shortcut: D)',
+      helpPresenter: '<strong>Presenter:</strong> Opens a large, clean timer in a new window for an external display. (Shortcut: P)',
+      helpMirror: '<strong>Mirror:</strong> Hides all controls on the main screen. Use this when *mirroring* your device to a display. <strong>Click the X button to exit.</strong>',
+      helpQuickTimers: '<strong>Quick Timers:</strong> Shows/hides the extra timers (Cross-Ex, Prep, etc.). Icon has a slash when hidden.',
+      helpNotes: '<strong>Notes:</strong> Shows/hides the speaker notes panel. Icon has a slash when hidden. Lights up if the current speaker has notes.',
+      helpMute: '<strong>Mute:</strong> Toggles all bell sounds on/off. (Shortcut: M)',
+      
+      helpSpeakerProgress: 'Speaker Progress',
+      helpSpkClick: '<strong>Click:</strong> Selects a speaker without changing the order.',
+      helpSpkDoubleClick: '<strong>Double-click:</strong> Toggles a speaker active/inactive (greys them out and skips them).',
+      helpSpkDrag: '<strong>Drag & Drop:</strong> Re-order the entire speaker flow.',
+      helpSpkNextPrev: '<strong>Next/Previous:</strong> Moves to the next/previous speaker. (Shortcut: → / ←)',
+
+      helpMainTimer: 'Main Timer Controls',
+      helpMainStart: '<strong>Start/Pause (Play/Pause):</strong> Toggles the main timer. (Shortcut: Space)',
+      helpMainReset: '<strong>Reset (Circular Arrow):</strong> Resets the current timer. (Shortcut: R)',
+      helpMainScrub: '<strong>Progress Bar:</strong> Click or drag on the progress bar to "scrub" the timer to any point.',
+      helpMainBells: '<strong>Bell Icons (1, 2, Loop, Mute):</strong> Play bells manually or stop a continuous bell. (Shortcut: 1, 2)',
+      
+      helpTimerLogic: 'Timer Logic',
+      helpTimerLogicSub: '<strong>Substantive Speeches:</strong> Use Main, 1st Bell, 2nd Bell, Yellow/Red, and Grace times.',
+      helpTimerLogicBells: 'Bells ring at 1st Bell, 2nd Bell, and a double-bell rings at the end (0:00).',
+      helpTimerLogicGrace: 'After 0:00, the <strong>Grace Period</strong> counts up, and the screen flashes.',
+      helpTimerLogicCont: 'After the grace period, a <strong>continuous bell</strong> rings until you press "Stop Bell" or "Reset".',
+      helpTimerLogicReply: '<strong>Reply Speeches:</strong> Use the "Rebuttal" time and end with a double-bell.',
+
+      helpNotesData: 'Notes & Data',
+      helpNotesPerSpeaker: 'Notes are saved per-speaker, per-format (e.g., "AP - Prime Minister").',
+      helpNotesExportTxt: '<strong>Export Notes:</strong> Saves a ".txt" file of all your notes, organized by format.',
+      helpNotesImport: '<strong>Import Notes:</strong> Merges notes from a `.json` file.',
+      helpNotesClear: '<strong>Clear All Notes:</strong> Deletes all saved notes (with confirmation).',
+      helpSettingsExport: '<strong>Export Settings:</strong> Saves your "Custom" preset and all timer settings to a `.json` file.',
+      helpSettingsImport: '<strong>Import Settings:</strong> Loads a `.json` file as your new "Custom" preset.',
+
+      // Dynamic Roles (will be handled by PRESETS)
       roundPrep: 'Round Prep', prepFor: 'Prep for',
-      titleMute: 'Mute (M)', titleStart: 'Start/Pause (Space)', titleReset: 'Reset (R)', titleSingle: 'Single Bell (1)',
-      titleDouble: 'Double Bell (2)', titleTestCont: 'Start continuous bell test', titleStopBell: 'Stop continuous bell',
-      titleHelp: 'Help (H)', titleTheme: 'Toggle Dark Mode (D)', titlePresenter: 'Presenter Mode (P)', titleMirror: 'Mirror Mode',
-      titleQuickTimers: 'Toggle Quick Timers', titleNotes: 'Toggle Speaker Notes',
-      confirmClear: 'Clear All Notes?', confirmClearText: 'Are you sure you want to delete all speaker notes? This cannot be undone.',
-      confirmOK: 'OK', confirmCancel: 'Cancel'
+      // Button Titles
+      titleMute: 'Mute (M)',
+      titleStart: 'Start/Pause (Space)',
+      titleReset: 'Reset (R)',
+      titleSingle: 'Single Bell (1)',
+      titleDouble: 'Double Bell (2)',
+      titleTestCont: 'Start continuous bell test',
+      titleStopBell: 'Stop continuous bell',
+      titleThemeLight: 'Toggle Light Mode (D)',
+      titleThemeDark: 'Toggle Dark Mode (D)',
+      titleHelp: 'Help (H)',
+      titlePresenter: 'Presenter Mode (P)',
+      titleMirror: 'Mirror Mode',
+      titleQuickTimersShow: 'Show Quick Timers',
+      titleQuickTimersHide: 'Hide Quick Timers',
+      titleNotesShow: 'Show Speaker Notes',
+      titleNotesHide: 'Hide Speaker Notes',
+      // Confirmation Modal
+      confirmClearNotesTitle: 'Clear All Notes?',
+      confirmClearNotesText: 'Are you sure you want to delete all saved speaker notes? This cannot be undone.',
+      cancel: 'Cancel',
+      ok: 'OK',
     },
     ko: {
-      debateTimerTitle: '토론 타이머', debateStyle: '토론 방식', help: '도움말', lightMode: '라이트 모드', darkMode: '다크 모드',
-      presenterMode: '발표자 모드', mirrorMode: '미러 모드', showQuickTimers: '빠른 타이머 표시', hideQuickTimers: '빠른 타이머 숨기기',
-      showNotes: '메모 보이기', hideNotes: '메모 숨기기', initSound: '소리 초기화', volume: '볼륨', lang: '언어',
+      // Header
+      debateTimerTitle: '토론 타이머', debateStyle: '토론 방식', help: '도움말',
+      lightMode: '라이트 모드', darkMode: '다크 모드',
+      presenterMode: '발표자 모드', mirrorMode: '미러 모드',
+      showQuickTimers: '빠른 타이머 표시', hideQuickTimers: '빠른 타이머 숨기기',
+      showNotes: '메모 보이기', hideNotes: '메모 숨기기',
+      initSound: '소리 초기화', volume: '볼륨', lang: '언어',
+      // Speaker Progress
       spkProgress: '발표자 진행', prev: '이전', next: '다음', resetOrder: '순서 초기화',
       spkNote: '클릭 = 선택 • 더블 클릭 = 활성/비활성 • 드래그 = 순서 변경',
-      substantive: '입론', replyRebuttal: '답변/반박', grace: '유예', status: '상태:',
-      statusIdle: '대기 중', statusRunning: '실행 중', statusPaused: '일시정지', statusSoundReady: '소리 준비 완료.',
-      statusSoundFail: '소리 초기화 실패. 새로고침하세요.', start: '시작', pause: '일시정지', reset: '초기화',
-      single: '싱글', double: '더블', cont: '연속', stop: '정지',
+      // Main Timer
+      substantive: '입론', replyRebuttal: '답변/반박', grace: '유예',
+      status: '상태:', statusIdle: '대기 중', statusRunning: '실행 중', statusPaused: '일시정지',
+      statusSoundReady: '소리 준비 완료.', statusSoundFail: '소리 초기화 실패. 새로고침하세요.',
+      start: '시작', pause: '일시정지', reset: '초기화', single: '싱글', double: '더블',
+      continuous: '연속', stopBell: '벨 멈춤',
+      // Notes
       speakerNotes: '발표자 메모', notesPlaceholder: '현재 발표자/다음 준비를 위한 메모 입력...',
       exportNotes: '메모 내보내기', importNotes: '메모 가져오기', clearAllNotes: '모든 메모 지우기',
+      // Quick Timers
       crossEx: '교차조사 / 공유', rebuttal: '반박 / 답변', prep: '준비', poi: 'POI',
-      settingsTitle: '타이머 설정', hide: '숨기기', show: '보이기', mainTime: '주요 (m:ss)',
-      firstBell: '첫 번째 벨 (시작부터 m:ss)', secondBell: '두 번째 벨 (시작부터 m:ss)',
-      yellowAt: '노란색 (남은 시간 m:ss)', redAt: '빨간색 (남은 시간 m:ss)',
-      gracePeriod: '유예 시간 (m:ss)', prepTime: '준비 시간 (m:ss)', crossExTime: '교차조사 (m:ss)',
-      rebuttalTime: '반박 (m:ss)', poiTime: 'POI 시간 (m:ss)', bellSpacing: '벨 간격 (ms)',
+      // Settings
+      settingsTitle: '타이머 설정', hide: '숨기기', show: '보이기',
+      mainTime: '주요 (m:ss)', firstBell: '첫 번째 벨 (시작부터 m:ss)', secondBell: '두 번째 벨 (시작부터 m:ss)',
+      yellowAt: '노란색 (남은 시간 m:ss)', redAt: '빨간색 (남은 시간 m:ss)', gracePeriod: '유예 시간 (m:ss)',
+      prepTime: '준비 시간 (m:ss)', crossExTime: '교차조사 (m:ss)', rebuttalTime: '반박 (m:ss)',
+      poiTime: 'POI 시간 (m:ss)', bellSpacing: '벨 간격 (ms)',
       exportSettings: '설정 내보내기', importSettings: '설정 가져오기',
-      helpTitle: '도움말', close: '닫기', quickStart: '빠른 시작',
-      quickStart1: '<strong><u><strong>소리 초기화</strong>를 한 번 클릭하세요.</u></strong> (모바일 브라우저).',
-      quickStart2: '<strong>토론 방식</strong> 드롭다운에서 방식을 선택하세요.',
-      quickStart3: '<strong>발표자 진행</strong>을 사용해 현재 발표자를 선택하세요.',
-      quickStart4: '<strong>시작</strong> (또는 스페이스바)을 눌러 시작하세요.',
-      quickStart5: '청중을 위해 <strong>발표자 모드</strong> 또는 <strong>미러 모드</strong>를 사용하세요.',
-      headerIcons: '헤더 아이콘',
-      helpIcon: '<strong>도움말 (H):</strong> 이 도움말 창을 엽니다.',
-      themeIcon: '<strong>테마 (D):</strong> 라이트/다크 모드를 전환합니다.',
-      presenterIcon: '<strong>발표자 (P):</strong> 별도 창에 크고 깔끔한 타이머 전용 디스플레이를 엽니다. 모든 타이머 활동이 실시간으로 동기화됩니다. (M-시리즈 iPad 또는 Android DeX 필요).',
-      mirrorIcon: '<strong>미러 모드:</strong> 메인 화면을 타이머만 표시하도록 단순화합니다. (iPhone 또는 구형 iPad처럼) 화면 미러링만 가능한 기기용입니다. <strong>미러 모드를 종료하려면 발표 제목을 클릭하세요.</strong>',
-      timersIcon: '<strong>빠른 타이머:</strong> 4개의 미니 타이머(교차조사, 반박, 준비, POI)의 표시 여부를 전환합니다. 숨겨져 있을 땐 아이콘에 슬래시가 표시됩니다.',
-      notesIcon: '<strong>발표자 메모:</strong> 메모 패널의 표시 여부를 전환합니다. 숨겨져 있을 땐 아이콘에 슬래시가 표시됩니다. 현재 발표자에게 메모가 있으면 버튼이 반전되어 "활성" 상태로 표시됩니다.',
-      muteIcon: '<strong>음소거 (M):</strong> 모든 벨 소리를 켜거나 끕니다.',
-      mainTimerTitle: '메인 타이머 컨트롤',
-      startPauseIcon: '<strong>시작/일시정지 (Space):</strong> 메인 타이머를 토글합니다.',
-      resetIcon: '<strong>초기화 (R):</strong> 현재 타이머를 시작 시간으로 초기화합니다.',
-      singleIcon: '<strong>싱글 (1):</strong> 싱글 벨을 울립니다.',
-      doubleIcon: '<strong>더블 (2):</strong> "벨 간격" 설정에 따라 두 번의 벨을 울립니다.',
-      contIcon: '<strong>연속:</strong> 연속 벨을 테스트합니다.',
-      stopIcon: '<strong>벨 정지:</strong> 연속 벨을 멈추고 *모든* 유예 시간을 즉시 종료합니다.',
-      timerLogicTitle: '타이머 로직',
-      timerLogic1: '<strong>입론:</strong> "주요 시간"을 사용합니다. "1차 벨"과 "2차 벨" 시간에 싱글 벨을 울립니다.',
-      timerLogic2: '<strong>답변/반박:</strong> "반박 시간"을 사용합니다. 종료 시 더블 벨을 울립니다 (유예 시간 없음).',
-      timerLogic3: '<strong>유예 시간:</strong> "입론"이 0:00에 도달하면, 더블 벨을 울리고 "유예 시간"만큼 카운트 *업*을 시작합니다.',
-      timerLogic4: '<strong>연속 벨:</strong> 유예 시간이 끝나면, "벨 정지"를 누를 때까지 연속 벨이 울립니다.',
-      notesDataTitle: '메모 & 데이터',
-      notesData1: '메모는 토론 방식 및 발표자별로 저장됩니다 (예: "AP - 총리").',
-      notesData2: '<strong>메모 내보내기:</strong> 모든 메모를 방식과 발표자별로 정리된 ".txt" 파일로 저장합니다.',
-      notesData3: '<strong>메모 가져오기:</strong> ".json" 또는 ".txt" 파일에서 메모를 가져와 현재 메모와 병합합니다.',
-      notesData4: '<strong>모든 메모 지우기:</strong> 앱의 모든 메모를 삭제합니다. 이 작업은 취소할 수 없습니다.',
-      notesData5: '<strong>설정 내보내기:</strong> 모든 *타이머 설정* (모든 방식 포함)과 *커스텀 발표자 목록*을 ".json" 파일로 저장합니다. 메모는 포함되지 않습니다.',
+      // Help Modal
+      helpTitle: '도움말 & 기능', close: '닫기',
+      helpHeaderButtons: '헤더 버튼',
+      // ***** THIS IS THE FIX *****
+      helpInitSound: '<strong>소리:</strong> 오디오는 모든 상호작용(클릭, 터치 또는 키 입력)에서 자동으로 초기화됩니다. 소리가 작동하지 않으면 설정 패널의 안전 버튼을 사용하세요.',
+      helpDebateStyle: '<strong>토론 방식:</strong> 포맷(AP, BP 등)을 선택합니다. 모든 발표자와 기본 시간을 로드합니다.',
+      helpVolume: '<strong>볼륨:</strong> 벨소리 크기를 조절합니다.',
+      helpLang: '<strong>언어:</strong> 한국어와 영어 간을 전환합니다.',
+      helpHelp: '<strong>도움말:</strong> 이 도움말 창을 엽니다. (단축키: H)',
+      helpTheme: '<strong>테마:</strong> 다크/라이트 모드를 전환합니다. (단축키: D)',
+      helpPresenter: '<strong>발표자:</strong> 외부 디스플레이를 위해 새 창에 크고 깔끔한 타이머를 엽니다. (단축키: P)',
+      helpMirror: '<strong>미러:</strong> 메인 화면의 모든 컨트롤을 숨깁니다. 기기를 디스플레이에 *미러링*할 때 사용하세요. <strong>종료하려면 X 버튼을 클릭하세요.</strong>',
+      helpQuickTimers: '<strong>빠른 타이머:</strong> 추가 타이머(교차조사, 준비 등)를 표시하거나 숨깁니다. 숨겨져 있을 때는 아이콘에 슬래시가 표시됩니다.',
+      helpNotes: '<strong>메모:</strong> 발표자 메모 패널을 표시하거나 숨깁니다. 숨겨져 있을 때는 아이콘에 슬래시가 표시됩니다. 현재 발표자에게 메모가 있으면 불이 들어옵니다.',
+      helpMute: '<strong>음소거:</strong> 모든 벨소리를 켜거나 끕니다. (단축키: M)',
+
+      helpSpeakerProgress: '발표자 진행',
+      helpSpkClick: '<strong>클릭:</strong> 순서 변경 없이 발표자를 선택합니다.',
+      helpSpkDoubleClick: '<strong>더블 클릭:</strong> 발표자를 활성/비활성으로 전환합니다 (회색으로 변하며 건너뜀).',
+      helpSpkDrag: '<strong>드래그 & 드롭:</strong> 전체 발표자 순서를 변경합니다.',
+      helpSpkNextPrev: '<strong>다음/이전:</strong> 다음/이전 발표자로 이동합니다. (단축키: → / ←)',
+      
+      helpMainTimer: '메인 타이머 컨트롤',
+      helpMainStart: '<strong>시작/일시정지 (재생/일시정지):</strong> 메인 타이머를 토글합니다. (단축키: Space)',
+      helpMainReset: '<strong>초기화 (원형 화살표):</strong> 현재 타이머를 초기화합니다. (단축키: R)',
+      helpMainScrub: '<strong>진행 표시줄:</strong> 진행 표시줄을 클릭하거나 드래그하여 타이머를 원하는 시점으로 "스크럽"할 수 있습니다.',
+      helpMainBells: '<strong>벨 아이콘 (1, 2, 루프, 음소거):</strong> 벨을 수동으로 울리거나 연속 벨을 멈춥니다. (단축키: 1, 2)',
+      
+      helpTimerLogic: '타이머 로직',
+      helpTimerLogicSub: '<strong>입론:</strong> 주요, 1차 벨, 2차 벨, 노란색/빨간색, 유예 시간을 사용합니다.',
+      helpTimerLogicBells: '1차 벨, 2차 벨 시점에 벨이 울리고, 종료 시점(0:00)에 더블 벨이 울립니다.',
+      helpTimerLogicGrace: '0:00 이후, <strong>유예 시간</strong>이 카운트 업되며 화면이 깜박입니다.',
+      helpTimerLogicCont: '유예 시간이 끝나면, "벨 멈춤" 또는 "초기화"를 누를 때까지 <strong>연속 벨</strong>이 울립니다.',
+      helpTimerLogicReply: '<strong>답변:</strong> "반박" 시간을 사용하며 더블 벨로 종료됩니다.',
+
+      helpNotesData: '메모 & 데이터',
+      helpNotesPerSpeaker: '메모는 포맷별, 발표자별로 저장됩니다 (예: "AP - Prime Minister").',
+      helpNotesExportTxt: '<strong>메모 내보내기:</strong> 모든 메모를 포맷별로 정리된 ".txt" 파일로 저장합니다.',
+      helpNotesImport: '<strong>메모 가져오기:</strong> `.json` 파일에서 메모를 병합합니다.',
+      helpNotesClear: '<strong>모든 메모 지우기:</strong> 저장된 모든 메모를 삭제합니다 (확인 창 표시).',
+      helpSettingsExport: '<strong>설정 내보내기:</strong> "Custom" preset과 모든 타이머 설정을 `.json` 파일로 저장합니다.',
+      helpSettingsImport: '<strong>설정 가져오기:</strong> `.json` 파일을 새 "Custom" preset으로 로드합니다.',
+
+      // Dynamic Roles
       roundPrep: '라운드 준비', prepFor: '준비 (다음)',
-      titleMute: '음소거 (M)', titleStart: '시작/일시정지 (Space)', titleReset: '초기화 (R)', titleSingle: '싱글 벨 (1)',
-      titleDouble: '더블 벨 (2)', titleTestCont: '연속 벨 테스트', titleStopBell: '벨 멈춤',
-      titleHelp: '도움말 (H)', titleTheme: '다크 모드 전환 (D)', titlePresenter: '발표자 모드 (P)', titleMirror: '미러 모드',
-      titleQuickTimers: '빠른 타이머 토글', titleNotes: '발표자 메모 토글',
-      confirmClear: '모든 메모 지우기?', confirmClearText: '정말로 모든 발표자 메모를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
-      confirmOK: '확인', confirmCancel: '취소'
+      // Button Titles
+      titleMute: '음소거 (M)',
+      titleStart: '시작/일시정지 (Space)',
+      titleReset: '초기화 (R)',
+      titleSingle: '싱글 벨 (1)',
+      titleDouble: '더블 벨 (2)',
+      titleTestCont: '연속 벨 테스트',
+      titleStopBell: '벨 멈춤',
+      titleThemeLight: '라이트 모드 (D)',
+      titleThemeDark: '다크 모드 (D)',
+      titleHelp: '도움말 (H)',
+      titlePresenter: '발표자 모드 (P)',
+      titleMirror: '미러 모드',
+      titleQuickTimersShow: '빠른 타이머 표시',
+      titleQuickTimersHide: '빠른 타이머 숨기기',
+      titleNotesShow: '발표자 메모 표시',
+      titleNotesHide: '발표자 메모 숨기기',
+      // Confirmation Modal
+      confirmClearNotesTitle: '모든 메모를 지우시겠습니까?',
+      confirmClearNotesText: '저장된 모든 발표자 메모를 삭제합니다. 이 작업은 되돌릴 수 없습니다.',
+      cancel: '취소',
+      ok: '확인',
     }
   };
   let currentLang = translations.en;
-  const langSelect = $('#langSelect');
-
-  // ---------- DOM Elements ----------
-  // Header
-  const formatSelect = $('#formatSelect');
-  const volume = $('#volume');
-  const helpBtn = $('#helpBtn'), themeBtn = $('#themeBtn'), presenterBtn = $('#presenterBtn'),
-        mirrorBtn = $('#mirrorBtn'), toggleQuickTimers = $('#toggleQuickTimers'),
-        toggleNotesBtn = $('#toggleNotesBtn'), enableBtn = $('#enableBtn'), muteBtn = $('#muteBtn');
-  // Modals
-  const helpModal = $('#helpModal'), closeHelp = $('#closeHelp');
-  const confirmModal = $('#confirmModal'), confirmTitle = $('#confirmTitle'), confirmText = $('#confirmText'),
-        confirmCancel = $('#confirmCancel'), confirmOK = $('#confirmOK');
-  // Speaker Progress
-  const spkBar = $('#spkBar'), prevBtn = $('#prevBtn'), nextBtn = $('#nextBtn'), resetOrder = $('#resetOrder');
-  // Main Timer
-  const mainCard = $('#mainCard'), titleEl = $('#mainTitle'), metaEl = $('#meta'),
-        clock = $('#clock'), mainProgress = $('#mainProgress'), fill = $('#fill'), statusEl = $('#status');
-  const startBtn = $('#startBtn'), resetBtn = $('#resetBtn'), singleBtn = $('#singleBtn'),
-        doubleBtn = $('#doubleBtn'), testContBtn = $('#testContBtn'), stopBellBtn = $('#stopBellBtn');
-  // Notes
-  const notesPanel = $('#notesPanel'), notesArea = $('#notesArea'),
-        exportNotesBtn = $('#exportNotesBtn'), importNotesBtn = $('#importNotesBtn'),
-        clearNotesBtn = $('#clearNotesBtn'), importNotesFile = $('#importNotesFile');
-  // Quick Timers
-  const quickTimersPanel = $('#quickTimersPanel');
-  // Settings
-  const settingsPanel = $('#settingsPanel'), toggleSettings = $('#toggleSettings'),
-        mainInput = $('#mainInput'), firstInput = $('#firstInput'), secondInput = $('#secondInput'),
-        yellowInput = $('#yellowInput'), redInput = $('#redInput'), graceInput = $('#graceInput'),
-        prepInput = $('#prepInput'), cexInput = $('#cexInput'), rebInput = $('#rebInput'),
-        poiInput = $('#poiInput'), spaceInput = $('#spaceInput');
-  const exportBtn = $('#exportBtn'), importBtn = $('#importBtn'), importFile = $('#importFile');
+  
+  // ---------- Language ----------
+  function setLanguage(lang) {
+    currentLang = translations[lang] || translations.en;
+    document.documentElement.lang = lang;
+    try {
+    localStorage.setItem('debateLang', lang);
+    } catch(e) {
+      console.warn('Failed to save language preference:', e);
+    }
+    
+    // Update all static text
+    $$('[data-lang-key]').forEach(el => {
+      const key = el.dataset.langKey;
+      if (currentLang[key]) {
+        el.innerHTML = currentLang[key];
+      }
+    });
+    
+    // Update dynamic text
+    updateButtonStates();
+    renderSpeakerProgress(); // Re-render speaker names
+    loadSpeakerNotes(); // Re-load placeholder
+  }
+  
+  function updateButtonStates() {
+    // Update theme button title
+    const isDark = document.documentElement.classList.contains('dark');
+    themeBtn.title = isDark ? currentLang.titleThemeLight : currentLang.titleThemeDark;
+    
+    // Update main timer start/pause button text
+    const startLabel = startBtn.querySelector('.label-text');
+    if (startLabel) {
+      startLabel.textContent = mainRunning ? currentLang.pause : currentLang.start;
+    }
+    
+    // Update toggle button titles
+    toggleQuickTimers.title = quickTimersPanel.style.maxHeight === '0px' ? currentLang.titleQuickTimersShow : currentLang.titleQuickTimersHide;
+    toggleNotesBtn.title = notesPanel.style.maxHeight === '0px' ? currentLang.titleNotesShow : currentLang.titleNotesHide;
+    
+    // Update other titles
+    muteBtn.title = currentLang.titleMute;
+    startBtn.title = currentLang.titleStart;
+    resetBtn.title = currentLang.titleReset;
+    singleBtn.title = currentLang.titleSingle;
+    doubleBtn.title = currentLang.titleDouble;
+    testContBtn.title = currentLang.titleTestCont;
+    stopBellBtn.title = currentLang.titleStopBell;
+    helpBtn.title = currentLang.titleHelp;
+    presenterBtn.title = currentLang.titlePresenter;
+    mirrorBtn.title = currentLang.titleMirror;
+    
+    // Update settings toggle
+    toggleSettings.textContent = settingsPanel.style.maxHeight === '0px' ? currentLang.show : currentLang.hide;
+  }
 
   // ---------- Audio ----------
-  let audioCtx=null, unlocked=false, masterGain=null, muted=false; let contBellInterval=null;
   async function initAudio(){
+    if(unlocked && audioCtx) return; // Already initialized
     try{
       audioCtx = new (window.AudioContext||window.webkitContext)();
       masterGain = audioCtx.createGain(); masterGain.gain.value = +volume.value; masterGain.connect(audioCtx.destination);
-      unlocked=true; setStatus('statusSoundReady');
-    }catch(e){ setStatus('statusSoundFail'); }
+      unlocked=true; setStatus(currentLang.statusSoundReady);
+    }catch(e){ setStatus(currentLang.statusSoundFail); }
   }
+  // Auto-initialize audio on first user interaction
+  let audioInitAttempted = false;
+  async function autoInitAudio(){
+    if(audioInitAttempted && unlocked && audioCtx) return; // Already initialized
+    audioInitAttempted = true;
+    if(!unlocked || !audioCtx) {
+      await initAudio();
+    }
+    // Resume audio context if suspended (common in mobile browsers)
+    if(audioCtx && audioCtx.state === 'suspended') {
+      try {
+        await audioCtx.resume();
+      } catch(e) {
+        console.warn('Could not resume audio context:', e);
+      }
+    }
+  }
+  enableBtn.onclick = initAudio; // Keep as failsafe
   volume.oninput=()=>{ if(masterGain) masterGain.gain.value = +volume.value };
+  
   function ding({type='single'}={}){
+    // Auto-initialize if needed
+    if(!unlocked || !audioCtx) {
+      autoInitAudio().then(() => {
+        if(unlocked && audioCtx) playDing();
+      });
+      return;
+    }
+    playDing();
+  }
+  function playDing(){
     if(!unlocked||!audioCtx) return;
     const now=audioCtx.currentTime;
     const osc=audioCtx.createOscillator();
@@ -779,35 +1156,42 @@ function applyBodyState(state){
   }
   function stopContinuous(){ if(contBellInterval){ clearInterval(contBellInterval); contBellInterval=null } }
 
+  muteBtn.onclick=()=>{ 
+    autoInitAudio(); // Auto-initialize audio on mute button click
+    muted=!muted; 
+    muteBtn.classList.toggle('muted', muted); // Use 'muted' class for icon switching
+  };
+  
+  // Global listeners for auto-initialization on any user interaction
+  // Only listen once, then remove listeners after first initialization
+  const initOnInteraction = async () => {
+    await autoInitAudio();
+    // Remove listeners after first successful initialization (check after a brief delay)
+    setTimeout(() => {
+      if(unlocked && audioCtx) {
+        document.removeEventListener('click', initOnInteraction, true);
+        document.removeEventListener('touchstart', initOnInteraction, true);
+        document.removeEventListener('keydown', initOnInteraction, true);
+      }
+    }, 100);
+  };
+  // Add listeners for clicks, touches, and key presses
+  document.addEventListener('click', initOnInteraction, true);
+  document.addEventListener('touchstart', initOnInteraction, true);
+  document.addEventListener('keydown', initOnInteraction, true);
+
   // ---------- Theme ----------
   const setDark = (on)=>{
-    document.documentElement.classList.toggle('dark',on); 
+    setDarkGlobal(on); // Use global function
+    try {
     localStorage.setItem('debateTheme', on? 'dark':'light'); 
+    } catch(e) {
+      console.warn('Failed to save theme preference:', e);
+    }
     themeBtn.classList.toggle('active', on);
-    updateButtonStates(); // Update tooltips
+    updateButtonStates();
   };
-  
-  // ---------- Help/Confirm Modals ----------
-  helpBtn.onclick = () => helpModal.style.display = 'flex';
-  closeHelp.onclick = () => helpModal.style.display = 'none';
-  
-  let confirmCallback = null;
-  function showConfirm({ title, text, okText, callback }) {
-    confirmTitle.textContent = title;
-    confirmText.textContent = text;
-    confirmOK.textContent = okText;
-    confirmCallback = callback;
-    confirmModal.style.display = 'flex';
-  }
-  confirmCancel.onclick = () => {
-    confirmCallback = null;
-    confirmModal.style.display = 'none';
-  };
-  confirmOK.onclick = () => {
-    if (confirmCallback) confirmCallback();
-    confirmCallback = null;
-    confirmModal.style.display = 'none';
-  };
+  themeBtn.onclick = ()=> setDark(!document.documentElement.classList.contains('dark'));
 
   // ---------- Presenter Mode ----------
   const channel = new BroadcastChannel('debate_timer_sync_v1');
@@ -819,23 +1203,25 @@ function applyBodyState(state){
     }else{ presenterWin.focus(); }
   };
   
-  // ---------- Mirror Mode ----------
+  // ---------- NEW: Mirror Mode ----------
   mirrorBtn.onclick = () => {
-    const on = document.body.classList.toggle('mirror-mode');
-    mirrorBtn.classList.toggle('active', on);
+    const isMirror = document.body.classList.toggle('mirror-mode');
+    mirrorBtn.classList.toggle('active', isMirror);
   };
-  titleEl.onclick = () => {
+  // Exit mirror mode button
+  exitMirrorBtn.onclick = () => {
     document.body.classList.remove('mirror-mode');
     mirrorBtn.classList.remove('active');
   };
 
   // ---------- Sync Function ----------
   function syncOut(full=false){
+    // Calculate state here, just for the message
     const left = mainRemain;
     const warn = left <= yellow && left > red && mode==='main' && !inGrace;
     const bad = left <= red && left > 0 && mode==='main' && !inGrace;
     let bodyState = null;
-    let metaText = (titleEl?.textContent||'') + (metaEl.textContent? ' — '+metaEl.textContent : '');
+    let metaText = (mainTitle?.textContent||'') + (metaEl.textContent? ' — '+metaEl.textContent : '');
     let remainTime = mainRemain;
 
     if(inGrace) {
@@ -843,7 +1229,8 @@ function applyBodyState(state){
       remainTime = graceRemain; 
       
       const s = speakers[activeIdx];
-      const role = s ? (s[currentLang.role_key] || s.role_en || '') : '';
+      const roleKey = `role_${currentLang.lang || 'en'}`;
+      const role = s ? (s[roleKey] || s.role_en || '') : '';
       metaText = `${role} — ${currentLang.grace}`; 
     }
     else if(bad) bodyState = 'state-bad';
@@ -875,7 +1262,8 @@ function applyBodyState(state){
         {role_en:'GR', role_ko:'여당 답변 (GR)', side:'prop', initials:'GR'},
         {role_en:'OR', role_ko:'야당 답변 (OR)', side:'opp', initials:'OR'}
       ],
-      settings: { main:'3:00', first:'1:00', second:'2:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'1:00', cex:'1:00', reb:'3:00', poi: '0:15', spacing:'250', roundPrep:'20:00' }
+      // NOTE: Simson between-speech prep is 1:00. Add a 20:00 round prep at the very beginning via sequence builder.
+      settings: { main:'3:00', first:'1:00', second:'2:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'1:00', cex:'1:00', reb:'3:00', poi:'0:15', spacing:'250', roundPrep:'20:00' }
     },
     AP: {
       label: 'Asian Parliamentary',
@@ -889,7 +1277,7 @@ function applyBodyState(state){
         {role_en:'Opposition Reply', role_ko:'야당 답변', side:'opp', initials:'OR'},
         {role_en:'Government Reply', role_ko:'여당 답변', side:'prop', initials:'GR'}
       ],
-      settings: { main:'7:00', first:'1:00', second:'6:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'30:00', cex:'1:00', reb:'4:00', poi: '0:15', spacing:'250', roundPrep:'00:00' }
+      settings: { main:'7:00', first:'1:00', second:'6:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'30:00', cex:'1:00', reb:'4:00', poi:'0:15', spacing:'250', roundPrep:'00:00' }
     },
     BP: {
       label: 'British Parliamentary',
@@ -905,7 +1293,7 @@ function applyBodyState(state){
         {role_en:'Opposition Reply', role_ko:'야당 답변', side:'opp', initials:'OR'},
         {role_en:'Government Reply', role_ko:'여당 답변', side:'prop', initials:'GR'}
       ],
-      settings: { main:'7:00', first:'1:00', second:'6:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'1:00', reb:'4:00', poi: '0:15', spacing:'250', roundPrep:'15:00' }
+      settings: { main:'7:00', first:'1:00', second:'6:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'1:00', reb:'4:00', poi:'0:15', spacing:'250', roundPrep:'15:00' }
     },
     WSDC: {
       label: 'WSDC',
@@ -919,7 +1307,7 @@ function applyBodyState(state){
         {role_en:'Opp Reply', role_ko:'반대 답변', side:'opp', initials:'OR'},
         {role_en:'Prop Reply', role_ko:'찬성 답변', side:'prop', initials:'PR'}
       ],
-      settings: { main:'8:00', first:'1:00', second:'7:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'1:00', reb:'4:00', poi: '0:15', spacing:'250', roundPrep:'00:00' }
+      settings: { main:'8:00', first:'1:00', second:'7:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'1:00', reb:'4:00', poi:'0:15', spacing:'250', roundPrep:'00:00' }
     },
     PF: {
       label: 'Public Forum',
@@ -936,7 +1324,7 @@ function applyBodyState(state){
         {role_en:'Final Focus 1 (A)', role_ko:'최종 1 (A팀)', side:'prop', initials:'AFF'},
         {role_en:'Final Focus 2 (B)', role_ko:'최종 2 (B팀)', side:'opp', initials:'BFF'}
       ],
-      settings: { main:'4:00', first:'1:00', second:'3:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'3:00', reb:'2:00', poi: '0:15', spacing:'250', roundPrep:'00:00' }
+      settings: { main:'4:00', first:'1:00', second:'3:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'3:00', reb:'2:00', poi:'0:15', spacing:'250', roundPrep:'00:00' }
     },
     CX: {
       label: 'Policy / CX',
@@ -954,7 +1342,7 @@ function applyBodyState(state){
         {role_en:'2nd Neg Rebuttal', role_ko:'2차 부정 반박', side:'opp', initials:'2NR'},
         {role_en:'2nd Aff Rebuttal', role_ko:'2차 긍정 반박', side:'prop', initials:'2AR'}
       ],
-      settings: { main:'8:00', first:'1:00', second:'7:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'3:00', reb:'5:00', poi: '0:15', spacing:'250', roundPrep:'00:00' }
+      settings: { main:'8:00', first:'1:00', second:'7:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'3:00', reb:'5:00', poi:'0:15', spacing:'250', roundPrep:'00:00' }
     },
     LD: {
       label: 'Lincoln–Douglas',
@@ -967,7 +1355,7 @@ function applyBodyState(state){
         {role_en:'Neg Rebuttal', role_ko:'부정 반박', side:'opp', initials:'NR'},
         {role_en:'2nd Aff Rebuttal', role_ko:'2차 긍정 반박', side:'prop', initials:'2AR'}
       ],
-      settings: { main:'6:00', first:'1:00', second:'5:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'3:00', reb:'4:00', poi: '0:15', spacing:'250', roundPrep:'00:00' }
+      settings: { main:'6:00', first:'1:00', second:'5:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'0:00', cex:'3:00', reb:'4:00', poi:'0:15', spacing:'250', roundPrep:'00:00' }
     },
     CUSTOM: {
       label: 'Custom',
@@ -976,800 +1364,1264 @@ function applyBodyState(state){
     }
   };
 
-  // ---------- Runtime state ----------
-  let speakers = [];       // full sequence including prep tokens
-  let baseSpeakers = [];   // just the speakers, for dragging
-  let activeIdx = 0;
-  let currentPresetId = 'SIMSON';
-  let currentSettings = {};
-  
-  let mode = 'main'; // main, grace
-  let mainRunning = false, mainStart = 0, mainTotal = 0, mainRemain = 0;
-  let firstBell=0, secondBell=0, yellow=0, red=0, grace=0, spacing=0;
-  let graceRunning = false, graceStart = 0, graceRemain = 0;
-  let inGrace = false;
-  let firstTrigger=false, secondTrigger=false;
-  
-  let isDragging = false;
-  
-  // ---------- Main Timer ----------
-  function tick(){
-    if(mainRunning){
-      mainRemain = mainTotal - (Date.now()-mainStart);
-      if(mainRemain <= 0 && !inGrace){
-        mainRemain=0;
-        triggerEndOfSpeech();
-      }
-      if(!inGrace){
-        if(!firstTrigger && mainTotal-mainRemain >= firstBell && firstBell>0){ firstTrigger=true; ding(); }
-        if(!secondTrigger && mainTotal-mainRemain >= secondBell && secondBell>0){ secondTrigger=true; ding(); }
-      }
-    }
-    if(inGrace){
-      graceRemain = Date.now()-graceStart;
-      if(graceRemain > grace){
-        graceRemain = grace;
-        if(!contBellInterval) contBellInterval = setInterval(ding, spacing);
-      }
-    }
-    if(mainRunning || inGrace) requestAnimationFrame(tick);
-    render();
-    syncOut();
+  // ---------- Timers: Main ----------
+  function startMain(e){
+    if(e) e.preventDefault();
+    // Auto-initialize audio on first user interaction
+    autoInitAudio();
+    if(mainRunning) return pauseMain(true);
+    if(mainRemain <= 0 && !inGrace) return; // Don't start a finished timer
+    mainRunning=true; 
+    lastFrame=performance.now();
+    if(mainLoopId) cancelAnimationFrame(mainLoopId);
+    mainLoopId = requestAnimationFrame(mainLoop);
+    setStatus(currentLang.statusRunning);
+    updateButtonStates();
+    startBtn.classList.add('running');
   }
-  function triggerEndOfSpeech(){
+  function pauseMain(fromUser=false){
     mainRunning=false;
-    if(mode==='main' && grace>0){
-      inGrace=true; graceStart=Date.now(); graceRemain=0;
-      ding({type:'double'});
-      setTimeout(ding, spacing); // Spaced double bell
-      requestAnimationFrame(tick);
-    }else if(mode==='main'){
-      ding({type:'double'});
-      setTimeout(ding, spacing);
+    if(mainLoopId) {
+      cancelAnimationFrame(mainLoopId);
+      mainLoopId = null;
     }
-    // 'reb' mode just ends
-  }
-  function startMain(){
-    if(mainRunning || mainRemain <= 0) return;
-    mainRunning=true;
-    mainStart=Date.now() - (mainTotal-mainRemain);
-    setStatus('statusRunning');
-    requestAnimationFrame(tick);
-  }
-  function pauseMain(){
-    mainRunning=false;
-    if(inGrace) inGrace=false; // pause kills grace
-    setStatus('statusPaused');
+    if(fromUser) setStatus(currentLang.statusPaused);
+    updateButtonStates();
+    startBtn.classList.remove('running');
   }
   function resetMain(){
-    mainRunning=false; inGrace=false;
-    mainRemain=mainTotal;
-    firstTrigger=false; secondTrigger=false;
-    stopContinuous();
-    setStatus('statusIdle');
-    applyBodyState(null); // FIX: Reset color on change/reset
+    pauseMain(); inGrace=false; stopContinuous();
+    mainRemain = mainTotal; graceRemain = 0;
+    updateMainDisplay(); setStatus(currentLang.statusIdle);
+    applyBodyState(null); // <-- FIX: Reset body color
+    syncOut();
   }
-  function scrubTo(pc){
-    mainTotal = mainTotal || 1; // prevent div by 0
-    mainRemain = mainTotal * (1 - pc);
-    mainStart = Date.now() - (mainTotal - mainRemain);
-    if(mainRunning) pauseMain();
+  function mainLoop(now){
+    if(!mainRunning) return;
+    const delta = now - lastFrame; lastFrame = now;
+    if(inGrace){
+      graceRemain += delta;
+      if(graceRemain >= grace && !contBellInterval){
+        ding(); contBellInterval=setInterval(ding, (+spaceInput.value || 250));
+      }
+    }else{
+      mainRemain -= delta;
+      // Bell checks (only on odd ticks, ~10fps)
+      if(++tick % 2 === 1){
+        if(firstBell > 0 && mainRemain <= (mainTotal - firstBell) && mainRemain+delta > (mainTotal - firstBell)) ding();
+        if(secondBell > 0 && mainRemain <= (mainTotal - secondBell) && mainRemain+delta > (mainTotal - secondBell)) ding();
+        
+        // FIX: Check visual state *before* end of speech
+        if(mainRemain <= 0) {
+          triggerEndOfSpeech();
+        } else {
+          const warn = mainRemain <= yellow && mainRemain > red;
+          const bad = mainRemain <= red;
+          applyBodyState(bad ? 'state-bad' : (warn ? 'state-warn' : null));
+        }
+      }
+    }
+    updateMainDisplay();
+    if(++tick % 5 === 1) syncOut(); // Sync ~2x/sec
+    if(mainRunning) {
+      mainLoopId = requestAnimationFrame(mainLoop);
+    } else {
+      mainLoopId = null;
+    }
+  }
+  
+  function triggerEndOfSpeech() {
+    mainRemain = 0;
+    inGrace = true;
+    graceRemain = 0;
+    // Play double bell
+    ding();
+    setTimeout(ding, (+spaceInput.value || 250));
+  }
+  
+  function updateMainDisplay(){
+    if(!clock || !fill) return;
+    const r = inGrace ? graceRemain : mainRemain;
+    clock.textContent = fmt(r);
+    // FIX: Progress bar fills left-to-right
+    const pct = inGrace ? 1 : (mainTotal > 0 ? clamp((mainTotal - mainRemain) / mainTotal, 0, 1) : 0);
+    fill.style.transform = `scaleX(${pct})`;
+  }
+  
+  // FIX: Scrubbing logic
+  function scrubTo(e) {
+    if (!mainProgress || mainTotal <= 0) return;
+    if (e.preventDefault) e.preventDefault();
+    const rect = mainProgress.getBoundingClientRect();
+    if (!rect || rect.width <= 0) return;
+    let clientX = e.clientX;
+    if (e.touches && e.touches[0]) {
+      clientX = e.touches[0].clientX; // Support touch
+    }
+    const pct = clamp((clientX - rect.left) / rect.width, 0, 1);
+    // FIX: Scrubbing is based on pct (left-to-right)
+    mainRemain = mainTotal * (1 - pct);
+    
     if(inGrace) { inGrace = false; stopContinuous(); }
     
-    // Check bell triggers
-    firstTrigger = (mainTotal-mainRemain >= firstBell && firstBell>0);
-    secondTrigger = (mainTotal-mainRemain >= secondBell && secondBell>0);
+    // FIX: Update visual state immediately on scrub
+    const warn = mainRemain <= yellow && mainRemain > red;
+    const bad = mainRemain <= red;
+    applyBodyState(bad ? 'state-bad' : (warn ? 'state-warn' : null));
     
-    // FIX: Update colors on scrub
-    render();
+    updateMainDisplay();
     syncOut();
   }
   
-  // ---------- Quick Timers ----------
-  function createQuickTimer(clockEl, fillEl, startBtn, resetBtn, totalMs) {
-    let running = false, startTime = 0, remain = totalMs;
+  mainProgress.onpointerdown = e => {
+    if (mainTotal <= 0) return;
+    isScrubbing = true;
+    if (mainRunning) pauseMain(true);
+    mainProgress.setPointerCapture(e.pointerId);
+    scrubTo(e);
+  };
+  
+  mainProgress.onpointermove = e => {
+    if (isScrubbing) scrubTo(e);
+  };
+  
+  mainProgress.onpointerup = e => {
+    if (!isScrubbing) return;
+    mainProgress.releasePointerCapture(e.pointerId);
+    isScrubbing = false;
+    // Manually trigger one last scrubTo ensure sync
+    scrubTo(e);
+  };
+  
+  // Add touch equivalents
+  mainProgress.addEventListener('touchstart', (e) => {
+     if (mainTotal <= 0) return;
+     isScrubbing = true;
+     if(mainRunning) pauseMain(true);
+     scrubTo(e);
+  }, { passive: false });
+  
+  mainProgress.addEventListener('touchmove', (e) => {
+    if (isScrubbing) scrubTo(e);
+  }, { passive: false });
+  
+  mainProgress.addEventListener('touchend', (e) => {
+    isScrubbing = false;
+  });
+
+  // ---------- Timers: Quick ----------
+  // Refactored to be cleaner
+  function createQuickTimer(totalMs, clockEl, fillEl) {
+    let remain = totalMs, running = false, last = 0, reqId = null;
+    
     const update = () => {
-      if(running){
-        remain = totalMs - (Date.now() - startTime);
-        if(remain <= 0){
-          remain = 0; running = false;
-          ding({type:'double'});
-          setTimeout(ding, spacing);
-          startBtn.textContent = currentLang.start;
-        }
-        requestAnimationFrame(update);
-      }
       clockEl.textContent = fmt(remain);
-      fillEl.style.transform = `scaleX(${(totalMs - remain) / (totalMs || 1)})`;
+      // FIX: Progress bar fills left-to-right
+      fillEl.style.transform = `scaleX(${totalMs > 0 ? (totalMs - remain) / totalMs : 0})`;
     };
-    startBtn.onclick = () => {
-      if(running){
+
+    const loop = (now) => {
+      if (!running) return;
+      remain -= (now - last);
+      last = now;
+      if (remain <= 0) {
+        remain = 0;
         running = false;
-        startBtn.textContent = currentLang.start;
-      } else {
-        running = true;
-        startTime = Date.now() - (totalMs - remain);
-        startBtn.textContent = currentLang.pause;
-        requestAnimationFrame(update);
+        ding();
       }
+      update();
+      if (running) reqId = requestAnimationFrame(loop);
     };
-    resetBtn.onclick = () => {
+
+    const start = () => {
+      if (running || remain <= 0) return;
+      running = true;
+      last = performance.now();
+      reqId = requestAnimationFrame(loop);
+    };
+
+    const reset = () => {
+      if (reqId) cancelAnimationFrame(reqId);
+      reqId = null;
       running = false;
       remain = totalMs;
-      startBtn.textContent = currentLang.start;
       update();
     };
-    // Initial render
-    clockEl.textContent = fmt(remain);
-    fillEl.style.transform = 'scaleX(0)';
-    // Return a function to update totalMs
-    return (newTotal) => {
-      totalMs = newTotal;
-      if (!running) {
-        remain = totalMs;
-        clockEl.textContent = fmt(remain);
-        fillEl.style.transform = 'scaleX(0)';
-      }
-    };
+    
+    reset(); // Initial render
+    return { start, reset };
   }
   
-  let updateCex, updateReb, updatePrep, updatePoi;
+  let cexTimer, rebTimer, prepTimer, poiTimer;
 
-  // ---------- Speaker Progress & Data ----------
+  // ---------- Speaker Progress & State ----------
   function buildSequence(base, settings){
-    speakers = [];
-    baseSpeakers = JSON.parse(JSON.stringify(base)); // deep copy
+    const seq = [];
     const prepTime = parseTime(settings.prep);
     const roundPrepTime = parseTime(settings.roundPrep);
     
+    // Add initial round prep
     if(roundPrepTime > 0){
-      speakers.push({type:'prep', time:roundPrepTime, role_en:`Round Prep`, role_ko:`라운드 준비`, side:'prep', initials:'P'});
+      seq.push({ role_en: 'Round Prep', role_ko: '라운드 준비', side: 'prep', initials: 'Prep', time: roundPrepTime });
     }
     
-    baseSpeakers.forEach((s,i)=>{
-      // Add speaker
-      s.type = (s.role_en.includes('Reply') || s.role_en.includes('Rebuttal') || s.role_en.includes('Final Focus')) ? 'reb' : 'main';
-      s.time = (s.type==='reb') ? parseTime(settings.reb) : parseTime(settings.main);
-      s.first = parseTime(settings.first); s.second = parseTime(settings.second);
-      s.yellow = parseTime(settings.yellow); s.red = parseTime(settings.red);
-      s.grace = (s.type==='reb') ? 0 : parseTime(settings.grace);
-      s.active = true; // FIX: Always enable on load
-      speakers.push(s);
+    // Add speeches
+    base.forEach((spk,i)=>{
+      // Add speech
+      const isReply = spk.isReply || spk.role_en.toLowerCase().includes('reply');
+      const time = parseTime(isReply ? settings.reb : settings.main);
+      // Preserve active state from base array if it exists, otherwise default to true
+      seq.push({ ...spk, time, type: isReply ? 'reply' : 'main', active: spk.active !== undefined ? spk.active : true });
       
-      // Add prep time *between* speakers (if > 0 and not WSDC/BP/AP/PF/CX/LD)
-      const nonPrepFormats = ['WSDC', 'BP', 'AP', 'PF', 'CX', 'LD'];
-      if(prepTime > 0 && i < baseSpeakers.length - 1 && !nonPrepFormats.includes(currentPresetId)){
-        speakers.push({type:'prep', time:prepTime, role_en:`Prep for ${baseSpeakers[i+1].initials}`, role_ko:`준비 (${baseSpeakers[i+1].initials})`, side:'prep', initials:'P'});
+      // Add prep time (if not last speaker and prep > 0)
+      // FIX: Check for 'AP' (no prep)
+      if(prepTime > 0 && i < base.length - 1 && currentFormat !== 'AP' && currentFormat !== 'WSDC' && currentFormat !== 'BP' && currentFormat !== 'PF' && currentFormat !== 'LD' && currentFormat !== 'CX') {
+        seq.push({ role_en: 'Prep', role_ko: '준비 (다음)', side: 'prep', initials: 'Prep', time: prepTime, for: base[i+1].role_en });
       }
     });
+    
+    // Return sequence - active state is already preserved from base array
+    return seq;
   }
+
   function renderSpeakerProgress(){
     spkBar.innerHTML = '';
+    const lang = langSelect.value || 'en';
+    const roleKey = `role_${lang}`;
+    
     speakers.forEach((s,i)=>{
-      const el = document.createElement('div');
-      el.className = `spk ${s.side || 'neutral'}`;
-      el.classList.toggle('inactive', !s.active);
-      el.classList.toggle('active', i === activeIdx);
-      el.textContent = s[currentLang.role_key] || s.role_en;
+      const el=document.createElement('div');
+      el.className = 'spk ' + (s.side || 'neutral');
+      el.textContent = s[roleKey] || s.role_en;
+      if(!s.active) el.classList.add('inactive');
+      if(i === activeIdx) el.classList.add('active');
+      el.onclick = ()=> selectSpeaker(i);
+      el.ondblclick = ()=> toggleSpeaker(i);
+      el.draggable = true;
       el.dataset.idx = i;
-      el.onclick = ()=>setActive(i);
-      el.ondblclick = ()=>{ s.active = !s.active; el.classList.toggle('inactive', !s.active) };
       spkBar.appendChild(el);
     });
   }
   
-  // FIX: This function *must* be safe to call with an undefined speaker
-  function setActive(idx) {
+  // Drag & Drop
+  spkBar.ondragstart = e => e.dataTransfer.setData('text/plain', e.target.dataset.idx);
+  spkBar.ondragover = e => e.preventDefault();
+  spkBar.ondrop = e => {
+    e.preventDefault();
+    const oldIdx = +e.dataTransfer.getData('text/plain');
+    const target = e.target.closest('.spk');
+    if(!target) return;
+    const newIdx = +target.dataset.idx;
+    if(oldIdx === newIdx) return;
+    
+    // Re-order array
+    const [moved] = speakers.splice(oldIdx, 1);
+    speakers.splice(newIdx, 0, moved);
+    
+    // Re-set active index
+    activeIdx = speakers.findIndex(s => s.active && s.time === mainTotal);
+    if(activeIdx < 0) activeIdx = newIdx;
+    
+    saveCustomPreset();
+    renderSpeakerProgress();
+    selectSpeaker(activeIdx);
+  };
+  
+  function selectSpeaker(idx, fromBtn=false){
+    if(idx < 0 || idx >= speakers.length) return;
+    if(fromBtn && !speakers[idx].active) { // Skip inactive
+      return selectSpeaker(idx + (fromBtn==='next'?1:-1), fromBtn);
+    }
+    
     activeIdx = idx;
-    const s = speakers[activeIdx]; // Get the speaker (or undefined)
-
-    // --- NEW SAFETY CHECK ---
-    if (s) {
-      // This is the code that was crashing
-      const role = s[currentLang.role_key] || s.role_en;
-      const type = s.type;
-      
-      let title = '';
-      if(type === 'prep') title = currentLang.prep;
-      else if(type === 'reb') title = currentLang.replyRebuttal;
-      else title = currentLang.substantive;
-      titleEl.textContent = title;
-      metaEl.textContent = `— ${role}`;
-      
-      mode = (type==='reb') ? 'reb' : 'main';
-      mainTotal = s.time;
-      firstBell = s.first || 0; secondBell = s.second || 0;
-      yellow = s.yellow || 0; red = s.red || 0;
-      grace = s.grace || 0;
-      spacing = parseTime(spaceInput.value) || 250;
-
-      // Update notes button state
-      const note = getNoteForSpeaker(s);
-      toggleNotesBtn.classList.toggle('active', !!note);
-      
-      // Load notes into text area
-      if (isNotesOpen) {
-        loadNotesForSpeaker(s);
-      }
-
-    } else {
-      // No speaker selected (or array is empty)
-      // This is the "safe" block
-      mode = 'main';
-      mainTotal = 0;
-      mainRemain = 0;
-      firstBell = 0;
-      secondBell = 0;
-      yellow = 0; red = 0; grace = 0;
-      mainRunning = false;
-      inGrace = false;
-
-      titleEl.textContent = 'No Speaker';
-      metaEl.textContent = '';
-      
-      // Update notes button state (no speaker = no notes)
-      toggleNotesBtn.classList.toggle('active', false);
-      if (isNotesOpen) {
-        notesArea.value = '';
-        notesArea.disabled = true;
-      }
-    }
-
-    // These should run *outside* the if block, to render the cleared state
-    toggleNotesBtn.classList.toggle('open', isNotesOpen);
-    
-    resetMain(); // This resets the timer/colors
-    render(); // This renders the 0:00
-    updateButtonStates();
-    syncOut();
-    
-    // Update active class in speaker bar
-    $$('.spk.active').forEach(el=>el.classList.remove('active'));
-    const el = $(`[data-idx="${activeIdx}"]`);
-    if(el) el.classList.add('active');
-  }
-
-  // ---------- Notes ----------
-  let allNotes = {}; // formatKey_roleKey: "note text"
-  let isNotesOpen = false;
-  
-  function getNoteKey(speaker) {
-    if (!speaker || !speaker.role_en) return null;
-    // Use role_en as the stable key, replacing spaces
-    const roleKey = speaker.role_en.replace(/\s+/g, '_');
-    return `${currentPresetId}_${roleKey}`;
-  }
-  
-  function getNoteForSpeaker(speaker) {
-    const key = getNoteKey(speaker);
-    return key ? (allNotes[key] || "") : "";
-  }
-  
-  function loadNotesForSpeaker(speaker) {
-    const key = getNoteKey(speaker);
-    if (key) {
-      notesArea.value = allNotes[key] || "";
-      notesArea.disabled = false;
-      notesArea.setAttribute('placeholder', currentLang.notesPlaceholder);
-    } else {
-      // Not a speaker (e.g., prep timer)
-      // Try to find *next* speaker
-      const nextSpeaker = speakers[activeIdx + 1];
-      if (nextSpeaker && nextSpeaker.type !== 'prep') {
-        const nextKey = getNoteKey(nextSpeaker);
-        notesArea.value = allNotes[nextKey] || "";
-        notesArea.disabled = true;
-        notesArea.setAttribute('placeholder', `${currentLang.prepFor} ${nextSpeaker[currentLang.role_key] || nextSpeaker.role_en}...`);
-      } else {
-        notesArea.value = "";
-        notesArea.disabled = true;
-        notesArea.setAttribute('placeholder', '');
-      }
-    }
-  }
-  
-  function saveNote() {
     const s = speakers[activeIdx];
-    const key = getNoteKey(s);
-    if (key) {
-      allNotes[key] = notesArea.value;
-      // Update button state immediately
-      toggleNotesBtn.classList.toggle('active', !!notesArea.value);
-      // Save all notes to localStorage
-      localStorage.setItem('debateNotes', JSON.stringify(allNotes));
+    if(!s) return;
+    
+    // Set timer type
+    mode = (s.type === 'reply' || s.role_en.toLowerCase().includes('reply')) ? 'reply' : (s.side === 'prep' ? 'prep' : 'main');
+    
+    // Load times
+    mainTotal = s.time;
+    if(mode === 'main'){
+      firstBell = parseTime(firstInput.value);
+      secondBell = parseTime(secondInput.value);
+      yellow = parseTime(yellowInput.value);
+      red = parseTime(redInput.value);
+      grace = parseTime(graceInput.value);
+    } else {
+      firstBell=0; secondBell=0; yellow=0; red=0; grace=0;
     }
+    
+    // Set UI
+    const lang = langSelect.value || 'en';
+    const roleKey = `role_${lang}`;
+    mainTitle.textContent = s[roleKey] || s.role_en;
+    metaEl.textContent = s.initials || '';
+    if(s.side === 'prep' && s.for) {
+      metaEl.textContent = `${currentLang.prepFor} ${s.for}`;
+    }
+    
+    resetMain();
+    renderSpeakerProgress();
+    loadSpeakerNotes(); // Load notes for this speaker
   }
   
-  function exportNotesTxt() {
-    let txt = `Debate Timer Notes - ${new Date().toLocaleString()}\n`;
+  function toggleSpeaker(idx){
+    speakers[idx].active = !speakers[idx].active;
+    saveCustomPreset();
+    renderSpeakerProgress();
+  }
+  
+  nextBtn.onclick = ()=> selectSpeaker(activeIdx + 1, 'next');
+  prevBtn.onclick = ()=> selectSpeaker(activeIdx - 1, 'prev');
+  resetOrder.onclick = ()=> loadFormat(currentFormat, true);
+  
+  // ---------- Settings & Presets ----------
+  function loadFormat(format, force=false){
+    // Track previous format before switching
+    const previousFormat = currentFormat;
     
-    // Group by preset
-    const grouped = {};
-    for (const key in allNotes) {
-      if (allNotes[key]) {
-        const [preset, ...roleParts] = key.split('_');
-        const role = roleParts.join(' ').replace(/_/g, ' '); // Recreate role_en
-        if (!grouped[preset]) grouped[preset] = [];
-        grouped[preset].push({ role, note: allNotes[key] });
+    if(format === 'CUSTOM' && !force) {
+      // Just load from storage, don't overwrite
+      loadCustomPreset();
+      return;
+    }
+    
+    // If switching to CUSTOM, copy current format's settings and speakers BEFORE changing format
+    if(format === 'CUSTOM' && previousFormat && previousFormat !== 'CUSTOM') {
+      // Capture current settings from input fields
+      const currentSettings = {
+        main: mainInput.value, first: firstInput.value, second: secondInput.value,
+        yellow: yellowInput.value, red: redInput.value, grace: graceInput.value,
+        prep: prepInput.value, cex: cexInput.value, reb: rebInput.value, poi: poiInput.value,
+        spacing: spaceInput.value, roundPrep: PRESETS[previousFormat]?.settings?.roundPrep || '0:00'
+      };
+      
+      // Get current base speakers (no prep tokens) - capture BEFORE format changes
+      let currentBaseSpeakers = speakers.filter(s => s.side !== 'prep').map(s => ({
+        role_en: s.role_en,
+        role_ko: s.role_ko,
+        side: s.side,
+        initials: s.initials,
+        active: s.active !== undefined ? s.active : true,
+        isReply: s.isReply || s.role_en?.toLowerCase().includes('reply') || false
+      }));
+      
+      // If no speakers in current array, try to get them from the previous format's preset
+      if(currentBaseSpeakers.length === 0 && PRESETS[previousFormat]) {
+        const prevPreset = PRESETS[previousFormat];
+        if(prevPreset.base && Array.isArray(prevPreset.base)) {
+          currentBaseSpeakers = prevPreset.base.map(s => ({
+            role_en: s.role_en,
+            role_ko: s.role_ko,
+            side: s.side,
+            initials: s.initials,
+            active: s.active !== undefined ? s.active : true,
+            isReply: s.isReply || s.role_en?.toLowerCase().includes('reply') || false
+          }));
+        }
+      }
+      
+      // Always save as custom preset when switching to CUSTOM (overwrites existing)
+      if(currentBaseSpeakers.length > 0) {
+        try {
+          localStorage.setItem('debateCustomPreset', JSON.stringify({
+            base: currentBaseSpeakers,
+            settings: currentSettings
+          }));
+        } catch(e) {
+          console.warn('Failed to save custom preset from previous format:', e);
+        }
+      } else {
+        console.warn('No speakers found to copy when switching to CUSTOM format');
       }
     }
     
-    for (const presetId in grouped) {
-      txt += `\n== ${presetId} ==\n`;
-      for (const item of grouped[presetId]) {
-        txt += `\n## ${item.role} ##\n${item.note}\n`;
-      }
+    // Load new preset
+    currentFormat = format;
+    
+    // If it's CUSTOM, load the custom preset (which we just saved above)
+    if(format === 'CUSTOM') {
+      loadCustomPreset();
+      
+      // Ensure UI is updated
+      renderSpeakerProgress();
+      updateButtonStates();
+      saveState();
+      return; // Exit early for CUSTOM format
     }
     
-    const blob = new Blob([txt], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'debate_notes.txt';
-    a.click();
-    URL.revokeObjectURL(url);
+    // Check if it's a custom format (stored in localStorage)
+    const customFormat = getCustomFormat(format);
+    if(customFormat) {
+      // Load custom format
+      const p = {
+        base: customFormat.base,
+        settings: customFormat.settings
+      };
+      
+      // Apply settings
+      Object.entries(p.settings).forEach(([key, val])=>{
+        const input = $(`#${key}Input`);
+        if(input) input.value = val;
+      });
+      
+      // Build speaker sequence
+      speakers = buildSequence(p.base, p.settings);
+      speakers.forEach(s => s.active = true);
+      
+      // Re-init timers and UI
+      initQuickTimers();
+      selectSpeaker(0);
+      saveState();
+      return; // Exit early for custom format
+    }
+    
+    // For built-in formats, load from PRESETS
+    const p = PRESETS[format];
+    if(!p) return;
+    
+    // Apply settings
+    Object.entries(p.settings).forEach(([key, val])=>{
+      const input = $(`#${key}Input`);
+      if(input) input.value = val;
+    });
+    
+    // Build speaker sequence
+    // FIX: Force all speakers to be active on new preset load
+    speakers = buildSequence(p.base, p.settings);
+    speakers.forEach(s => s.active = true); // <-- HERE
+    
+    // Re-init timers and UI
+    initQuickTimers();
+    selectSpeaker(0);
+    saveState();
   }
   
-  function importNotes(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
+  function saveState(){
+    const settings = {
+      main: mainInput.value, first: firstInput.value, second: secondInput.value,
+      yellow: yellowInput.value, red: redInput.value, grace: graceInput.value,
+      prep: prepInput.value, cex: cexInput.value, reb: rebInput.value, poi: poiInput.value, spacing: spaceInput.value
+    };
+    try {
+    localStorage.setItem('debateSettings', JSON.stringify(settings));
+    localStorage.setItem('debateFormat', currentFormat);
+    } catch(e) {
+      console.warn('Failed to save state:', e);
+    }
+    
+    // If custom, save speaker order
+    if(currentFormat === 'CUSTOM'){
+      saveCustomPreset();
+    }
+  }
+  
+  function loadState(){
+    let fmt = 'SIMSON';
+    try {
+      fmt = localStorage.getItem('debateFormat') || 'SIMSON';
+    formatSelect.value = fmt;
+    
+      const settingsStr = localStorage.getItem('debateSettings');
+      if(settingsStr){
+        const settings = JSON.parse(settingsStr);
+    if(settings){
+      Object.entries(settings).forEach(([key, val])=>{
+        const input = $(`#${key}Input`);
+        if(input) input.value = val;
+      });
+        }
+      }
+    } catch(e) {
+      console.warn('Failed to load state:', e);
+    }
+    
+    // Load format (this will load custom preset if fmt is CUSTOM)
+    loadFormat(fmt);
+    
+    // Load language
+    let lang = 'en';
+    try {
+      lang = localStorage.getItem('debateLang') || 'en';
+    } catch(e) {
+      console.warn('Failed to load language:', e);
+    }
+    langSelect.value = lang;
+    setLanguage(lang);
+  }
+  
+  function saveCustomPreset() {
+    // Save only if on CUSTOM format
+    if (currentFormat !== 'CUSTOM') return;
+    
+    const settings = {
+      main: mainInput.value, first: firstInput.value, second: secondInput.value,
+      yellow: yellowInput.value, red: redInput.value, grace: graceInput.value,
+      prep: prepInput.value, cex: cexInput.value, reb: rebInput.value, poi: poiInput.value,
+      spacing: spaceInput.value, roundPrep: '0:00' // Base custom doesn't have round prep
+    };
+    
+    // Save the *current* speaker list (which may have been re-ordered)
+    // Filter out prep tokens - only save actual speakers to preserve order
+    const baseSpeakers = speakers.filter(s => s.side !== 'prep').map(s => ({
+      role_en: s.role_en,
+      role_ko: s.role_ko,
+      side: s.side,
+      initials: s.initials,
+      active: s.active, // Save active state
+      isReply: s.isReply || false
+      // Don't save time, it's dynamic
+    }));
+    
+    const customData = { base: baseSpeakers, settings: settings };
+    try {
+    localStorage.setItem('debateCustomPreset', JSON.stringify(customData));
+    } catch(e) {
+      console.warn('Failed to save custom preset:', e);
+    }
+  }
+  
+  function loadCustomPreset() {
+    try {
+      const customDataStr = localStorage.getItem('debateCustomPreset');
+      if (!customDataStr) {
+      // No custom data, just use default empty custom
+      speakers = [];
+      renderSpeakerProgress();
+      return;
+    }
+      
+      const customData = JSON.parse(customDataStr);
+      if (!customData) {
+      speakers = [];
+      renderSpeakerProgress();
+      return;
+    }
+    
+    // Apply settings
+      if(customData.settings) {
+    Object.entries(customData.settings).forEach(([key, val])=>{
+      const input = $(`#${key}Input`);
+      if(input) input.value = val;
+    });
+      }
+    
+    // Build speaker sequence from *saved* base speakers
+      if(customData.base) {
+        speakers = buildSequence(customData.base, customData.settings || {});
+    initQuickTimers();
+    selectSpeaker(0);
+      } else {
+        speakers = [];
+        renderSpeakerProgress();
+      }
+    } catch(e) {
+      console.warn('Failed to load custom preset:', e);
+      speakers = [];
+      renderSpeakerProgress();
+    }
+  }
+  
+  formatSelect.onchange = () => loadFormat(formatSelect.value, true);
+  $$('#settingsPanel input').forEach(el => el.onchange = saveState);
+  
+  // ---------- Custom Format Management ----------
+  // Store custom formats in localStorage with unique IDs
+  function getCustomFormats() {
+    try {
+      const stored = localStorage.getItem('debateCustomFormats');
+      return stored ? JSON.parse(stored) : {};
+    } catch(e) {
+      console.warn('Failed to load custom formats:', e);
+      return {};
+    }
+  }
+  
+  function saveCustomFormats(formats) {
+    try {
+      localStorage.setItem('debateCustomFormats', JSON.stringify(formats));
+    } catch(e) {
+      console.warn('Failed to save custom formats:', e);
+    }
+  }
+  
+  function addCustomFormat(formatId, formatLabel, base, settings) {
+    const formats = getCustomFormats();
+    formats[formatId] = {
+      label: formatLabel,
+      base: base,
+      settings: settings,
+      created: new Date().toISOString()
+    };
+    saveCustomFormats(formats);
+    updateFormatDropdown();
+  }
+  
+  function getCustomFormat(formatId) {
+    const formats = getCustomFormats();
+    return formats[formatId] || null;
+  }
+  
+  function formatIdExists(formatId) {
+    const formats = getCustomFormats();
+    return formatId in formats;
+  }
+  
+  function generateFormatId(label) {
+    // Create a safe ID from label: lowercase, replace spaces with underscores, remove special chars
+    let id = label.toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_]/g, '')
+      .substring(0, 20);
+    
+    // Ensure it doesn't conflict with built-in formats
+    const builtInFormats = ['SIMSON', 'AP', 'BP', 'WSDC', 'PF', 'CX', 'LD', 'CUSTOM'];
+    if (builtInFormats.includes(id.toUpperCase())) {
+      id = 'custom_' + id;
+    }
+    
+    // Check for duplicates and append number if needed
+    let finalId = id;
+    let counter = 1;
+    while (formatIdExists(finalId)) {
+      finalId = id + '_' + counter;
+      counter++;
+    }
+    
+    return finalId;
+  }
+  
+  function updateFormatDropdown() {
+    const customFormats = getCustomFormats();
+    const formatSelect = $('#formatSelect');
+    
+    // Remove existing custom format options (keep built-in ones)
+    const builtInValues = ['AP', 'BP', 'WSDC', 'PF', 'CX', 'LD', 'SIMSON', 'CUSTOM'];
+    Array.from(formatSelect.options).forEach(opt => {
+      if (!builtInValues.includes(opt.value)) {
+        opt.remove();
+      }
+    });
+    
+    // Add custom formats before CUSTOM option (Simson is above Custom)
+    const customOption = formatSelect.querySelector('option[value="CUSTOM"]');
+    Object.entries(customFormats).forEach(([id, format]) => {
+      const option = document.createElement('option');
+      option.value = id;
+      option.textContent = format.label || id;
+      formatSelect.insertBefore(option, customOption);
+    });
+  }
+  
+  function purgeAllCustomFormats() {
+    const customFormats = getCustomFormats();
+    const formatCount = Object.keys(customFormats).length;
+    
+    if (formatCount === 0) {
+      setStatus('No custom formats to purge');
+      return;
+    }
+    
+    const confirmed = confirm(
+      `Are you sure you want to delete all ${formatCount} custom format(s)?\n\n` +
+      `This action cannot be undone.`
+    );
+    
+    if (confirmed) {
       try {
-        let importedNotes = {};
-        if (file.type === 'application/json') {
-          importedNotes = JSON.parse(e.target.result);
+        localStorage.removeItem('debateCustomFormats');
+        updateFormatDropdown();
+        
+        // If current format is a custom format, switch to default
+        const customFormat = getCustomFormat(currentFormat);
+        if (customFormat) {
+          formatSelect.value = 'AP';
+          loadFormat('AP');
+        }
+        
+        setStatus(`Successfully purged ${formatCount} custom format(s)`);
+      } catch(e) {
+        console.error('Failed to purge custom formats:', e);
+        setStatus('Failed to purge custom formats');
+      }
+    }
+  }
+  
+  // ---------- Settings Import/Export ----------
+  exportBtn.onclick = async () => {
+    // Export works for ALL formats - exports current state including any modifications
+    if (!currentFormat) {
+      setStatus('Error: No format selected');
+      return;
+    }
+    
+    // Get roundPrep value - check custom preset if CUSTOM, otherwise use format default
+    let roundPrep = '0:00';
+    if (currentFormat === 'CUSTOM') {
+      try {
+        const customPreset = localStorage.getItem('debateCustomPreset');
+        if (customPreset) {
+          const parsed = JSON.parse(customPreset);
+          roundPrep = parsed.settings?.roundPrep || '0:00';
+        }
+      } catch(e) {
+        // Use default
+      }
+    } else {
+      // Check if it's a custom format
+      const customFormat = getCustomFormat(currentFormat);
+      if (customFormat) {
+        roundPrep = customFormat.settings?.roundPrep || '0:00';
+      } else {
+        // For built-in formats, use the format's default roundPrep
+        roundPrep = PRESETS[currentFormat]?.settings?.roundPrep || '0:00';
+      }
+    }
+    
+    // Export *current* settings from input fields (captures any user modifications)
+    const settings = {
+      main: mainInput.value, first: firstInput.value, second: secondInput.value,
+      yellow: yellowInput.value, red: redInput.value, grace: graceInput.value,
+      prep: prepInput.value, cex: cexInput.value, reb: rebInput.value, poi: poiInput.value,
+      spacing: spaceInput.value, roundPrep: roundPrep
+    };
+    
+    // Get base speakers from current speakers array (no prep tokens)
+    // This captures the current state, including any reordering or modifications
+    const baseSpeakers = speakers.filter(s => s.side !== 'prep').map(s => ({
+      role_en: s.role_en,
+      role_ko: s.role_ko,
+      side: s.side,
+      initials: s.initials,
+      active: s.active,
+      isReply: s.role_en?.toLowerCase().includes('reply') || false
+    }));
+    
+    // Validate we have data to export
+    if (baseSpeakers.length === 0) {
+      setStatus('Error: No speakers to export');
+      return;
+    }
+    
+    // Create format object compatible with format builder
+    let formatLabel;
+    if (currentFormat === 'CUSTOM') {
+      formatLabel = 'Custom';
+    } else {
+      // Check if it's a custom format
+      const customFormat = getCustomFormat(currentFormat);
+      if (customFormat) {
+        formatLabel = customFormat.label || currentFormat + ' Format';
+      } else {
+        // Built-in format
+        formatLabel = PRESETS[currentFormat]?.label || currentFormat + ' Format';
+      }
+    }
+    
+    const format = {
+      label: formatLabel,
+      base: baseSpeakers,
+      settings: settings
+    };
+    
+    // Enhanced export with metadata (compatible with format builder)
+    const data = {
+      format: format,
+      formatId: currentFormat,
+      metadata: {
+        created: new Date().toISOString(),
+        version: '1.0',
+        exportedFrom: 'Debate Timer App'
+      },
+      // Legacy format for backward compatibility
+      base: baseSpeakers,
+      settings: settings
+    };
+    
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], {type: 'application/json'});
+    
+    // Generate filename based on format
+    let filename;
+    if (currentFormat === 'CUSTOM') {
+      filename = 'custom_format.json';
+    } else {
+      const customFormat = getCustomFormat(currentFormat);
+      if (customFormat) {
+        // Use format label for custom formats (sanitized for filename)
+        const sanitized = formatLabel.toLowerCase()
+          .replace(/\s+/g, '_')
+          .replace(/[^a-z0-9_]/g, '')
+          .substring(0, 30);
+        filename = `${sanitized}.json`;
+      } else {
+        filename = `${currentFormat.toLowerCase()}_format.json`;
+      }
+    }
+    
+    try {
+      // Try using File System Access API if available (modern browsers)
+      if ('showSaveFilePicker' in window) {
+        const fileHandle = await window.showSaveFilePicker({
+          suggestedName: filename,
+          types: [{
+            description: 'JSON files',
+            accept: { 'application/json': ['.json'] }
+          }]
+        });
+        const writable = await fileHandle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        setStatus('Format exported successfully! File: ' + filename);
+        return;
+      }
+    } catch (err) {
+      // User cancelled or API not available, fall through to download method
+      if (err.name !== 'AbortError') {
+        console.log('File System Access API not available, using download method');
+      }
+    }
+    
+    // Fallback: Create download link and trigger download
+    try {
+    const a = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      a.href = url;
+      a.download = filename;
+      a.style.display = 'none';
+      
+      // Add to DOM, click, then remove (required for some browsers)
+      document.body.appendChild(a);
+    a.click();
+      
+      // Clean up after a short delay
+      setTimeout(() => {
+        if (document.body.contains(a)) {
+          document.body.removeChild(a);
+        }
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      setStatus('Format exported successfully! File: ' + filename);
+    } catch (err) {
+      console.error('Export failed:', err);
+      // Last resort: show JSON in alert/console for manual copy
+      setStatus('Export failed. Check console for JSON data.');
+      console.log('Export Data:', jsonString);
+      alert('Download failed. The JSON data has been logged to the console. Press F12 to view it.');
+    }
+  };
+  
+  importBtn.onclick = () => importFile.click();
+  importFile.onchange = e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onerror = () => {
+      console.error('Failed to read file');
+      setStatus('Failed to read file');
+    };
+    reader.onload = e => {
+      try {
+        const data = JSON.parse(e.target.result);
+        
+        // Handle new format builder format (with format object and metadata)
+        let importData, formatLabel, originalFormatId;
+        if (data.format) {
+          // New format builder format
+          importData = {
+            base: data.format.base || [],
+            settings: data.format.settings || {}
+          };
+          formatLabel = data.format.label || 'Custom';
+          originalFormatId = data.formatId;
+        } else if (data.base && data.settings) {
+          // Legacy format (backward compatible)
+          importData = data;
+          formatLabel = 'Imported Format';
+          originalFormatId = null;
         } else {
-          // Parse .txt format
-          const txt = e.target.result;
-          let currentPreset = '';
-          let currentRole = '';
-          const lines = txt.split('\n');
-          for (const line of lines) {
-            if (line.startsWith('== ') && line.endsWith(' ==')) {
-              currentPreset = line.substring(3, line.length - 3).trim();
-            } else if (line.startsWith('## ') && line.endsWith(' ##')) {
-              currentRole = line.substring(3, line.length - 3).trim().replace(/\s+/g, '_');
-            } else if (currentPreset && currentRole) {
-              const key = `${currentPreset}_${currentRole}`;
-              if (!importedNotes[key]) importedNotes[key] = '';
-              importedNotes[key] += line + '\n';
-            }
-          }
-          // Clean up trailing newlines
-          for (const key in importedNotes) {
-            importedNotes[key] = importedNotes[key].trim();
+          throw new Error('Invalid format: Missing base or settings');
+        }
+        
+        // Validate required fields
+        if (!importData.base || !Array.isArray(importData.base)) {
+          throw new Error('Invalid format: base must be an array');
+        }
+        if (!importData.settings || typeof importData.settings !== 'object') {
+          throw new Error('Invalid format: settings must be an object');
+        }
+        
+        // Check for duplicate format name
+        const customFormats = getCustomFormats();
+        let formatId = generateFormatId(formatLabel);
+        let existingFormat = null;
+        
+        // Check if a format with the same label already exists
+        for (const [id, format] of Object.entries(customFormats)) {
+          if (format.label === formatLabel) {
+            existingFormat = { id, format };
+            break;
           }
         }
         
-        // Merge with existing notes
-        allNotes = { ...allNotes, ...importedNotes };
-        localStorage.setItem('debateNotes', JSON.stringify(allNotes));
-        // Reload notes for current speaker
-        if(speakers[activeIdx]) loadNotesForSpeaker(speakers[activeIdx]);
-        // Update button state
-        toggleNotesBtn.classList.toggle('active', !!getNoteForSpeaker(speakers[activeIdx]));
-      } catch (err) {
-        console.error('Failed to import notes:', err);
-      }
-    };
-    reader.readAsText(file);
-  }
-  
-  function clearAllNotes() {
-    showConfirm({
-      title: currentLang.confirmClear,
-      text: currentLang.confirmClearText,
-      okText: currentLang.confirmOK,
-      callback: () => {
-        allNotes = {};
-        localStorage.removeItem('debateNotes');
-        if(speakers[activeIdx]) loadNotesForSpeaker(speakers[activeIdx]);
-        toggleNotesBtn.classList.toggle('active', false);
-      }
-    });
-  }
-  
-  // ---------- Settings / Presets ----------
-  function loadPreset(id, importedSettings=null){
-    let p, settings;
-    if(id==='CUSTOM' && importedSettings){
-      p = PRESETS.CUSTOM;
-      p.base = importedSettings.base || [];
-      settings = importedSettings.settings || {};
-      PRESETS.CUSTOM.base = p.base;
-      PRESETS.CUSTOM.settings = settings;
-      localStorage.setItem('debateCustomPreset', JSON.stringify(PRESETS.CUSTOM));
-    } else if (id==='CUSTOM') {
-      p = JSON.parse(localStorage.getItem('debateCustomPreset')) || PRESETS.CUSTOM;
-      if(!p.base) p.base = [];
-      if(!p.settings) p.settings = PRESETS.SIMSON.settings; // Default
-      PRESETS.CUSTOM = p; // Ensure it's in memory
-      settings = p.settings;
-    } else {
-      p = PRESETS[id];
-      settings = p.settings;
-    }
-    currentPresetId = id;
-    currentSettings = settings;
-    
-    // Apply settings to inputs
-    mainInput.value = settings.main;
-    firstInput.value = settings.first;
-    secondInput.value = settings.second;
-    yellowInput.value = settings.yellow;
-    redInput.value = settings.red;
-    graceInput.value = settings.grace;
-    prepInput.value = settings.prep;
-    cexInput.value = settings.cex;
-    rebInput.value = settings.reb;
-    poiInput.value = settings.poi || '0:15';
-    spaceInput.value = settings.spacing;
-    
-    // Update quick timers
-    if(updateCex) updateCex(parseTime(settings.cex));
-    if(updateReb) updateReb(parseTime(settings.reb));
-    if(updatePrep) updatePrep(parseTime(settings.prep));
-    if(updatePoi) updatePoi(parseTime(settings.poi || '0:15'));
-    
-    // Build speaker sequence
-    buildSequence(p.base, settings);
-    renderSpeakerProgress();
-    
-    // FIX: Only set active if there are speakers
-    if (speakers.length > 0) {
-      setActive(0);
-    } else {
-      setActive(-1); // This will clear the timer
-    }
-    
-    localStorage.setItem('debateFormat', id);
-  }
-  
-  function collectSettings() {
-    return {
-      main: mainInput.value, first: firstInput.value, second: secondInput.value,
-      yellow: yellowInput.value, red: redInput.value, grace: graceInput.value,
-      prep: prepInput.value, cex: cexInput.value, reb: rebInput.value,
-      poi: poiInput.value, spacing: spaceInput.value,
-      roundPrep: currentSettings.roundPrep || '0:00' // Preserve this
-    };
-  }
-  
-  function exportSettings() {
-    const data = {
-      base: (currentPresetId === 'CUSTOM') ? baseSpeakers : PRESETS[currentPresetId].base,
-      settings: collectSettings()
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${currentPresetId}_settings.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-  
-  function importSettings(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target.result);
-        if (data.base && data.settings) {
-          loadPreset('CUSTOM', data);
-          formatSelect.value = 'CUSTOM';
+        // If duplicate found, prompt user
+        if (existingFormat) {
+          const userChoice = confirm(
+            `A format named "${formatLabel}" already exists.\n\n` +
+            `Click OK to overwrite it, or Cancel to create a new format with a different name.`
+          );
+          
+          if (userChoice) {
+            // Overwrite existing format
+            formatId = existingFormat.id;
+            addCustomFormat(formatId, formatLabel, importData.base, importData.settings);
+            setStatus(`Format "${formatLabel}" overwritten successfully!`);
+          } else {
+            // Prompt for new name
+            let newName = prompt(
+              `Enter a new name for this format:`,
+              formatLabel + ' (Copy)'
+            );
+            
+            if (!newName || newName.trim() === '') {
+              setStatus('Import cancelled');
+              e.target.value = null;
+              return;
+            }
+            
+            formatLabel = newName.trim();
+            formatId = generateFormatId(formatLabel);
+            addCustomFormat(formatId, formatLabel, importData.base, importData.settings);
+            setStatus(`Format "${formatLabel}" imported successfully!`);
+          }
+        } else {
+          // No duplicate, add as new format
+          addCustomFormat(formatId, formatLabel, importData.base, importData.settings);
+          setStatus(`Format "${formatLabel}" imported successfully!`);
         }
+        
+        // Switch to the imported format and load it
+        formatSelect.value = formatId;
+        loadFormat(formatId);
+        
       } catch (err) {
         console.error('Failed to import settings:', err);
+        setStatus('Invalid file format: ' + err.message);
       }
     };
     reader.readAsText(file);
+    e.target.value = null; // Clear input
+  };
+  
+  purgeCustomFormatsBtn.onclick = () => purgeAllCustomFormats();
+  
+  // ---------- Notes Import/Export/Clear ----------
+  function getNoteKey(format, speaker) {
+    if (!speaker) return null;
+    return `${format}_${speaker.role_en}`;
   }
   
-  // ---------- Render / Update ----------
-  function render(){
-    const left = mainRemain;
-    const warn = left <= yellow && left > red && mode==='main' && !inGrace;
-    const bad = left <= red && left > 0 && mode==='main' && !inGrace;
+  function saveSpeakerNotes() {
+    const s = speakers[activeIdx];
+    if (!s || s.side === 'prep') return; // Don't save for prep
     
-    if(inGrace){
-      clock.textContent = fmt(graceRemain);
-      fill.style.transform = `scaleX(${graceRemain / (grace || 1)})`;
-    }else{
-      clock.textContent = fmt(mainRemain);
-      fill.style.transform = `scaleX(${(mainTotal - mainRemain) / (mainTotal || 1)})`;
+    const key = getNoteKey(currentFormat, s);
+    if (!key) return;
+    
+    allNotes[key] = notesArea.value;
+    try {
+    localStorage.setItem('debateNotes', JSON.stringify(allNotes));
+    } catch(e) {
+      console.warn('Failed to save notes:', e);
     }
+    // Update button state to show if notes exist (colors controlled by CSS)
+    const hasNotes = !!notesArea.value;
+    toggleNotesBtn.classList.toggle('has-notes', hasNotes);
+  }
+  
+  function loadSpeakerNotes() {
+    let s = speakers[activeIdx];
+    let isPrep = false;
     
-    // FIX: Reset color on change/reset
-    if (!mainRunning && mainRemain === mainTotal) {
-      applyBodyState(null);
-    } else if(inGrace) {
-      applyBodyState('state-grace');
-    } else if(bad) {
-      applyBodyState('state-bad');
-    } else if(warn) {
-      applyBodyState('state-warn');
-    } else {
-      applyBodyState(null);
-    }
-  }
-  
-  function setStatus(langKey){
-    statusEl.textContent = currentLang[langKey] || langKey;
-  }
-  
-  function updateButtonStates() {
-    startBtn.classList.toggle('running', mainRunning);
-    // Update text
-    const startLabel = startBtn.querySelector('.label-text');
-    if (startLabel) startLabel.textContent = mainRunning ? currentLang.pause : currentLang.start;
-    
-    // Update tooltips
-    themeBtn.title = document.documentElement.classList.contains('dark') ? currentLang.lightMode : currentLang.darkMode;
-    muteBtn.title = currentLang.titleMute;
-    startBtn.title = currentLang.titleStart;
-    resetBtn.title = currentLang.titleReset;
-    singleBtn.title = currentLang.titleSingle;
-    doubleBtn.title = currentLang.titleDouble;
-    testContBtn.title = currentLang.titleTestCont;
-    stopBellBtn.title = currentLang.titleStopBell;
-    helpBtn.title = currentLang.titleHelp;
-    presenterBtn.title = currentLang.titlePresenter;
-    mirrorBtn.title = currentLang.titleMirror;
-    toggleQuickTimers.title = isQuickTimersOpen ? currentLang.hideQuickTimers : currentLang.showQuickTimers;
-    toggleNotesBtn.title = isNotesOpen ? currentLang.hideNotes : currentLang.showNotes;
-  }
-  
-  let isSettingsOpen = true, isQuickTimersOpen = false;
-  
-  function togglePanel(panel, isOpen, btn, btnClass) {
-    if (isOpen) {
-      // FIX: Use hardcoded max-height to prevent clipping
-      panel.style.maxHeight = '500px'; 
-      panel.style.padding = '16px';
-      panel.style.borderWidth = '1px';
-      if(btn) btn.classList.add(btnClass || 'open');
-    } else {
-      panel.style.maxHeight = '0px';
-      panel.style.padding = '0 16px';
-      panel.style.borderWidth = '0px';
-      if(btn) btn.classList.remove(btnClass || 'open');
-    }
-    return isOpen;
-  }
-  
-  // ---------- Language ----------
-  function setLang(lang){
-    currentLang = translations[lang] || translations.en;
-    currentLang.role_key = (lang === 'ko') ? 'role_ko' : 'role_en';
-    
-    $$('[data-lang-key]').forEach(el => {
-      const key = el.dataset.langKey;
-      if (currentLang[key]) {
-        if(el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
-          if (el.placeholder) el.placeholder = currentLang[key];
-        } else {
-          el.innerHTML = currentLang[key]; // Use innerHTML for <strong> tags in help
-        }
+    if (s && s.side === 'prep') {
+      // If prep, show notes for *next* speaker
+      const nextSpeaker = speakers.find((spk, i) => i > activeIdx && spk.active && spk.side !== 'prep');
+      if (nextSpeaker) {
+        s = nextSpeaker;
+        isPrep = true;
+      } else {
+        s = null; // No next speaker
       }
+    }
+    
+    if (!s) {
+      notesArea.value = '';
+      notesArea.disabled = true;
+      toggleNotesBtn.classList.remove('has-notes'); // Remove cue if no speaker
+      return;
+    }
+    
+    const key = getNoteKey(currentFormat, s);
+    const note = allNotes[key] || '';
+    notesArea.value = note;
+    
+    // Disable if in prep mode
+    notesArea.disabled = isPrep;
+    notesArea.placeholder = isPrep ? '' : currentLang.notesPlaceholder;
+    
+    // Update button state to show if notes exist (colors controlled by CSS)
+    const hasNotes = !!note;
+    toggleNotesBtn.classList.toggle('has-notes', hasNotes);
+  }
+  
+  notesArea.oninput = saveSpeakerNotes;
+  
+  exportNotesBtn.onclick = () => {
+    let txt = `Debate Timer Notes\n====================\n\n`;
+    const formats = {};
+    
+    // Group by format
+    Object.keys(allNotes).forEach(key => {
+      const [format, ...speakerParts] = key.split('_');
+      const speaker = speakerParts.join('_');
+      if (!formats[format]) formats[format] = [];
+      formats[format].push({ speaker, note: allNotes[key] });
     });
     
-    // Update dynamic elements
-    updateButtonStates();
-    if (speakers.length > 0) {
-      setActive(activeIdx); // Re-set active to update titles
-      renderSpeakerProgress(); // Re-render speaker names
+    // Build text file
+    Object.keys(formats).sort().forEach(format => {
+      txt += `== ${format} ==\n\n`;
+      formats[format].forEach(({ speaker, note }) => {
+        if (note && note.trim()) {
+          txt += `## ${speaker} ##\n${note}\n\n`;
+        }
+      });
+    });
+    
+    const blob = new Blob([txt], {type: 'text/plain'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'debate_timer_notes.txt';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  
+  importNotesBtn.onclick = () => importNotesFile.click();
+  importNotesFile.onchange = e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onerror = () => {
+      console.error('Failed to read notes file');
+      setStatus('Failed to read file');
+    };
+    reader.onload = e => {
+      try {
+        const importedNotes = JSON.parse(e.target.result);
+        if(!importedNotes || typeof importedNotes !== 'object') {
+          throw new Error('Invalid format');
+        }
+        // Merge with existing notes
+        allNotes = { ...allNotes, ...importedNotes };
+        try {
+        localStorage.setItem('debateNotes', JSON.stringify(allNotes));
+        loadSpeakerNotes(); // Refresh view
+          setStatus('Notes imported successfully');
+        } catch(storageErr) {
+          console.error('Failed to save imported notes:', storageErr);
+          setStatus('Failed to save notes');
+        }
+      } catch (err) {
+        console.error('Failed to import notes:', err);
+        setStatus('Invalid file format');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = null; // Clear input
+  };
+  
+  clearNotesBtn.onclick = () => {
+    showConfirm(
+      currentLang.confirmClearNotesTitle,
+      currentLang.confirmClearNotesText,
+      () => {
+        allNotes = {};
+        try {
+        localStorage.removeItem('debateNotes');
+        } catch(e) {
+          console.warn('Failed to clear notes:', e);
+        }
+        loadSpeakerNotes(); // Refresh view
+      }
+    );
+  };
+
+  // ---------- Quick Timer Init ----------
+  function initQuickTimers(){
+    cexTimer = createQuickTimer(parseTime(cexInput.value), cexClock, cexFill);
+    rebTimer = createQuickTimer(parseTime(rebInput.value), rebClock, rebFill);
+    prepTimer = createQuickTimer(parseTime(prepInput.value), prepClock, prepFill);
+    poiTimer = createQuickTimer(parseTime(poiInput.value), poiClock, poiFill);
+  }
+  cexStart.onclick = ()=>cexTimer.start(); cexReset.onclick = ()=>cexTimer.reset();
+  rebStart.onclick = ()=>rebTimer.start(); rebReset.onclick = ()=>rebTimer.reset();
+  prepStart.onclick = ()=>prepTimer.start(); prepReset.onclick = ()=>prepTimer.reset();
+  poiStart.onclick = ()=>poiTimer.start(); poiReset.onclick = ()=>poiTimer.reset();
+
+  // ---------- Panel Toggles ----------
+  function togglePanel(panel, btn, key) {
+    const isOpen = panel.style.maxHeight !== '0px';
+    if (isOpen) {
+      panel.style.maxHeight = '0px';
+      if (panel === notesPanel) { // Special handling for notes padding
+        panel.style.paddingTop = '0px';
+        panel.style.paddingBottom = '0px';
+        panel.style.borderWidth = '0px';
+        toggleNotesBtn.classList.add('panel-hidden');
+      }
+    } else {
+      // ********** THIS IS THE FIX **********
+      panel.style.maxHeight = '500px'; // Use CSS max-height, not scrollHeight
+      // ***********************************
+      if (panel === notesPanel) {
+        panel.style.paddingTop = '16px';
+        panel.style.paddingBottom = '16px';
+        panel.style.borderWidth = '1px';
+        toggleNotesBtn.classList.remove('panel-hidden');
+      }
+    }
+    // Update button text/title
+    if(btn) updateButtonStates();
+    // Update button active state
+    if (btn && btn.classList.contains('btn-icon')) {
+      if (btn === toggleQuickTimers) {
+      btn.classList.toggle('active', !isOpen);
+      }
+      // Notes button: no active class needed, colors controlled by CSS
+      // The active class is not used for notes button color inversion
     }
   }
-  function updateLang(lang){
-    langSelect.value = lang;
-    setLang(lang);
-    localStorage.setItem('debateLang', lang);
+
+  toggleSettings.onclick = () => togglePanel(settingsPanel, toggleSettings, 'settings');
+  toggleQuickTimers.onclick = () => togglePanel(quickTimersPanel, toggleQuickTimers, 'quickTimers');
+  toggleNotesBtn.onclick = () => togglePanel(notesPanel, toggleNotesBtn, 'notes');
+
+  // ---------- Confirmation Modal ----------
+  let confirmCallback = null;
+  function showConfirm(title, text, onConfirm) {
+    confirmTitle.textContent = title;
+    confirmText.textContent = text;
+    confirmCallback = onConfirm;
+    confirmModal.style.display = 'flex';
   }
+  confirmCancel.onclick = () => {
+    confirmModal.style.display = 'none';
+    confirmCallback = null;
+  };
+  confirmOK.onclick = () => {
+    confirmModal.style.display = 'none';
+    if(confirmCallback) confirmCallback();
+    confirmCallback = null;
+  };
 
   // ---------- Event Listeners ----------
-  // Main timer
-  startBtn.onclick = ()=>{ if(mainRunning) pauseMain(); else startMain() };
-  resetBtn.onclick = ()=>{ resetMain(); render(); syncOut() };
-  singleBtn.onclick = ding;
-  doubleBtn.onclick = ()=>{ ding({type:'double'}); setTimeout(ding, spacing) };
-  testContBtn.onclick = ()=>{ if(!contBellInterval) contBellInterval = setInterval(ding, spacing) };
-  stopBellBtn.onclick = ()=>{ 
+  startBtn.onclick = startMain;
+  resetBtn.onclick = resetMain;
+  singleBtn.onclick = () => ding();
+  doubleBtn.onclick = () => { ding(); setTimeout(ding, (+spaceInput.value || 250)); };
+  testContBtn.onclick = () => { if(contBellInterval) return; ding(); contBellInterval=setInterval(ding, (+spaceInput.value || 250)); };
+  stopBellBtn.onclick = () => {
     stopContinuous();
-    if(inGrace){
+    if(inGrace) {
       inGrace = false;
-      resetMain();
-      render();
+      mainRemain = 0;
+      graceRemain = 0;
+      pauseMain(true);
+      applyBodyState(null); // <-- FIX: Reset body color
+      updateMainDisplay();
+      setStatus(currentLang.statusIdle);
       syncOut();
     }
   };
   
-  // Drag-to-scrub
-  let isScrubbing = false;
-  const scrubHandler = (e) => {
-    if (!isScrubbing) return;
-    const rect = mainProgress.getBoundingClientRect();
-    const pc = clamp((e.clientX - rect.left) / rect.width, 0, 1);
-    scrubTo(pc);
-  };
-  mainProgress.addEventListener('mousedown', (e) => {
-    isScrubbing = true;
-    scrubHandler(e);
-  });
-  document.addEventListener('mousemove', scrubHandler);
-  document.addEventListener('mouseup', () => {
-    isScrubbing = false;
-  });
-  // Touch support
-  mainProgress.addEventListener('touchstart', (e) => {
-    isScrubbing = true;
-    scrubHandler(e.touches[0]);
-  }, { passive: true });
-  document.addEventListener('touchmove', (e) => {
-    scrubHandler(e.touches[0]);
-  }, { passive: true });
-  document.addEventListener('touchend', () => {
-    isScrubbing = false;
-  });
-  // Click support (non-drag)
-  mainProgress.addEventListener('click', (e) => {
-    if (isDragging) return; // Don't scrub if it was a drag
-    const rect = mainProgress.getBoundingClientRect();
-    const pc = clamp((e.clientX - rect.left) / rect.width, 0, 1);
-    scrubTo(pc);
-  });
-  
-  // Speaker progress
-  prevBtn.onclick = ()=>setActive(Math.max(0, activeIdx-1));
-  nextBtn.onclick = ()=>setActive(Math.min(speakers.length-1, activeIdx+1));
-  resetOrder.onclick = ()=>loadPreset(currentPresetId);
-  
-  // Drag-and-drop reordering
-  let dragEl = null;
-  spkBar.addEventListener('dragstart', (e) => {
-    dragEl = e.target;
-    isDragging = true;
-  });
-  spkBar.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    const target = e.target.closest('.spk');
-    if (target && target !== dragEl) {
-      const rect = target.getBoundingClientRect();
-      const mid = rect.left + rect.width / 2;
-      if (e.clientX < mid) {
-        spkBar.insertBefore(dragEl, target);
-      } else {
-        spkBar.insertBefore(dragEl, target.nextSibling);
-      }
-    }
-  });
-  spkBar.addEventListener('dragend', () => {
-    if (!dragEl) return;
-    dragEl = null;
-    isDragging = false;
-    const newBase = $$('.spk').map(el => speakers[+el.dataset.idx]).filter(s => s.type !== 'prep');
-    // Save to custom preset
-    loadPreset('CUSTOM', { base: newBase, settings: collectSettings() });
-    formatSelect.value = 'CUSTOM';
-  });
-
-  // Settings
-  formatSelect.onchange = (e)=>loadPreset(e.target.value);
-  [mainInput, firstInput, secondInput, yellowInput, redInput, graceInput, prepInput, cexInput, rebInput, poiInput, spaceInput].forEach(el => {
-    el.onchange = () => {
-      const settings = collectSettings();
-      // If we're not on custom, switch to custom
-      if (currentPresetId !== 'CUSTOM') {
-        loadPreset('CUSTOM', { base: baseSpeakers, settings });
-        formatSelect.value = 'CUSTOM';
-      } else {
-        // Just update the custom preset
-        PRESETS.CUSTOM.settings = settings;
-        localStorage.setItem('debateCustomPreset', JSON.stringify(PRESETS.CUSTOM));
-        // Reload current speaker with new times
-        loadPreset('CUSTOM');
-      }
-    };
-  });
-  
-  exportBtn.onclick = exportSettings;
-  importBtn.onclick = () => importFile.click();
-  importFile.onchange = (e) => {
-    if (e.target.files[0]) importSettings(e.target.files[0]);
-    e.target.value = null; // Reset file input
-  };
-
-  // Notes
-  notesArea.oninput = saveNote;
-  exportNotesBtn.onclick = exportNotesTxt;
-  importNotesBtn.onclick = () => importNotesFile.click();
-  importNotesFile.onchange = (e) => {
-    if (e.target.files[0]) importNotes(e.target.files[0]);
-    e.target.value = null;
-  };
-  clearNotesBtn.onclick = clearAllNotes;
-  
-  // Toggle Panels
-  toggleSettings.onclick = () => {
-    isSettingsOpen = !isSettingsOpen;
-    togglePanel(settingsPanel, isSettingsOpen);
-    toggleSettings.textContent = isSettingsOpen ? currentLang.hide : currentLang.show;
-  };
-  toggleQuickTimers.onclick = () => {
-    isQuickTimersOpen = !isQuickTimersOpen;
-    togglePanel(quickTimersPanel, isQuickTimersOpen, toggleQuickTimers, 'open');
-    updateButtonStates();
-  };
-  toggleNotesBtn.onclick = () => {
-    isNotesOpen = !isNotesOpen;
-    togglePanel(notesPanel, isNotesOpen, toggleNotesBtn, 'open');
-    if (isNotesOpen && speakers[activeIdx]) {
-      loadNotesForSpeaker(speakers[activeIdx]);
-    }
-    updateButtonStates();
+  langSelect.onchange = () => {
+    setLanguage(langSelect.value);
+    // Reload format to get correct language names for prep
+    loadFormat(currentFormat); 
   };
   
-  // Other header buttons
-  langSelect.onchange = (e)=>updateLang(e.target.value);
-  themeBtn.onclick = ()=> setDark(!document.documentElement.classList.contains('dark'));
-  enableBtn.onclick = initAudio;
-  muteBtn.onclick = () => { 
-    muted = !muted; 
-    muteBtn.classList.toggle('active', muted);
-    muteBtn.classList.toggle('muted', muted); // for old css
-    updateButtonStates();
-  };
-
-  // Keyboard shortcuts
   window.addEventListener('keydown', e => {
-    // FIX: Ignore shortcuts if typing in an input or textarea
-    const activeEl = document.activeElement;
-    const isTyping = activeEl && (activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'INPUT');
-    if (isTyping) {
-      return;
+    // FIX: Don't run shortcuts if user is typing
+    const targetTag = e.target.tagName.toLowerCase();
+    if (targetTag === 'input' || targetTag === 'textarea' || targetTag === 'select') {
+      return; // Block all shortcuts if typing
     }
     
     switch(e.key.toLowerCase()){
       case ' ': e.preventDefault(); startBtn.click(); break;
-      case 'r': resetBtn.click(); break;
-      case 'arrowright': nextBtn.click(); break;
-      case 'arrowleft': prevBtn.click(); break;
-      case '1': singleBtn.click(); break;
-      case '2': doubleBtn.click(); break;
-      case 'm': muteBtn.click(); break;
-      case 'd': themeBtn.click(); break;
-      case 'p': presenterBtn.click(); break;
-      case 'h': helpModal.style.display = 'flex'; break;
+      case 'r': e.preventDefault(); resetBtn.click(); break;
+      case 'arrowright': e.preventDefault(); nextBtn.click(); break;
+      case 'arrowleft': e.preventDefault(); prevBtn.click(); break;
+      case '1': e.preventDefault(); singleBtn.click(); break;
+      case '2': e.preventDefault(); doubleBtn.click(); break;
+      case 'm': e.preventDefault(); muteBtn.click(); break;
+      case 'd': e.preventDefault(); themeBtn.click(); break;
+      case 'p': e.preventDefault(); presenterBtn.click(); break;
+      case 'h': e.preventDefault(); helpBtn.click(); break;
     }
   });
+  
+  // ---------- Help Modal Listeners (FIXED) ----------
+  helpBtn.onclick = () => helpModal.style.display = 'flex';
+  closeHelp.onclick = () => helpModal.style.display = 'none';
 
-  // ---------- Init ----------
+  // ---------- Initialization ----------
   function init() {
-    // Init quick timers
-    updateCex = createQuickTimer($('#cexClock'), $('#cexFill'), $('#cexStart'), $('#cexReset'), parseTime(cexInput.value));
-    updateReb = createQuickTimer($('#rebClock'), $('#rebFill'), $('#rebStart'), $('#rebReset'), parseTime(rebInput.value));
-    updatePrep = createQuickTimer($('#prepClock'), $('#prepFill'), $('#prepStart'), $('#prepReset'), parseTime(prepInput.value));
-    updatePoi = createQuickTimer($('#poiClock'), $('#poiFill'), $('#poiStart'), $('#poiReset'), parseTime(poiInput.value));
+    // Load notes first
+    try {
+      const notesStr = localStorage.getItem('debateNotes');
+      if(notesStr) {
+        allNotes = JSON.parse(notesStr) || {};
+      } else {
+        allNotes = {};
+      }
+    } catch(e) {
+      console.warn('Failed to load notes:', e);
+      allNotes = {};
+    }
     
-    // Load notes
-    allNotes = JSON.parse(localStorage.getItem('debateNotes') || '{}');
+    // Load custom formats into dropdown
+    updateFormatDropdown();
     
-    // Init panels (hide by default)
-    togglePanel(settingsPanel, false); isSettingsOpen = false;
-    toggleSettings.textContent = currentLang.show;
+    // Load state (format, settings)
+    loadState(); // This calls loadFormat, which calls initQuickTimers and selectSpeaker
     
-    togglePanel(quickTimersPanel, false, toggleQuickTimers, 'open'); isQuickTimersOpen = false;
-    togglePanel(notesPanel, false, toggleNotesBtn, 'open'); isNotesOpen = false;
+    // FIX: Set theme *after* state is initialized
+    try {
+      const theme = localStorage.getItem('debateTheme');
+      setDark(theme === 'dark');
+    } catch(e) {
+      console.warn('Failed to load theme:', e);
+    }
     
-    // FIX: Load preset *before* setting lang (which calls setActive)
-    loadPreset(localStorage.getItem('debateFormat') || 'SIMSON');
-    updateLang(localStorage.getItem('debateLang') || 'en');
-    
-    // Set theme
-    setDark(localStorage.getItem('debateTheme')==='dark');
+    // Hide panels by default
+    if(settingsPanel) settingsPanel.style.maxHeight = '0px';
+    if(quickTimersPanel) quickTimersPanel.style.maxHeight = '0px';
+    if(notesPanel) {
+    notesPanel.style.maxHeight = '0px';
+    notesPanel.style.paddingTop = '0px';
+    notesPanel.style.paddingBottom = '0px';
+    notesPanel.style.borderWidth = '0px';
+      if(toggleNotesBtn) toggleNotesBtn.classList.add('panel-hidden');
+    }
+
+    updateButtonStates();
   }
   
   init();
-
 })();
 </script>
-</body>
-</html>
+
+</body></html>
