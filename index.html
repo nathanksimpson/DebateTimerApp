@@ -730,28 +730,80 @@ function applyBodyState(state){
   // --- End new toggle ---
 
   if(isPresenter){
-    // Listen for sync messages
-    const channel = new BroadcastChannel('debate_timer_sync_v1');
-    channel.onmessage=(e)=>{
-      if(!e||!e.data) return; const m=e.data;
-      if(m.type==='state'){
-        const pc=$('#pClock'); const pm=$('#pMeta');
-        
-        // Apply theme (using global function)
-        setDarkGlobal(m.theme === 'dark');
-
-        // Apply time and meta
-        if(pc) pc.textContent = fmt(m.main.remain);
-        if(pm) pm.textContent = m.meta||'';
-        
-        // Apply grace pulse
-        // Note: 'presenter-grace' class is applied to the BODY
-        document.body.classList.toggle('presenter-grace', m.inGrace);
-
-        // Apply visual state (using global function)
-        applyBodyState(m.state);
+    // Wait for DOM to be fully ready before setting up sync
+    const initPresenter = () => {
+      const pc = $('#pClock');
+      const pm = $('#pMeta');
+      
+      if (!pc || !pm) {
+        // Elements not ready yet, try again
+        setTimeout(initPresenter, 50);
+        return;
       }
+      
+      // Listen for sync messages
+      const channel = new BroadcastChannel('debate_timer_sync_v1');
+      
+      // Signal that presenter window is ready
+      channel.postMessage({ type: 'presenter-ready' });
+      
+      channel.onmessage = (e) => {
+        if (!e || !e.data) return;
+        const m = e.data;
+        
+        if (m.type === 'state') {
+          try {
+            // Apply theme
+            if (m.theme) {
+              setDarkGlobal(m.theme === 'dark');
+            }
+            
+            // Apply time and meta
+            if (pc && m.main && typeof m.main.remain === 'number') {
+              pc.textContent = fmt(m.main.remain);
+            }
+            if (pm) {
+              pm.textContent = m.meta || 'Presenter';
+            }
+            
+            // Apply grace pulse
+            if (typeof m.inGrace === 'boolean') {
+              document.body.classList.toggle('presenter-grace', m.inGrace);
+            }
+            
+            // Apply visual state (always call to clear old states, even if m.state is null)
+            applyBodyState(m.state || null);
+          } catch (err) {
+            console.error('Presenter sync error:', err);
+          }
+        }
+      };
+      
+      // Request initial sync if main window is already running
+      setTimeout(() => {
+        channel.postMessage({ type: 'request-sync' });
+      }, 200);
+      
+      // Periodically request sync to ensure we stay updated (every 2 seconds)
+      const syncInterval = setInterval(() => {
+        if (!document.hidden) {
+          channel.postMessage({ type: 'request-sync' });
+        }
+      }, 2000);
+      
+      // Clean up interval when window closes
+      window.addEventListener('beforeunload', () => {
+        clearInterval(syncInterval);
+      });
     };
+    
+    // Start initialization when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initPresenter);
+    } else {
+      initPresenter();
+    }
+    
     return; // STOP script execution for presenter window
   }
   
@@ -1198,13 +1250,57 @@ function applyBodyState(state){
   themeBtn.onclick = ()=> setDark(!document.documentElement.classList.contains('dark'));
 
   // ---------- Presenter Mode ----------
-  const channel = new BroadcastChannel('debate_timer_sync_v1');
-  let presenterWin=null;
-  presenterBtn.onclick=()=>{
-    if(!presenterWin || presenterWin.closed){
-      presenterWin = window.open(window.location.pathname+'?presenter=true', 'presenter', 'width=1000,height=700');
-      if(presenterWin){ presenterWin.focus(); setTimeout(()=>syncOut(true),150); }
-    }else{ presenterWin.focus(); }
+  const presenterChannel = new BroadcastChannel('debate_timer_sync_v1');
+  let presenterWin = null;
+  let presenterReady = false;
+
+  // Listen for presenter window ready signal and sync requests
+  presenterChannel.onmessage = (e) => {
+    if (e.data && e.data.type === 'presenter-ready') {
+      presenterReady = true;
+      syncOut(true); // Send initial sync when presenter is ready
+    } else if (e.data && e.data.type === 'request-sync') {
+      syncOut(true); // Respond to sync requests
+    }
+  };
+
+  presenterBtn.onclick = () => {
+    if (!presenterWin || presenterWin.closed) {
+      // Use full URL to preserve protocol and handle file:// correctly
+      const baseUrl = window.location.href.split('?')[0];
+      const presenterUrl = baseUrl + '?presenter=true';
+      presenterWin = window.open(presenterUrl, 'presenter', 'width=1000,height=700');
+      
+      if (presenterWin) {
+        presenterReady = false;
+        presenterWin.focus();
+        
+        // Send initial sync immediately, then again when ready
+        syncOut(true);
+        
+        // Wait for presenter window to signal it's ready
+        const checkReady = setInterval(() => {
+          if (presenterReady || presenterWin.closed) {
+            clearInterval(checkReady);
+            // Send sync again when ready signal received
+            if (presenterReady && !presenterWin.closed) {
+              syncOut(true);
+            }
+          }
+        }, 100);
+        
+        // Fallback: send sync after delay if ready signal not received
+        setTimeout(() => {
+          if (!presenterReady && !presenterWin.closed) {
+            syncOut(true);
+          }
+        }, 1000);
+      }
+    } else {
+      presenterWin.focus();
+      // Send sync when refocusing existing window
+      syncOut(true);
+    }
   };
   
   // ---------- NEW: Mirror Mode ----------
@@ -1221,47 +1317,64 @@ function applyBodyState(state){
   // ---------- Sync Function ----------
   function syncOut(full=false){
     // Calculate state here, just for the message
-    const left = mainRemain;
+    const left = mainRemain || 0;
     const warn = left <= yellow && left > red && mode==='main' && !inGrace;
     const bad = left <= red && left > 0 && mode==='main' && !inGrace;
     let bodyState = null;
-    let metaText = (mainTitle?.textContent||'') + (metaEl.textContent? ' — '+metaEl.textContent : '');
-    let remainTime = mainRemain;
+    
+    // Get meta text safely
+    let metaText = '';
+    if (mainTitle && mainTitle.textContent) {
+      metaText = mainTitle.textContent;
+      if (metaEl && metaEl.textContent) {
+        metaText += ' — ' + metaEl.textContent;
+      }
+    } else if (speakers && speakers.length > 0 && activeIdx >= 0 && activeIdx < speakers.length) {
+      // Fallback: use speaker data if mainTitle not available
+      const s = speakers[activeIdx];
+      const lang = langSelect ? (langSelect.value || 'en') : 'en';
+      const roleKey = `role_${lang}`;
+      metaText = s[roleKey] || s.role_en || '';
+    }
+    
+    let remainTime = mainRemain || 0;
 
     if(inGrace) {
       bodyState = 'state-grace';
-      remainTime = graceRemain; 
+      remainTime = graceRemain || 0; 
       
-      const s = speakers[activeIdx];
-      const roleKey = `role_${currentLang.lang || 'en'}`;
-      const role = s ? (s[roleKey] || s.role_en || '') : '';
-      metaText = `${role} — ${currentLang.grace}`; 
+      const s = speakers && speakers[activeIdx] ? speakers[activeIdx] : null;
+      if (s) {
+        const roleKey = `role_${currentLang.lang || 'en'}`;
+        const role = s[roleKey] || s.role_en || '';
+        metaText = `${role} — ${currentLang.grace || 'Grace'}`; 
+      }
     }
     else if(bad) bodyState = 'state-bad';
     else if(warn) bodyState = 'state-warn';
 
     // Prepare speaker progress data for presenter mode
-    const lang = langSelect.value || 'en';
+    const lang = langSelect ? (langSelect.value || 'en') : 'en';
     const roleKey = `role_${lang}`;
-    const speakerData = speakers.map((s, i) => ({
+    const speakerData = (speakers && Array.isArray(speakers)) ? speakers.map((s, i) => ({
       role: s[roleKey] || s.role_en || '',
       side: s.side || 'neutral',
       active: s.active !== false,
       isActive: i === activeIdx
-    }));
+    })) : [];
 
     const payload={
       type:'state', 
       full, 
-      main:{remain: remainTime, total:mainTotal, running:mainRunning}, 
-      meta: metaText, 
-      inGrace,
+      main:{remain: remainTime, total:mainTotal || 0, running:mainRunning || false}, 
+      meta: metaText || 'Presenter', 
+      inGrace: inGrace || false,
       state: bodyState,
       theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
       speakers: speakerData,
-      activeIdx: activeIdx
+      activeIdx: activeIdx || 0
     };
-    channel.postMessage(payload);
+    presenterChannel.postMessage(payload);
   }
   
   // ---------- Presets (base) ----------
@@ -1487,12 +1600,13 @@ function applyBodyState(state){
     if(inGrace) { inGrace = false; stopContinuous(); }
     
     // FIX: Update visual state immediately on scrub
-    const warn = mainRemain <= yellow && mainRemain > red;
-    const bad = mainRemain <= red;
+    const warn = mainRemain <= yellow && mainRemain > red && mode === 'main' && !inGrace;
+    const bad = mainRemain <= red && mainRemain > 0 && mode === 'main' && !inGrace;
     applyBodyState(bad ? 'state-bad' : (warn ? 'state-warn' : null));
     
     updateMainDisplay();
-    syncOut();
+    // Force full sync after scrubbing to ensure presenter window gets updated state
+    syncOut(true);
   }
   
   mainProgress.onpointerdown = e => {
@@ -1513,6 +1627,8 @@ function applyBodyState(state){
     isScrubbing = false;
     // Manually trigger one last scrubTo ensure sync
     scrubTo(e);
+    // Force full sync after drag ends to ensure presenter window is updated
+    syncOut(true);
   };
   
   // Add touch equivalents
@@ -1529,6 +1645,8 @@ function applyBodyState(state){
   
   mainProgress.addEventListener('touchend', (e) => {
     isScrubbing = false;
+    // Force full sync after touch drag ends
+    syncOut(true);
   });
 
   // ---------- Timers: Quick ----------
@@ -1686,6 +1804,8 @@ function applyBodyState(state){
     resetMain();
     renderSpeakerProgress();
     loadSpeakerNotes(); // Load notes for this speaker
+    // Force full sync to presenter window to ensure state is cleared
+    syncOut(true);
   }
   
   function toggleSpeaker(idx){
@@ -2239,6 +2359,11 @@ function applyBodyState(state){
   importFile.onchange = e => {
     const file = e.target.files[0];
     if(!file) return;
+    
+    // Extract filename without extension as default name
+    const fileName = file.name;
+    const defaultName = fileName.replace(/\.[^/.]+$/, ''); // Remove extension
+    
     const reader = new FileReader();
     reader.onerror = () => {
       console.error('Failed to read file');
@@ -2249,19 +2374,19 @@ function applyBodyState(state){
         const data = JSON.parse(e.target.result);
         
         // Handle new format builder format (with format object and metadata)
-        let importData, formatLabel, originalFormatId;
+        let importData, suggestedLabel, originalFormatId;
         if (data.format) {
           // New format builder format
           importData = {
             base: data.format.base || [],
             settings: data.format.settings || {}
           };
-          formatLabel = data.format.label || 'Custom';
+          suggestedLabel = data.format.label || defaultName;
           originalFormatId = data.formatId;
         } else if (data.base && data.settings) {
           // Legacy format (backward compatible)
           importData = data;
-          formatLabel = 'Imported Format';
+          suggestedLabel = defaultName;
           originalFormatId = null;
         } else {
           throw new Error('Invalid format: Missing base or settings');
@@ -2274,6 +2399,20 @@ function applyBodyState(state){
         if (!importData.settings || typeof importData.settings !== 'object') {
           throw new Error('Invalid format: settings must be an object');
         }
+        
+        // Always prompt for format name
+        let formatLabel = prompt(
+          `Enter a name for this format:`,
+          suggestedLabel
+        );
+        
+        if (!formatLabel || formatLabel.trim() === '') {
+          setStatus('Import cancelled');
+          e.target.value = null;
+          return;
+        }
+        
+        formatLabel = formatLabel.trim();
         
         // Check for duplicate format name
         const customFormats = getCustomFormats();
@@ -2292,7 +2431,7 @@ function applyBodyState(state){
         if (existingFormat) {
           const userChoice = confirm(
             `A format named "${formatLabel}" already exists.\n\n` +
-            `Click OK to overwrite it, or Cancel to create a new format with a different name.`
+            `Click OK to overwrite it, or Cancel to cancel the import.`
           );
           
           if (userChoice) {
@@ -2301,22 +2440,9 @@ function applyBodyState(state){
             addCustomFormat(formatId, formatLabel, importData.base, importData.settings);
             setStatus(`Format "${formatLabel}" overwritten successfully!`);
           } else {
-            // Prompt for new name
-            let newName = prompt(
-              `Enter a new name for this format:`,
-              formatLabel + ' (Copy)'
-            );
-            
-            if (!newName || newName.trim() === '') {
-              setStatus('Import cancelled');
-              e.target.value = null;
-              return;
-            }
-            
-            formatLabel = newName.trim();
-            formatId = generateFormatId(formatLabel);
-            addCustomFormat(formatId, formatLabel, importData.base, importData.settings);
-            setStatus(`Format "${formatLabel}" imported successfully!`);
+            setStatus('Import cancelled');
+            e.target.value = null;
+            return;
           }
         } else {
           // No duplicate, add as new format
