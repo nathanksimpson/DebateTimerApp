@@ -72,8 +72,8 @@
   .label{display:flex;flex-direction:column;gap:6px}
   input.input, select.input, textarea.input{padding:10px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--fg)}
   .note{font-size:14px;color:var(--muted)}
-  .speaker-progress{display:flex;flex-wrap:nowrap;gap:9px;padding:6px 4px}
-  .spk{font-size:13px;font-weight:800;padding:10px 10px;border-radius:10px;background:var(--card);border:2px solid var(--bd);cursor:grab;user-select:none;flex:1;min-width:0;text-align:center;display:flex;align-items:center;justify-content:center}
+  .speaker-progress{display:grid;gap:9px;padding:6px 4px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  .spk{font-size:13px;font-weight:800;padding:10px 10px;border-radius:10px;background:var(--card);border:2px solid var(--bd);cursor:grab;user-select:none;min-width:0;text-align:center;display:flex;align-items:center;justify-content:center}
   .spk.inactive{opacity:.4;text-decoration:line-through}
   
   /* --- NEW: Inverted Active Speaker --- */
