@@ -1221,6 +1221,7 @@ function applyBodyState(state){
   }
   function playDing(){
     if(!unlocked||!audioCtx) return;
+    primeIOSSilentModeBypass();
     const now=audioCtx.currentTime;
     const osc=audioCtx.createOscillator();
     const osc2=audioCtx.createOscillator();
@@ -1258,6 +1259,7 @@ function applyBodyState(state){
   document.addEventListener('click', initOnInteraction, true);
   document.addEventListener('touchstart', initOnInteraction, true);
   document.addEventListener('keydown', initOnInteraction, true);
+  document.addEventListener('pointerdown', initOnInteraction, true);
   document.addEventListener('visibilitychange', () => {
     if(document.visibilityState === 'visible' && audioCtx){
       if(audioCtx.state === 'suspended'){
@@ -1266,6 +1268,22 @@ function applyBodyState(state){
         primeIOSSilentModeBypass();
       }
     }
+  });
+  const resumeAudioPipeline = () => {
+    if(!audioCtx) return;
+    if(audioCtx.state === 'suspended'){
+      audioCtx.resume().then(() => {
+        iosAudioPrimed = false;
+        primeIOSSilentModeBypass();
+      }).catch((err) => console.warn('Could not resume audio context on focus/pageshow:', err));
+    } else {
+      primeIOSSilentModeBypass();
+    }
+  };
+  window.addEventListener('focus', resumeAudioPipeline);
+  window.addEventListener('pageshow', resumeAudioPipeline);
+  window.addEventListener('blur', () => {
+    iosAudioPrimed = false;
   });
 
   // ---------- Theme ----------
