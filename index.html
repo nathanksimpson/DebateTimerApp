@@ -1158,11 +1158,32 @@ function applyBodyState(state){
   }
 
   // ---------- Audio ----------
+  const isIOS = /iP(ad|hone|od)/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let iosAudioPrimed = false;
+  function primeIOSSilentModeBypass(){
+    if(!isIOS || !audioCtx || iosAudioPrimed) return;
+    try{
+      const buffer = audioCtx.createBuffer(1,1,22050);
+      const source = audioCtx.createBufferSource();
+      const gainNode = audioCtx.createGain();
+      gainNode.gain.value = 0;
+      source.buffer = buffer;
+      source.connect(gainNode);
+      const target = masterGain || audioCtx.destination;
+      if(target) gainNode.connect(target);
+      source.start(0);
+      iosAudioPrimed = true;
+    }catch(err){
+      console.warn('iOS silent-mode warmup failed:', err);
+    }
+  }
   async function initAudio(){
     if(unlocked && audioCtx) return; // Already initialized
     try{
-      audioCtx = new (window.AudioContext||window.webkitContext)();
+      audioCtx = new (window.AudioContext||window.webkitAudioContext)({ latencyHint: 'interactive' });
+      iosAudioPrimed = false;
       masterGain = audioCtx.createGain(); masterGain.gain.value = +volume.value; masterGain.connect(audioCtx.destination);
+      primeIOSSilentModeBypass();
       unlocked=true; setStatus(currentLang.statusSoundReady);
     }catch(e){ setStatus(currentLang.statusSoundFail); }
   }
@@ -1174,10 +1195,12 @@ function applyBodyState(state){
     if(!unlocked || !audioCtx) {
       await initAudio();
     }
+    primeIOSSilentModeBypass();
     // Resume audio context if suspended (common in mobile browsers)
     if(audioCtx && audioCtx.state === 'suspended') {
       try {
         await audioCtx.resume();
+        primeIOSSilentModeBypass();
       } catch(e) {
         console.warn('Could not resume audio context:', e);
       }
@@ -1235,6 +1258,15 @@ function applyBodyState(state){
   document.addEventListener('click', initOnInteraction, true);
   document.addEventListener('touchstart', initOnInteraction, true);
   document.addEventListener('keydown', initOnInteraction, true);
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible' && audioCtx){
+      if(audioCtx.state === 'suspended'){
+        audioCtx.resume().then(primeIOSSilentModeBypass).catch((err) => console.warn('Could not resume audio context on visibility change:', err));
+      } else {
+        primeIOSSilentModeBypass();
+      }
+    }
+  });
 
   // ---------- Theme ----------
   const setDark = (on)=>{
