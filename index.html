@@ -31,6 +31,66 @@
   html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
   
+  /* Custom tooltip with reduced delay */
+  [data-original-title] {
+    position: relative;
+  }
+  [data-original-title]::after {
+    content: attr(data-original-title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 10px;
+    background: var(--card);
+    color: var(--fg);
+    border: 1px solid var(--bd);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1000;
+    margin-bottom: 8px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease-out 1s, visibility 0s linear 1s, transform 0.2s ease-out 1s;
+    transform: translateX(-50%) translateY(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  [data-original-title]::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--card);
+    pointer-events: none;
+    z-index: 1001;
+    margin-bottom: 3px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease-out 1s, visibility 0s linear 1s;
+    filter: drop-shadow(0 -1px 0 var(--bd));
+  }
+  [data-original-title]:hover::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+  }
+  [data-original-title]:hover::before {
+    opacity: 1;
+    visibility: visible;
+  }
+  /* Hide native tooltip */
+  [title] {
+    pointer-events: auto;
+  }
+  [title]:hover {
+    overflow: visible;
+  }
+  
   /* --- FIX: App/Presenter Mode Toggle (prevents FOUC) --- */
   /* Hide both roots by default */
   #mainAppRoot, #presenterRoot {
@@ -57,6 +117,93 @@
   .wrap{min-height:100%;display:flex;flex-direction:column;gap:24px;align-items:center;padding:24px}
   .container{width:100%;max-width:1100px;display:flex;flex-direction:column;gap:16px}
   header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .header-shortcuts {
+    position: sticky;
+    top: 16px;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 12px;
+    margin: 16px 0 24px;
+    border: 1px solid var(--bd);
+    border-radius: 18px;
+    background: var(--card);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(4px);
+  }
+  .header-shortcuts .btn-icon {
+    flex: 0 0 auto;
+  }
+  .header-shortcuts .label {
+    margin: 0;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+  }
+  .header-shortcuts .label select {
+    border-radius: 10px;
+  }
+  .header-shortcuts .label input[type="range"] {
+    cursor: pointer;
+  }
+  @media (max-width:640px){
+    .header-shortcuts {
+      top: 12px;
+      gap: 8px;
+      padding: 8px 10px;
+    }
+  }
+  .help-icon-list{
+    list-style:none;
+    margin:0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .help-icon-list li{
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+  }
+  .help-item-icon{
+    width:44px;
+    height:44px;
+    border-radius:14px;
+    border:1px solid var(--bd);
+    background:var(--card);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+    color:var(--fg);
+  }
+  .help-item-icon svg{
+    width:22px;
+    height:22px;
+  }
+  .help-item-text{
+    font-size:0.95rem;
+    line-height:1.5;
+  }
+  #helpModal .card{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+  }
+  #helpModal h3{
+    margin-bottom:4px;
+    font-size:1rem;
+  }
+  #helpModal ul:not(.help-icon-list){
+    line-height:1.6;
+    padding-left:18px;
+  }
+  #helpModal ul:not(.help-icon-list) li{
+    margin-bottom:6px;
+  }
   h1{font-size:24px;margin:0}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .btn{appearance:none;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:700}
@@ -89,14 +236,42 @@
   
   /* Modals */
   #helpModal, #confirmModal {position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
-  #helpModal .card, #confirmModal .card {max-width:760px;max-height:90vh;overflow:auto}
+  #helpModal .card, #confirmModal .card {
+    max-width:760px;
+    max-height:90vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--muted) transparent;
+  }
+  /* Webkit scrollbar styling for rounded corners */
+  #helpModal .card::-webkit-scrollbar {
+    width: 10px;
+  }
+  #helpModal .card::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 4px 0;
+  }
+  #helpModal .card::-webkit-scrollbar-thumb {
+    background: var(--muted);
+    border-radius: 5px;
+    border: 2px solid var(--card);
+  }
+  #helpModal .card::-webkit-scrollbar-thumb:hover {
+    background: var(--fg);
+  }
   #confirmModal .card { max-width: 400px; }
   
   @media (max-width:800px){.grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
   @media (max-width:540px){.grid-3{grid-template-columns:1fr}.grid-4{grid-template-columns:1fr}.clock{font-size:56px}}
   
   /* Hideable settings/timers/notes panel */
-  #settingsPanel, #quickTimersPanel {
+  #settingsPanel {
+    overflow: hidden;
+    max-height: 1000px; /* Default open height for transition */
+    transition: max-height 0.35s ease;
+  }
+  #quickTimersPanel {
     overflow: hidden;
     max-height: 1000px; /* Default open height for transition */
     transition: max-height 0.35s ease;
@@ -108,6 +283,209 @@
     max-height: 500px; /* Default open height */
     padding: 16px;
     border-width: 1px;
+  }
+  /* Format Builder Modal */
+  #formatBuilderModal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 100;
+  }
+  #formatBuilderModal .format-builder-container {
+    background: var(--card);
+    border: 1px solid var(--bd);
+    border-radius: 16px;
+    padding: 0;
+    max-width: 1200px;
+    max-height: 90vh;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--muted) transparent;
+    position: relative;
+  }
+  #formatBuilderModal .format-builder-container::-webkit-scrollbar {
+    width: 10px;
+  }
+  #formatBuilderModal .format-builder-container::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 4px 0;
+  }
+  #formatBuilderModal .format-builder-container::-webkit-scrollbar-thumb {
+    background: var(--muted);
+    border-radius: 5px;
+    border: 2px solid var(--card);
+  }
+  #formatBuilderModal .format-builder-container::-webkit-scrollbar-thumb:hover {
+    background: var(--fg);
+  }
+  #formatBuilderModal .format-builder-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 20px 16px 20px;
+    border-bottom: 1px solid var(--bd);
+    position: sticky;
+    top: 0;
+    background: var(--card);
+    z-index: 10;
+    border-radius: 16px 16px 0 0;
+  }
+  #formatBuilderModal .format-builder-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 800;
+  }
+  #formatBuilderModal .format-builder-close {
+    background: transparent;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  #formatBuilderModal .format-builder-close:hover {
+    background: var(--bd);
+    color: var(--fg);
+  }
+  #formatBuilderModal .format-builder-close svg {
+    width: 20px;
+    height: 20px;
+  }
+  #formatBuilderModal .format-builder-content {
+    padding: 20px;
+  }
+  #formatBuilderModal .format-builder-card {
+    background: var(--card);
+    border: 1px solid var(--bd);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  #formatBuilderModal .format-builder-card h3 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+  }
+  #formatBuilderModal .speaker-item {
+    background: var(--card);
+    border: 2px solid var(--bd);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  #formatBuilderModal .speaker-item.prop {
+    border-color: var(--prop-border);
+    background: var(--prop-bg);
+  }
+  #formatBuilderModal .speaker-item.opp {
+    border-color: var(--opp-border);
+    background: var(--opp-bg);
+  }
+  #formatBuilderModal .speaker-item.prep {
+    border-color: var(--prep-border);
+    background: var(--prep-bg);
+  }
+  #formatBuilderModal .speaker-item.neutral {
+    border-color: var(--bd);
+    background: var(--card);
+  }
+  #formatBuilderModal .speaker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  #formatBuilderModal .speaker-number {
+    font-weight: 800;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  #formatBuilderModal .btn-icon-small {
+    background: transparent;
+    border: none;
+    padding: 4px 8px;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+  }
+  #formatBuilderModal .btn-icon-small:hover {
+    color: var(--fg);
+  }
+  #formatBuilderModal .btn-icon-small:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  #formatBuilderModal .timer-type-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 8px;
+  }
+  #formatBuilderModal .timer-type-main {
+    background: var(--ok-bg);
+    color: var(--ok-fg);
+  }
+  #formatBuilderModal .timer-type-quick {
+    background: var(--warn-bg);
+    color: var(--warn-fg);
+  }
+  #formatBuilderModal .timer-type-progress {
+    background: var(--prop-bg);
+    color: var(--prop-fg);
+  }
+  #formatBuilderModal .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+  }
+  #formatBuilderModal .export-code {
+    background: var(--bg);
+    border: 1px solid var(--bd);
+    border-radius: 4px;
+    padding: 12px;
+    font-family: monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 300px;
+    overflow-y: auto;
+    width: 100%;
+  }
+  #formatBuilderModal .status-message {
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 12px;
+    display: none;
+  }
+  #formatBuilderModal .status-message.success {
+    background: var(--ok-bg);
+    color: var(--ok-fg);
+    display: block;
+  }
+  #formatBuilderModal .status-message.error {
+    background: var(--bad-bg);
+    color: var(--bad-fg);
+    display: block;
+  }
+  #formatBuilderModal .export-area {
+    background: var(--card);
+    border: 1px solid var(--bd);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 20px;
   }
 
   /* STATE COLORS VIA BODY CLASSES */
@@ -132,6 +510,25 @@
     width: 24px;
     height: 24px;
   }
+  /* Exception: Settings gear icon should be larger */
+  #toggleSettingsBtn.btn-icon {
+    padding: 0 !important;
+    min-width: 46px;
+    width: 46px;
+    height: 46px;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  #toggleSettingsBtn.btn-icon svg {
+    width: 37px !important;
+    height: 37px !important;
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex-shrink: 0;
+    align-self: center;
+  }
   
   /* NEW: Active/Inverted State for *any* button */
   .btn.active {
@@ -142,144 +539,42 @@
   .btn.active svg {
     stroke: var(--btn-active-fg);
   }
-  
-  /* Help modal styling */
-  .help-card {
-    max-width: 820px;
-    width: min(100%, 820px);
+  /* Active state for filled icons */
+  .btn.active svg path {
+    fill: var(--btn-active-fg);
   }
-  .help-content {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-  .help-section {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .help-section h3 {
-    margin: 0;
-    font-size: 1rem;
-    color: var(--fg);
-  }
-  .help-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .help-entry {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-  }
-  .help-entry .help-copy {
-    font-size: 0.95rem;
-    line-height: 1.5;
-  }
-  .help-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-    border: 1px solid var(--bd);
-    border-radius: 12px;
-    background: var(--card);
-    width: 46px;
-    height: 46px;
-    color: var(--fg);
-  }
-  .help-icon svg {
-    width: 24px;
-    height: 24px;
-  }
-  .help-icon-chip {
-    font-weight: 700;
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  .help-icon-slider {
-    width: 46px;
-    height: 46px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--bd);
-    border-radius: 12px;
-    background: var(--card);
-    pointer-events: none;
-  }
-  .help-icon-slider .slider-track {
-    width: 26px;
-    height: 4px;
-    border-radius: 999px;
-    background: var(--bd);
-    position: relative;
-  }
-  .help-icon-slider .slider-thumb {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--fg);
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-  .help-icon-group {
-    display: inline-flex;
-    gap: 6px;
-    min-width: 46px;
-    flex-wrap: wrap;
-  }
-  .help-icon-group .btn,
-  .help-icon-group .help-chip {
-    pointer-events: none;
-  }
-  .help-chip {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px 12px;
-    border: 1px solid var(--bd);
-    border-radius: 999px;
-    background: var(--card);
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    pointer-events: none;
-    color: var(--fg);
-  }
-  @media (max-width: 640px) {
-    .help-entry {
-      gap: 10px;
-    }
-    .help-icon,
-    .help-icon-slider {
-      width: 40px;
-      height: 40px;
-    }
-    .help-card {
-      padding: 20px;
-    }
+  /* Center circle (cutout) stays light colored */
+  .btn.active svg circle {
+    fill: var(--btn-active-bg);
   }
   
   /* FIX: Readability for Header Icons */
   /* Default header icons to be outlines */
-  #helpBtn svg, #themeBtn svg, #presenterBtn svg, #mirrorBtn svg, #toggleQuickTimers svg, #toggleNotesBtn svg {
+  #helpBtn svg, #themeBtn svg, #presenterBtn svg, #mirrorBtn svg, #toggleQuickTimers svg, #toggleNotesBtn svg, #langBtn svg, #toggleFormatBuilderBtn svg {
     fill: none;
     stroke: currentColor;
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
+  /* Settings gear icon is filled, not outlined */
+  #toggleSettingsBtn svg {
+    fill: currentColor;
+    stroke: none;
+  }
+  /* Center circle uses button background for cutout effect */
+  #toggleSettingsBtn svg circle {
+    fill: var(--card);
+  }
+  #toggleSettingsBtn.active svg circle {
+    fill: var(--btn-active-bg);
+  }
+  /* Ensure gear group uses currentColor */
+  #toggleSettingsBtn svg g {
+    fill: currentColor;
+  }
   /* Specific icons that *should* be filled */
   /* FIX: Swapped moon/sun */
-  .dark #themeBtn .icon-light, /* Sun in dark mode */
   #themeBtn .icon-dark, /* Moon in light mode */
   #muteBtn svg { /* Mute button icons */
     fill: currentColor;
@@ -291,6 +586,13 @@
   .dark #themeBtn .icon-light { display: inline-block; } /* Show sun in dark mode */
   .dark #themeBtn .icon-dark { display: none; } /* Hide moon in dark mode */
   
+  /* Sun icon should be black and thick - override general themeBtn svg rule */
+  #themeBtn .icon-light,
+  .dark #themeBtn .icon-light {
+    stroke: #000000 !important;
+    stroke-width: 7 !important;
+  }
+  
   /* Mute button logic - standard icon switch, no color inversion */
   #muteBtn .icon-muted { display: none; }
   #muteBtn.muted .icon-unmuted { display: none; }
@@ -301,10 +603,13 @@
     color: var(--fg);
   }
   
-  /* NEW: Slash-through icons for toggles */
-  #toggleQuickTimers .icon-no-slash { display: none; }
-  #toggleQuickTimers.active .icon-slash { display: none; }
-  #toggleQuickTimers.active .icon-no-slash { display: inline-block; }
+  /* Quick timers icon - no slash needed */
+  #toggleQuickTimers .icon-no-slash {
+    display: inline-block;
+  }
+  #toggleQuickTimers .icon-slash {
+    display: none !important;
+  }
   
   /* Notes icon states */
   #toggleNotesBtn .icon-slash { display: none; }
@@ -399,39 +704,53 @@
   /* Note: var(--fg) automatically inverts in dark mode (black->white), opacity stays consistent */
 
   /* Main Timer Button Logic */
-  /* This holds the Start/Pause text */
   .btn-main-timer {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding-top: 12px;
-    padding-bottom: 12px;
-    width: 72px; /* Fixed width */
-    height: auto;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 8px;
+    min-width: 72px;
+    min-height: 72px;
   }
   .btn-main-timer .label-text {
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
   }
+  /* Icon styling - all uniform outline style */
+  .btn-main-timer svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  /* Start/Pause button icon toggle */
   #startBtn.running .icon-play { display: none; }
   #startBtn.running .icon-pause { display: block; }
   #startBtn .icon-pause { display: none; }
   #startBtn .icon-play { display: block; }
-  /* Main timer icons should be fill */
-  #startBtn svg, #singleBtn svg, #doubleBtn svg, #stopBellBtn svg {
+  /* Play icon uses fill */
+  #startBtn .icon-play {
     fill: currentColor;
     stroke: none;
   }
-  /* Fix for reset/cont bell which are outlines */
-  #resetBtn svg, #testContBtn svg {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2.5;
+  /* Continuous bell button - position second icon */
+  #testContBtn {
+    position: relative;
   }
-  /* Fix: Thinner stroke for continuous bell inner icon */
   #testContBtn svg:last-child {
-    stroke-width: 2.8;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
   }
 
 
@@ -471,9 +790,10 @@
   }
   /* Hide everything except the main timer card */
   body.mirror-mode #mainAppRoot header,
+  body.mirror-mode .header-shortcuts, /* HIDE SHORTCUT BAR IN MIRROR MODE */
   body.mirror-mode #notesPanel, /* HIDE NOTES IN MIRROR MODE */
   body.mirror-mode #quickTimersPanel,
-  body.mirror-mode #mainAppRoot .card:last-child { /* Settings card */
+  body.mirror-mode #settingsCard {
     display: none;
   }
   body.mirror-mode.mirror-show-speakers #mainAppRoot .card:first-child {
@@ -528,12 +848,9 @@
   <div id="mainAppRoot">
     <div class="wrap">
       <div class="container">
-        <header>
-          <!-- Title removed for space -->
-          <div class="row">
+        <nav class="header-shortcuts" aria-label="Timer shortcuts">
             <label class="label">
-              <span style="font-weight:700" data-lang-key="debateStyle">Debate Style</span>
-              <select id="formatSelect" class="input">
+              <select id="formatSelect" style="padding: 6px 10px; font-size: 13px; min-width: 120px;">
                 <option value="AP">AP</option>
                 <option value="BP">BP</option>
                 <option value="WSDC">WSDC</option>
@@ -544,35 +861,21 @@
                 <option value="CUSTOM">Custom</option>
               </select>
             </label>
-            <label class="label" style="flex-direction:row;align-items:center;gap:8px; margin-top: 18px;">
-              <span style="font-weight:700" data-lang-key="volume">Volume</span>
-              <input id="volume" type="range" min="0" max="1" step="0.05" value="0.6" style="min-width: 80px;">
-            </label>
-            <label class="label" style="flex-direction:row;align-items:center;gap:8px; margin-top: 18px;">
-              <span style="font-weight:700" data-lang-key="lang">Lang</span>
-              <select id="langSelect" class="input" style="padding-top:10px; padding-bottom:10px;">
-                <option value="en">English</option>
-                <option value="ko">한국어</option>
-              </select>
-            </label>
-          </div>
-          <div class="row" style="margin-top: 18px;">
-            <button id="helpBtn" class="btn btn-icon" title="Help (H)">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-            </button>
             <button id="themeBtn" class="btn btn-icon" title="Toggle Dark Mode (D)">
               <!-- FIX: Swapped moon/sun -->
               <svg class="icon-dark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-              <svg class="icon-light" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                <circle cx="12" cy="12" r="4"></circle>
-                <polygon points="12,0 13,4 11,4"></polygon>
-                <polygon points="12,24 13,20 11,20"></polygon>
-                <polygon points="0,12 4,13 4,11"></polygon>
-                <polygon points="24,12 20,13 20,11"></polygon>
-                <polygon points="3.5,3.5 5.5,5.5 4.5,6.5 2.5,4.5"></polygon>
-                <polygon points="20.5,20.5 22.5,22.5 21.5,23.5 19.5,21.5"></polygon>
-                <polygon points="3.5,20.5 5.5,18.5 4.5,17.5 2.5,19.5"></polygon>
-                <polygon points="20.5,3.5 22.5,5.5 21.5,6.5 19.5,4.5"></polygon>
+              <svg class="icon-light" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="#000000" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+                <!-- Sun circle -->
+                <circle cx="50" cy="50" r="20"/>
+                <!-- Rays -->
+                <line x1="50" y1="5" x2="50" y2="20"/>
+                <line x1="50" y1="80" x2="50" y2="95"/>
+                <line x1="5" y1="50" x2="20" y2="50"/>
+                <line x1="80" y1="50" x2="95" y2="50"/>
+                <line x1="22" y1="22" x2="32" y2="32"/>
+                <line x1="78" y1="22" x2="68" y2="32"/>
+                <line x1="22" y1="78" x2="32" y2="68"/>
+                <line x1="78" y1="78" x2="68" y2="68"/>
               </svg>
             </button>
             <button id="presenterBtn" class="btn btn-icon" title="Presenter Mode (P)">
@@ -594,9 +897,14 @@
               </svg>
             </button>
             <button id="toggleQuickTimers" class="btn btn-icon" title="Show Quick Timers">
-              <!-- NEW: Slash icon logic -->
-              <svg class="icon-slash" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 4v6h6"></path><path d="M3.4 14A9 9 0 1 0 3.4 6V4"></path><path d="M12 7v6l4 2"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-              <svg class="icon-no-slash" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 4v6h6"></path><path d="M3.4 14A9 9 0 1 0 3.4 6V4"></path><path d="M12 7v6l4 2"></path></svg>
+              <!-- Clock icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="13" r="7"></circle>
+                <line x1="12" y1="13" x2="12" y2="9"></line>
+                <line x1="15" y1="16" x2="12" y2="13"></line>
+                <line x1="9" y1="3" x2="15" y2="3"></line>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+              </svg>
             </button>
             <button id="toggleNotesBtn" class="btn btn-icon panel-hidden has-notes" title="Show Speaker Notes">
               <!-- Notes icon: outline version -->
@@ -617,15 +925,52 @@
                 <rect class="corner-indicator" x="18" y="2" width="4" height="4" rx="1"></rect>
               </svg>
             </button>
+            <button id="toggleSettingsBtn" class="btn btn-icon" title="Show Timer Settings">
+              <!-- Gear icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor" stroke="none" style="width: 37px; height: 37px; display: block; margin: 0; padding: 0;">
+                <g fill="currentColor">
+                  <!-- Outer gear shape -->
+                  <path d="M85 55V45l-9-3c-.7-2.7-1.7-5.3-3-7.7l4.6-8.6-7.1-7.1-8.6 4.6c-2.4-1.3-5-2.3-7.7-3l-3-9H45l-3 9c-2.7.7-5.3 1.7-7.7 3l-8.6-4.6-7.1 7.1 4.6 8.6c-1.3 2.4-2.3 5-3 7.7l-9 3v10l9 3c.7 2.7 1.7 5.3 3 7.7l-4.6 8.6 7.1 7.1 8.6-4.6c2.4 1.3 5 2.3 7.7 3l3 9h10l3-9c2.7-.7 5.3-1.7 7.7-3l8.6 4.6 7.1-7.1-4.6-8.6c1.3-2.4 2.3-5 3-7.7l9-3z"/>
+                  <!-- Center hole -->
+                  <circle cx="50" cy="50" r="14" fill="var(--card)"/>
+                </g>
+              </svg>
+            </button>
+            <button id="langBtn" class="btn btn-icon" title="Switch Language">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+            </button>
+            <!-- Hidden langSelect for compatibility -->
+            <select id="langSelect" style="display:none;">
+              <option value="en">English</option>
+              <option value="ko">한국어</option>
+            </select>
+            <label class="label" style="flex-direction:row;align-items:center;gap:6px;margin:0;flex:0 0 auto;">
+              <span style="font-weight:600;font-size:13px;white-space:nowrap;" data-lang-key="volume">Volume</span>
+              <input id="volume" type="range" min="0" max="1" step="0.05" value="0.6" style="min-width: 70px;max-width: 100px;">
+            </label>
             <button id="muteBtn" class="btn btn-icon" title="Mute (M)">
               <svg class="icon-unmuted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
               <svg class="icon-muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M1 1l22 22" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"></path></svg>
             </button>
-          </div>
-        </header>
+            <button id="toggleFormatBuilderBtn" class="btn btn-icon" style="margin-left: auto;" title="Format Builder">
+              <!-- Wrench icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+              </svg>
+            </button>
+            <button id="helpBtn" class="btn btn-icon" title="Help (H)">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </button>
+        </nav>
   
         <!-- Speaker Progress --><div class="card">
-          <div style="font-weight:800;margin-bottom:8px" data-lang-key="spkProgress">Speaker Progress</div>
+          <div style="font-weight:800;margin-bottom:8px">
+            <span data-lang-key="spkProgress">Speaker Progress</span> - <span id="formatDisplay">SIMSON</span>
+          </div>
           <div id="spkBar" class="speaker-progress"><div class="spk prep active" draggable="true" data-idx="0">Round Prep</div><div class="spk prop" draggable="true" data-idx="1">PM</div><div class="spk prep" draggable="true" data-idx="2">Prep</div><div class="spk opp" draggable="true" data-idx="3">LO</div><div class="spk prep" draggable="true" data-idx="4">Prep</div><div class="spk prop" draggable="true" data-idx="5">DPM</div><div class="spk prep" draggable="true" data-idx="6">Prep</div><div class="spk opp" draggable="true" data-idx="7">DLO</div><div class="spk prep" draggable="true" data-idx="8">Prep</div><div class="spk prop" draggable="true" data-idx="9">GW</div><div class="spk prep" draggable="true" data-idx="10">Prep</div><div class="spk opp" draggable="true" data-idx="11">OW</div><div class="spk prep" draggable="true" data-idx="12">Prep</div><div class="spk prop" draggable="true" data-idx="13">GR</div><div class="spk prep" draggable="true" data-idx="14">Prep</div><div class="spk opp" draggable="true" data-idx="15">OR</div></div>
           <div class="row" style="justify-content:space-between;margin-top:8px">
             <div class="row">
@@ -677,12 +1022,11 @@
               <span class="label-text" data-lang-key="double">Double</span>
             </button>
             <button id="testContBtn" class="btn btn-main-timer" title="Start continuous bell test">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M1 4v6h6"></path>
-                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-              </svg>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 19px; height: 19px; margin-left: -6px; margin-top: -2px;">
-                <path d="M10 10C6 10 6 14 10 14c4 0 4-4 8-4 4 0 4 4 0 4s-4-4-8-4z"></path>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 1l4 4-4 4"/>
+                <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                <path d="M7 23l-4-4 4-4"/>
+                <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
               </svg>
               <span class="label-text" data-lang-key="continuous">Continuous</span>
             </button>
@@ -691,6 +1035,7 @@
               <span class="label-text" data-lang-key="stopBell">Stop Bell</span>
             </button>
           </div>
+          <div class="note" style="margin-top: 8px; font-size: 0.9em; color: var(--muted);"><strong>Note:</strong> Test before using.</div>
           <div class="note"><strong data-lang-key="status">Status:</strong> <span id="status">Successfully purged 2 custom format(s)</span></div>
         </div>
         
@@ -735,9 +1080,9 @@
           </div>
         </div>
   
-        <!-- Settings (hideable) --><div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-weight:800;" data-lang-key="settingsTitle">Timer Settings</span><button id="toggleSettings" class="btn" style="padding:6px 10px;font-size:14px" data-lang-key="hide">Show</button></div>
-          <div id="settingsPanel" style="max-height: 0px;">
+        <!-- Settings (hideable) --><div id="settingsCard" class="card" style="display: none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-weight:800;" data-lang-key="settingsTitle">Timer Settings</span></div>
+          <div id="settingsPanel" style="max-height: 0px; display: none;">
             <div class="grid grid-4">
               <label class="label"><span data-lang-key="mainTime">Main (m:ss)</span><input id="mainInput" class="input" value="3:00"></label>
               <label class="label"><span data-lang-key="firstBell">1st Bell from start (m:ss)</span><input id="firstInput" class="input" value="1:00"></label>
@@ -763,6 +1108,7 @@
           </div>
         </div>
   
+  
       </div>
     </div>
   </div><!-- End #mainAppRoot -->
@@ -779,7 +1125,7 @@
   </div>
 
   <!-- Help Modal (lives outside main app root) --><div id="helpModal">
-    <div class="card help-card">
+    <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
         <h2 style="margin:0" data-lang-key="helpTitle">Help &amp; Features</h2>
         <button id="closeHelp" class="btn btn-icon" title="Close" style="padding: 8px;">
@@ -790,334 +1136,120 @@
         </button>
       </div>
       <hr style="border:0;border-top:1px solid var(--bd);margin:12px 0">
+      
+      <h3 data-lang-key="helpHeaderButtons">Header Buttons</h3>
+      <ul class="help-icon-list">
+        <li>
+          <span class="help-item-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          </span>
+          <div class="help-item-text" data-lang-key="helpInitSound"><strong>Sound:</strong> Audio initializes automatically on any interaction (click, touch, or key press). If sound doesn't work, use the failsafe button in Settings panel.</div>
+        </li>
+        <li>
+          <span class="help-item-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="6" height="6" rx="1"></rect><rect x="15" y="4" width="6" height="6" rx="1"></rect><rect x="3" y="14" width="6" height="6" rx="1"></rect><rect x="15" y="14" width="6" height="6" rx="1"></rect></svg>
+          </span>
+          <div class="help-item-text" data-lang-key="helpDebateStyle"><strong>Debate Style:</strong> Select your format (AP, BP, etc.). This loads all speakers and default times.</div>
+        </li>
+        <li>
+          <span class="help-item-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"></line><circle cx="12" cy="12" r="3"></circle></svg>
+          </span>
+          <div class="help-item-text" data-lang-key="helpVolume"><strong>Volume:</strong> Controls the bell sound level.</div>
+        </li>
+        <li>
+          <span class="help-item-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+          </span>
+          <div class="help-item-text" data-lang-key="helpLang"><strong>Lang:</strong> Switches between English and Korean.</div>
+        </li>
+        <li>
+          <span class="help-item-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><circle cx="12" cy="17" r="1"></circle></svg>
+          </span>
+          <div class="help-item-text" data-lang-key="helpHelp"><strong>Help:</strong> Opens this help window. (Shortcut: H)</div>
+        </li>
+        <li>
+          <span class="help-item-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          </span>
+          <div class="help-item-text" data-lang-key="helpTheme"><strong>Theme:</strong> Toggles Dark/Light mode. (Shortcut: D)</div>
+        </li>
+        <li>
+          <span class="help-item-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+          </span>
+          <div class="help-item-text" data-lang-key="helpPresenter"><strong>Presenter:</strong> Opens a large, clean timer in a new window for an external display. (Shortcut: P)</div>
+        </li>
+        <li>
+          <span class="help-item-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="10" height="8" rx="1"></rect><rect x="10" y="11" width="10" height="8" rx="1"></rect></svg>
+          </span>
+          <div class="help-item-text" data-lang-key="helpMirror"><strong>Mirror:</strong> Hides all controls on the main screen. Use this when <em>mirroring</em> your device to a display. <strong>Click the X button to exit.</strong></div>
+        </li>
+        <li>
+          <span class="help-item-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7"></circle><line x1="12" y1="13" x2="12" y2="9"></line><line x1="15" y1="16" x2="12" y2="13"></line><line x1="9" y1="3" x2="15" y2="3"></line><line x1="12" y1="1" x2="12" y2="3"></line></svg>
+          </span>
+          <div class="help-item-text" data-lang-key="helpQuickTimers"><strong>Quick Timers:</strong> Shows/hides the extra timers (Cross-Ex, Prep, etc.). Icon has a slash when hidden.</div>
+        </li>
+        <li>
+          <span class="help-item-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          </span>
+          <div class="help-item-text" data-lang-key="helpNotes"><strong>Notes:</strong> Shows/hides the speaker notes panel. Icon has a slash when hidden. Lights up if the current speaker has notes.</div>
+        </li>
+        <li>
+          <span class="help-item-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M1 1l22 22" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"></path></svg>
+          </span>
+          <div class="help-item-text" data-lang-key="helpMute"><strong>Mute:</strong> Toggles all bell sounds on/off. (Shortcut: M)</div>
+        </li>
+        <li>
+          <span class="help-item-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+          </span>
+          <div class="help-item-text" data-lang-key="helpFormatBuilder"><strong>Format Builder:</strong> Opens a visual editor to create and customize debate formats. Build formats with custom speakers, timing settings, and export/import capabilities.</div>
+        </li>
+      </ul>
 
-      <div class="help-content">
-        <div class="help-section">
-          <h3 data-lang-key="helpHeaderButtons">Header Buttons</h3>
-          <ul class="help-list">
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpInitSound"><strong>Sound:</strong> Audio initializes automatically on any interaction (click, touch, or key press). If sound doesn't work, use the failsafe button in Settings panel.</div>
-            </li>
-            <li class="help-entry">
-              <span class="help-icon help-icon-chip" aria-hidden="true">AP</span>
-              <div class="help-copy" data-lang-key="helpDebateStyle"><strong>Debate Style:</strong> Select your format (AP, BP, etc.). This loads all speakers and default times.</div>
-            </li>
-            <li class="help-entry">
-              <span class="help-icon-slider" aria-hidden="true">
-                <span class="slider-track"><span class="slider-thumb"></span></span>
-              </span>
-              <div class="help-copy" data-lang-key="helpVolume"><strong>Volume:</strong> Controls the bell sound level.</div>
-            </li>
-            <li class="help-entry">
-              <span class="help-icon help-icon-chip" aria-hidden="true">EN</span>
-              <div class="help-copy" data-lang-key="helpLang"><strong>Lang:</strong> Switches between English and Korean.</div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpHelp"><strong>Help:</strong> Opens this help window. (Shortcut: H)</div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpTheme"><strong>Theme:</strong> Toggles Dark/Light mode. (Shortcut: D)</div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                  <line x1="8" y1="21" x2="16" y2="21"></line>
-                  <line x1="12" y1="17" x2="12" y2="21"></line>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpPresenter"><strong>Presenter:</strong> Opens a large, clean timer in a new window for an external display. (Shortcut: P)</div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <g transform="translate(12, 12) scale(0.85) translate(-12, -12)">
-                    <rect x="1" y="2" width="11" height="9" rx="1" opacity="0.5"></rect>
-                    <rect x="11" y="5.5" width="11" height="9" rx="1"></rect>
-                    <line x1="3" y1="11" x2="3" y2="13"></line>
-                    <line x1="5" y1="11" x2="5" y2="13"></line>
-                    <line x1="13" y1="14.5" x2="13" y2="16.5"></line>
-                    <line x1="15" y1="14.5" x2="15" y2="16.5"></line>
-                    <line x1="17" y1="14.5" x2="17" y2="16.5"></line>
-                    <line x1="19" y1="14.5" x2="19" y2="16.5"></line>
-                  </g>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpMirror"><strong>Mirror:</strong> Hides all controls on the main screen. Use this when *mirroring* your device to a display. <strong>Click the X button to exit.</strong></div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 4v6h6"></path>
-                  <path d="M3.4 14A9 9 0 1 0 3.4 6V4"></path>
-                  <path d="M12 7v6l4 2"></path>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpQuickTimers"><strong>Quick Timers:</strong> Shows/hides the extra timers (Cross-Ex, Prep, etc.). Icon has a slash when hidden.</div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpNotes"><strong>Notes:</strong> Shows/hides the speaker notes panel. Icon has a slash when hidden. Lights up if the current speaker has notes.</div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                  <path d="M1 1l22 22" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"></path>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpMute"><strong>Mute:</strong> Toggles all bell sounds on/off. (Shortcut: M)</div>
-            </li>
-          </ul>
-        </div>
+      <h3 data-lang-key="helpSpeakerProgress">Speaker Progress</h3>
+      <ul>
+        <li data-lang-key="helpSpkClick"><strong>Click:</strong> Selects a speaker without changing the order.</li>
+        <li data-lang-key="helpSpkDoubleClick"><strong>Double-click:</strong> Toggles a speaker active/inactive (greys them out and skips them).</li>
+        <li data-lang-key="helpSpkDrag"><strong>Drag &amp; Drop:</strong> Re-order the entire speaker flow.</li>
+        <li data-lang-key="helpSpkNextPrev"><strong>Next/Previous:</strong> Moves to the next/previous speaker. (Shortcut: → / ←)</li>
+      </ul>
 
-        <div class="help-section">
-          <h3 data-lang-key="helpSpeakerProgress">Speaker Progress</h3>
-          <ul class="help-list">
-            <li class="help-entry">
-              <span class="help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M3 2.5l7.4 18.5 1.9-6.5 6.7-1.8L3 2.5z"></path>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpSpkClick"><strong>Click:</strong> Selects a speaker without changing the order.</div>
-            </li>
-            <li class="help-entry">
-              <span class="help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M4 3l6.8 17 1.7-6 6.2-1.6L4 3z" opacity="0.6"></path>
-                  <path d="M7 4.2l6.8 17 1.7-6 6.2-1.6L7 4.2z"></path>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpSpkDoubleClick"><strong>Double-click:</strong> Toggles a speaker active/inactive (greys them out and skips them).</div>
-            </li>
-            <li class="help-entry">
-              <span class="help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="8" cy="8" r="1.6"></circle>
-                  <circle cx="8" cy="12" r="1.6"></circle>
-                  <circle cx="8" cy="16" r="1.6"></circle>
-                  <circle cx="12" cy="8" r="1.6"></circle>
-                  <circle cx="12" cy="12" r="1.6"></circle>
-                  <circle cx="12" cy="16" r="1.6"></circle>
-                  <circle cx="16" cy="8" r="1.6"></circle>
-                  <circle cx="16" cy="12" r="1.6"></circle>
-                  <circle cx="16" cy="16" r="1.6"></circle>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpSpkDrag"><strong>Drag &amp; Drop:</strong> Re-order the entire speaker flow.</div>
-            </li>
-            <li class="help-entry">
-              <span class="help-icon-group" aria-hidden="true">
-                <span class="help-chip">Prev</span>
-                <span class="help-chip">Next</span>
-              </span>
-              <div class="help-copy" data-lang-key="helpSpkNextPrev"><strong>Next/Previous:</strong> Moves to the next/previous speaker. (Shortcut: → / ←)</div>
-            </li>
-          </ul>
-        </div>
+      <h3 data-lang-key="helpMainTimer">Main Timer Controls</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li data-lang-key="helpMainStart" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><strong>Start/Pause (Play/Pause):</strong> Toggles the main timer. (Shortcut: Space)</li>
+        <li data-lang-key="helpMainReset" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><strong>Reset (Circular Arrow):</strong> Resets the current timer. (Shortcut: R)</li>
+        <li data-lang-key="helpMainScrub" style="margin-bottom: 8px;"><strong>Progress Bar:</strong> Click or drag on the progress bar to "scrub" the timer to any point.</li>
+        <li data-lang-key="helpMainBells" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><strong>Bell Icons (1, 2, Loop, Mute):</strong> Play bells manually or stop a continuous bell. (Shortcut: 1, 2)</li>
+      </ul>
+      
+      <h3 data-lang-key="helpTimerLogic">Timer Logic</h3>
+      <ul>
+        <li data-lang-key="helpTimerLogicSub"><strong>Substantive Speeches:</strong> Use Main, 1st Bell, 2nd Bell, Yellow/Red, and Grace times.</li>
+        <li data-lang-key="helpTimerLogicBells">Bells ring at 1st Bell, 2nd Bell, and a double-bell rings at the end (0:00).</li>
+        <li data-lang-key="helpTimerLogicGrace">After 0:00, the <strong>Grace Period</strong> counts up, and the screen flashes.</li>
+        <li data-lang-key="helpTimerLogicCont">After the grace period, a <strong>continuous bell</strong> rings until you press "Stop Bell" or "Reset".</li>
+        <li data-lang-key="helpTimerLogicReply"><strong>Reply Speeches:</strong> Use the "Rebuttal" time and end with a double-bell.</li>
+      </ul>
 
-        <div class="help-section">
-          <h3 data-lang-key="helpMainTimer">Main Timer Controls</h3>
-          <ul class="help-list">
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M7 4l10 8-10 8V4z"></path>
-                  <rect x="14" y="4" width="3" height="16" rx="0.8" opacity="0.35"></rect>
-                  <rect x="18" y="4" width="3" height="16" rx="0.8" opacity="0.35"></rect>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpMainStart"><strong>Start/Pause (Play/Pause):</strong> Toggles the main timer. (Shortcut: Space)</div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 4v6h6"></path>
-                  <path d="M5.5 15.5a9 9 0 1 0 2-9.5L4 10"></path>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpMainReset"><strong>Reset (Circular Arrow):</strong> Resets the current timer. (Shortcut: R)</div>
-            </li>
-            <li class="help-entry">
-              <span class="help-icon-slider" aria-hidden="true">
-                <span class="slider-track"><span class="slider-thumb" style="right: 30%;"></span></span>
-              </span>
-              <div class="help-copy" data-lang-key="helpMainScrub"><strong>Progress Bar:</strong> Click or drag on the progress bar to "scrub" the timer to any point.</div>
-            </li>
-            <li class="help-entry">
-              <span class="help-icon-group" aria-hidden="true">
-                <span class="btn btn-icon help-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                  </svg>
-                </span>
-                <span class="btn btn-icon help-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                    <path d="M7 8l10 10" opacity="0.35"></path>
-                  </svg>
-                </span>
-                <span class="btn btn-icon help-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                    <path d="M1 1l22 22"></path>
-                  </svg>
-                </span>
-              </span>
-              <div class="help-copy" data-lang-key="helpMainBells"><strong>Bell Icons (1, 2, Loop, Mute):</strong> Play bells manually or stop a continuous bell. (Shortcut: 1, 2)</div>
-            </li>
-          </ul>
-        </div>
-
-        <div class="help-section">
-          <h3 data-lang-key="helpTimerLogic">Timer Logic</h3>
-          <ul class="help-list">
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="9"></circle>
-                  <polyline points="12 7 12 12 16 14"></polyline>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpTimerLogicSub"><strong>Substantive Speeches:</strong> Use Main, 1st Bell, 2nd Bell, Yellow/Red, and Grace times.</div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="9"></circle>
-                  <polyline points="12 7 12 12 16 14"></polyline>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpTimerLogicBells">Bells ring at 1st Bell, 2nd Bell, and a double-bell rings at the end (0:00).</div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="9"></circle>
-                  <polyline points="12 7 12 12 16 14"></polyline>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpTimerLogicGrace">After 0:00, the <strong>Grace Period</strong> counts up, and the screen flashes.</div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="9"></circle>
-                  <polyline points="12 7 12 12 16 14"></polyline>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpTimerLogicCont">After the grace period, a <strong>continuous bell</strong> rings until you press "Stop Bell" or "Reset".</div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="9"></circle>
-                  <polyline points="12 7 12 12 16 14"></polyline>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpTimerLogicReply"><strong>Reply Speeches:</strong> Use the "Rebuttal" time and end with a double-bell.</div>
-            </li>
-          </ul>
-        </div>
-
-        <div class="help-section">
-          <h3 data-lang-key="helpNotesData">Notes &amp; Data</h3>
-          <ul class="help-list">
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 4h12l4 4v12H4z"></path>
-                  <path d="M14 4v5h6"></path>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpNotesPerSpeaker">Notes are saved per-speaker, per-format (e.g., "AP - Prime Minister").</div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 4h12l4 4v12H4z"></path>
-                  <path d="M14 4v5h6"></path>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpNotesExportTxt"><strong>Export Notes:</strong> Saves a ".txt" file of all your notes, organized by format.</div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 4h12l4 4v12H4z"></path>
-                  <path d="M14 4v5h6"></path>
-                  <path d="M12 12v6"></path>
-                  <path d="M9 15h6"></path>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpNotesImport"><strong>Import Notes:</strong> Merges notes from a `.json` file.</div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 4h12l4 4v12H4z"></path>
-                  <path d="M14 4v5h6"></path>
-                  <path d="M9 15l6 6"></path>
-                  <path d="M15 15l-6 6"></path>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpNotesClear"><strong>Clear All Notes:</strong> Deletes all saved notes (with confirmation).</div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 4h12l4 4v12H4z"></path>
-                  <path d="M14 4v5h6"></path>
-                  <path d="M9 17l3 3 3-3"></path>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpSettingsExport"><strong>Export Settings:</strong> Saves your "Custom" preset and all timer settings to a `.json` file.</div>
-            </li>
-            <li class="help-entry">
-              <span class="btn btn-icon help-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 4h12l4 4v12H4z"></path>
-                  <path d="M14 4v5h6"></path>
-                  <path d="M12 21v-6"></path>
-                  <path d="M9 15h6"></path>
-                </svg>
-              </span>
-              <div class="help-copy" data-lang-key="helpSettingsImport"><strong>Import Settings:</strong> Loads a `.json` file as your new "Custom" preset.</div>
-            </li>
-          </ul>
-        </div>
-      </div>
+      <h3 data-lang-key="helpNotesData">Notes &amp; Data</h3>
+      <ul>
+        <li data-lang-key="helpNotesPerSpeaker">Notes are saved per-speaker, per-format (e.g., "AP - Prime Minister").</li>
+        <li data-lang-key="helpNotesExportTxt"><strong>Export Notes:</strong> Saves a ".txt" file of all your notes, organized by format.</li>
+        <li data-lang-key="helpNotesImport"><strong>Import Notes:</strong> Merges notes from a `.json` file.</li>
+        <li data-lang-key="helpNotesClear"><strong>Clear All Notes:</strong> Deletes all saved notes (with confirmation).</li>
+        <li data-lang-key="helpSettingsExport"><strong>Export Settings:</strong> Saves your "Custom" preset and all timer settings to a `.json` file.</li>
+        <li data-lang-key="helpSettingsImport"><strong>Import Settings:</strong> Loads a `.json` file as your new "Custom" preset.</li>
+        <li data-lang-key="helpFormatBuilderDesc"><strong>Format Builder:</strong> Create custom debate formats with a visual editor. Add speakers, configure timing settings, and export formats for sharing. Use "Load Current Format" to edit existing formats, or "Apply to Timer" to use your custom format.</li>
+      </ul>
     </div>
   </div>
   
@@ -1129,6 +1261,125 @@
       <div class="row" style="justify-content:flex-end; gap: 12px;">
         <button id="confirmCancel" class="btn" data-lang-key="cancel">Cancel</button>
         <button id="confirmOK" class="btn" style="background:var(--bad-bg);color:var(--bad-fg);border-color:var(--bad-fg)" data-lang-key="ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Format Builder Modal -->
+  <div id="formatBuilderModal">
+    <div class="format-builder-container">
+      <div class="format-builder-header">
+        <h2>Format Builder</h2>
+        <button id="fbCloseBtn" class="format-builder-close" title="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="format-builder-content">
+        <!-- Format Info -->
+        <div class="format-builder-card">
+          <h3>Format Information</h3>
+          <div class="grid grid-2">
+            <label class="label">
+              <span>Format Name</span>
+              <input type="text" id="fbFormatName" class="input" placeholder="e.g., Custom BP, Tournament Format" value="Custom Format">
+            </label>
+            <label class="label">
+              <span>Format ID (for code)</span>
+              <input type="text" id="fbFormatId" class="input" placeholder="e.g., CUSTOM_BP" value="CUSTOM">
+            </label>
+          </div>
+        </div>
+
+        <!-- Timing Settings -->
+        <div class="format-builder-card">
+          <h3>Timing Settings</h3>
+          <div class="grid grid-4">
+            <label class="label">
+              <span>Main Speech Time (m:ss)</span>
+              <input type="text" id="fbMainTime" class="input" value="3:00" placeholder="3:00">
+            </label>
+            <label class="label">
+              <span>1st Bell from Start (m:ss)</span>
+              <input type="text" id="fbFirstBell" class="input" value="1:00" placeholder="1:00">
+            </label>
+            <label class="label">
+              <span>2nd Bell from Start (m:ss)</span>
+              <input type="text" id="fbSecondBell" class="input" value="2:00" placeholder="2:00">
+            </label>
+            <label class="label">
+              <span>Yellow Warning At (m:ss)</span>
+              <input type="text" id="fbYellowTime" class="input" value="1:00" placeholder="1:00">
+            </label>
+            <label class="label">
+              <span>Red Warning At (m:ss)</span>
+              <input type="text" id="fbRedTime" class="input" value="0:30" placeholder="0:30">
+            </label>
+            <label class="label">
+              <span>Grace Period (m:ss)</span>
+              <input type="text" id="fbGraceTime" class="input" value="0:30" placeholder="0:30">
+            </label>
+            <label class="label">
+              <span>Prep Time (m:ss)</span>
+              <input type="text" id="fbPrepTime" class="input" value="0:00" placeholder="0:00">
+            </label>
+            <label class="label">
+              <span>Round Prep Time (m:ss)</span>
+              <input type="text" id="fbRoundPrepTime" class="input" value="0:00" placeholder="0:00">
+            </label>
+            <label class="label">
+              <span>Cross-Ex Time (m:ss)</span>
+              <input type="text" id="fbCexTime" class="input" value="1:00" placeholder="1:00">
+            </label>
+            <label class="label">
+              <span>Rebuttal Time (m:ss)</span>
+              <input type="text" id="fbRebTime" class="input" value="3:00" placeholder="3:00">
+            </label>
+            <label class="label">
+              <span>POI Time (m:ss)</span>
+              <input type="text" id="fbPoiTime" class="input" value="0:15" placeholder="0:15">
+            </label>
+            <label class="label">
+              <span>Bell Spacing (ms)</span>
+              <input type="number" id="fbBellSpacing" class="input" value="250" placeholder="250">
+            </label>
+          </div>
+        </div>
+
+        <!-- Speakers -->
+        <div class="format-builder-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="margin:0">Speakers</h3>
+            <button class="btn btn-primary" id="fbAddSpeakerBtn">+ Add Speaker</button>
+          </div>
+          <div id="fbSpeakersList"></div>
+          <div id="fbEmptyState" class="empty-state" style="display:none">
+            <p>No speakers added yet. Click "Add Speaker" to get started.</p>
+          </div>
+        </div>
+
+        <!-- Export -->
+        <div class="format-builder-card">
+          <h3>Export Format</h3>
+          <div class="row" style="margin-bottom:16px;flex-wrap:wrap;gap:8px">
+            <button class="btn btn-primary" id="fbExportBtn">Export JSON</button>
+            <button class="btn" id="fbImportBtn">Import JSON</button>
+            <button class="btn" id="fbLoadCurrentBtn">Load Current Format</button>
+            <button class="btn" id="fbApplyToTimerBtn">Apply to Timer</button>
+            <button class="btn" id="fbClearAllBtn" style="background:var(--bad-bg);color:var(--bad-fg);border-color:var(--bad-bg)">Clear All</button>
+            <input type="file" id="fbImportFile" accept="application/json" style="display:none">
+          </div>
+          <div id="fbExportArea" class="export-area" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <strong>Exported Format JSON:</strong>
+              <button class="btn" id="fbCopyBtn">Copy</button>
+            </div>
+            <textarea id="fbExportCode" class="export-code" readonly></textarea>
+            <div id="fbStatus" class="status-message"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1236,14 +1487,18 @@ function applyBodyState(state){
   
   // ---------- DOM Elements: Header ----------
   const formatSelect = $('#formatSelect');
+  const formatDisplay = $('#formatDisplay');
   const volume = $('#volume');
-  const langSelect = $('#langSelect');
+  const langSelect = $('#langSelect'); // Keep for compatibility, but hidden
+  const langBtn = $('#langBtn');
   const helpBtn = $('#helpBtn');
   const themeBtn = $('#themeBtn');
   const presenterBtn = $('#presenterBtn');
   const mirrorBtn = $('#mirrorBtn');
   const toggleQuickTimers = $('#toggleQuickTimers');
   const toggleNotesBtn = $('#toggleNotesBtn');
+  const toggleSettingsBtn = $('#toggleSettingsBtn');
+  const toggleFormatBuilderBtn = $('#toggleFormatBuilderBtn');
   const enableBtn = $('#enableBtn');
   const muteBtn = $('#muteBtn');
   
@@ -1295,14 +1550,33 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
   const poiClock = $('#poiClock'), poiFill = $('#poiFill'), poiStart = $('#poiStart'), poiReset = $('#poiReset');
 
   // ---------- DOM Elements: Settings Panel ----------
+  const settingsCard = $('#settingsCard');
   const settingsPanel = $('#settingsPanel');
-  const toggleSettings = $('#toggleSettings');
   const mainInput = $('#mainInput'), firstInput = $('#firstInput'), secondInput = $('#secondInput');
   const yellowInput = $('#yellowInput'), redInput = $('#redInput'), graceInput = $('#graceInput');
   const prepInput = $('#prepInput'), cexInput = $('#cexInput'), rebInput = $('#rebInput'), poiInput = $('#poiInput');
   const spaceInput = $('#spaceInput');
   const exportBtn = $('#exportBtn'), importBtn = $('#importBtn'), importFile = $('#importFile');
   const purgeCustomFormatsBtn = $('#purgeCustomFormatsBtn');
+  
+  // ---------- DOM Elements: Format Builder Modal ----------
+  const formatBuilderModal = $('#formatBuilderModal');
+  const fbCloseBtn = $('#fbCloseBtn');
+  const fbFormatName = $('#fbFormatName');
+  const fbFormatId = $('#fbFormatId');
+  const fbAddSpeakerBtn = $('#fbAddSpeakerBtn');
+  const fbSpeakersList = $('#fbSpeakersList');
+  const fbEmptyState = $('#fbEmptyState');
+  const fbExportBtn = $('#fbExportBtn');
+  const fbImportBtn = $('#fbImportBtn');
+  const fbLoadCurrentBtn = $('#fbLoadCurrentBtn');
+  const fbApplyToTimerBtn = $('#fbApplyToTimerBtn');
+  const fbClearAllBtn = $('#fbClearAllBtn');
+  const fbImportFile = $('#fbImportFile');
+  const fbExportArea = $('#fbExportArea');
+  const fbExportCode = $('#fbExportCode');
+  const fbCopyBtn = $('#fbCopyBtn');
+  const fbStatus = $('#fbStatus');
   
   // ---------- DOM Elements: Modals ----------
   const helpModal = $('#helpModal');
@@ -1378,6 +1652,7 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
       helpQuickTimers: '<strong>Quick Timers:</strong> Shows/hides the extra timers (Cross-Ex, Prep, etc.). Icon has a slash when hidden.',
       helpNotes: '<strong>Notes:</strong> Shows/hides the speaker notes panel. Icon has a slash when hidden. Lights up if the current speaker has notes.',
       helpMute: '<strong>Mute:</strong> Toggles all bell sounds on/off. (Shortcut: M)',
+      helpFormatBuilder: '<strong>Format Builder:</strong> Opens a visual editor to create and customize debate formats. Build formats with custom speakers, timing settings, and export/import capabilities.',
       
       helpSpeakerProgress: 'Speaker Progress',
       helpSpkClick: '<strong>Click:</strong> Selects a speaker without changing the order.',
@@ -1405,6 +1680,7 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
       helpNotesClear: '<strong>Clear All Notes:</strong> Deletes all saved notes (with confirmation).',
       helpSettingsExport: '<strong>Export Settings:</strong> Saves your "Custom" preset and all timer settings to a `.json` file.',
       helpSettingsImport: '<strong>Import Settings:</strong> Loads a `.json` file as your new "Custom" preset.',
+      helpFormatBuilderDesc: '<strong>Format Builder:</strong> Create custom debate formats with a visual editor. Add speakers, configure timing settings, and export formats for sharing. Use "Load Current Format" to edit existing formats, or "Apply to Timer" to use your custom format.',
 
       // Dynamic Roles (will be handled by PRESETS)
       roundPrep: 'Round Prep', prepFor: 'Prep for',
@@ -1427,6 +1703,10 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
       titleQuickTimersHide: 'Hide Quick Timers',
       titleNotesShow: 'Show Speaker Notes',
       titleNotesHide: 'Hide Speaker Notes',
+      titleSettingsShow: 'Show Timer Settings',
+      titleSettingsHide: 'Hide Timer Settings',
+      titleFormatBuilderShow: 'Show Format Builder',
+      titleFormatBuilderHide: 'Hide Format Builder',
       // Confirmation Modal
       confirmClearNotesTitle: 'Clear All Notes?',
       confirmClearNotesText: 'Are you sure you want to delete all saved speaker notes? This cannot be undone.',
@@ -1477,6 +1757,7 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
       helpQuickTimers: '<strong>빠른 타이머:</strong> 추가 타이머(교차조사, 준비 등)를 표시하거나 숨깁니다. 숨겨져 있을 때는 아이콘에 슬래시가 표시됩니다.',
       helpNotes: '<strong>메모:</strong> 발표자 메모 패널을 표시하거나 숨깁니다. 숨겨져 있을 때는 아이콘에 슬래시가 표시됩니다. 현재 발표자에게 메모가 있으면 불이 들어옵니다.',
       helpMute: '<strong>음소거:</strong> 모든 벨소리를 켜거나 끕니다. (단축키: M)',
+      helpFormatBuilder: '<strong>포맷 빌더:</strong> 토론 포맷을 만들고 사용자 정의할 수 있는 시각적 편집기를 엽니다. 사용자 정의 발표자, 타이머 설정으로 포맷을 만들고 내보내기/가져오기 기능을 사용할 수 있습니다.',
 
       helpSpeakerProgress: '발표자 진행',
       helpSpkClick: '<strong>클릭:</strong> 순서 변경 없이 발표자를 선택합니다.',
@@ -1504,6 +1785,7 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
       helpNotesClear: '<strong>모든 메모 지우기:</strong> 저장된 모든 메모를 삭제합니다 (확인 창 표시).',
       helpSettingsExport: '<strong>설정 내보내기:</strong> "Custom" preset과 모든 타이머 설정을 `.json` 파일로 저장합니다.',
       helpSettingsImport: '<strong>설정 가져오기:</strong> `.json` 파일을 새 "Custom" preset으로 로드합니다.',
+      helpFormatBuilderDesc: '<strong>포맷 빌더:</strong> 시각적 편집기로 사용자 정의 토론 포맷을 만듭니다. 발표자를 추가하고, 타이머 설정을 구성하며, 공유를 위해 포맷을 내보낼 수 있습니다. "현재 포맷 로드"를 사용하여 기존 포맷을 편집하거나 "타이머에 적용"을 사용하여 사용자 정의 포맷을 사용하세요.',
 
       // Dynamic Roles
       roundPrep: '라운드 준비', prepFor: '준비 (다음)',
@@ -1526,6 +1808,10 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
       titleQuickTimersHide: '빠른 타이머 숨기기',
       titleNotesShow: '발표자 메모 표시',
       titleNotesHide: '발표자 메모 숨기기',
+      titleSettingsShow: '타이머 설정 표시',
+      titleSettingsHide: '타이머 설정 숨기기',
+      titleFormatBuilderShow: '포맷 빌더 표시',
+      titleFormatBuilderHide: '포맷 빌더 숨기기',
       // Confirmation Modal
       confirmClearNotesTitle: '모든 메모를 지우시겠습니까?',
       confirmClearNotesText: '저장된 모든 발표자 메모를 삭제합니다. 이 작업은 되돌릴 수 없습니다.',
@@ -1573,6 +1859,10 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
     // Update toggle button titles
     toggleQuickTimers.title = quickTimersPanel.style.maxHeight === '0px' ? currentLang.titleQuickTimersShow : currentLang.titleQuickTimersHide;
     toggleNotesBtn.title = notesPanel.style.maxHeight === '0px' ? currentLang.titleNotesShow : currentLang.titleNotesHide;
+    toggleSettingsBtn.title = settingsPanel.style.maxHeight === '0px' ? currentLang.titleSettingsShow : currentLang.titleSettingsHide;
+    if (toggleFormatBuilderBtn) {
+      toggleFormatBuilderBtn.title = formatBuilderModal.style.display === 'none' || !formatBuilderModal.style.display ? currentLang.titleFormatBuilderShow : currentLang.titleFormatBuilderHide;
+    }
     
     // Update other titles
     muteBtn.title = currentLang.titleMute;
@@ -1593,8 +1883,12 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
     }
     updateMirrorSpeakerVisibility();
     
-    // Update settings toggle
-    toggleSettings.textContent = settingsPanel.style.maxHeight === '0px' ? currentLang.show : currentLang.hide;
+    // Sync tooltips after updating button states
+    if (window.syncTooltips) {
+      window.syncTooltips();
+    }
+    
+    // Settings toggle removed - using gear icon button instead
   }
 
   function updateMirrorSpeakerVisibility() {
@@ -2399,6 +2693,9 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
     
     // Load new preset
     currentFormat = format;
+    // Update formatSelect value to match
+    if (formatSelect) formatSelect.value = format;
+    updateFormatDisplay(); // Update the format display indicator
     
     // If it's CUSTOM, load the custom preset (which we just saved above)
     if(format === 'CUSTOM') {
@@ -2456,6 +2753,33 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
     initQuickTimers();
     selectSpeaker(0);
     saveState();
+  }
+  
+  function updateFormatDisplay() {
+    if (!formatDisplay) return;
+    let displayText = currentFormat;
+    
+    // Get the display text from the select option or preset label
+    if (currentFormat === 'CUSTOM') {
+      displayText = 'Custom';
+    } else {
+      // Check if it's a custom format stored in localStorage
+      const customFormat = getCustomFormat(currentFormat);
+      if (customFormat) {
+        displayText = customFormat.label || currentFormat;
+      } else {
+        // Use the option text from formatSelect (short code like "AP", "BP")
+        const option = formatSelect?.querySelector(`option[value="${currentFormat}"]`);
+        if (option && option.textContent) {
+          displayText = option.textContent;
+        } else {
+          // Fallback to format code or preset label
+          displayText = PRESETS[currentFormat]?.label || currentFormat;
+        }
+      }
+    }
+    
+    formatDisplay.textContent = displayText;
   }
   
   function saveState(){
@@ -3147,7 +3471,21 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
         panel.style.borderWidth = '0px';
         toggleNotesBtn.classList.add('panel-hidden');
       }
+      // Fully hide settings card and panel when closed
+      if (panel === settingsPanel) {
+        setTimeout(() => {
+          if (panel.style.maxHeight === '0px') {
+            panel.style.display = 'none';
+            if (settingsCard) settingsCard.style.display = 'none';
+          }
+        }, 350); // After transition completes
+      }
     } else {
+      // Show settings card and panel before opening
+      if (panel === settingsPanel) {
+        if (settingsCard) settingsCard.style.display = 'block';
+        panel.style.display = 'block';
+      }
       // ********** THIS IS THE FIX **********
       panel.style.maxHeight = '500px'; // Use CSS max-height, not scrollHeight
       // ***********************************
@@ -3162,7 +3500,7 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
     if(btn) updateButtonStates();
     // Update button active state
     if (btn && btn.classList.contains('btn-icon')) {
-      if (btn === toggleQuickTimers) {
+      if (btn === toggleQuickTimers || btn === toggleSettingsBtn) {
       btn.classList.toggle('active', !isOpen);
       }
       // Notes button: no active class needed, colors controlled by CSS
@@ -3170,9 +3508,439 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
     }
   }
 
-  toggleSettings.onclick = () => togglePanel(settingsPanel, toggleSettings, 'settings');
+  toggleSettingsBtn.onclick = () => togglePanel(settingsPanel, toggleSettingsBtn, 'settings');
   toggleQuickTimers.onclick = () => togglePanel(quickTimersPanel, toggleQuickTimers, 'quickTimers');
   toggleNotesBtn.onclick = () => togglePanel(notesPanel, toggleNotesBtn, 'notes');
+  
+  // Format Builder Modal - Open only (close via X button)
+  toggleFormatBuilderBtn.onclick = () => {
+    if (formatBuilderModal) {
+      formatBuilderModal.style.display = 'flex';
+      updateButtonStates();
+    }
+  };
+
+  // Format Builder Modal - Close button (only way to close)
+  if (fbCloseBtn) {
+    fbCloseBtn.onclick = () => {
+      if (formatBuilderModal) {
+        formatBuilderModal.style.display = 'none';
+        updateButtonStates();
+      }
+    };
+  }
+
+  // ---------- Format Builder Functions ----------
+  let fbSpeakers = [];
+  let fbSpeakerCounter = 0;
+
+  function fbAddSpeaker(speakerData = null) {
+    const speaker = speakerData || {
+      id: fbSpeakerCounter++,
+      role_en: 'New Speaker',
+      role_ko: '새 발표자',
+      side: 'prop',
+      initials: 'SP',
+      timerType: 'main',
+      timerName: '',
+      isReply: false
+    };
+    fbSpeakers.push(speaker);
+    fbRenderSpeakers();
+  }
+
+  function fbRemoveSpeaker(id) {
+    fbSpeakers = fbSpeakers.filter(s => s.id !== id);
+    fbRenderSpeakers();
+  }
+
+  function fbMoveSpeaker(id, direction) {
+    const index = fbSpeakers.findIndex(s => s.id === id);
+    if (index === -1) return;
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === fbSpeakers.length - 1) return;
+    
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    [fbSpeakers[index], fbSpeakers[newIndex]] = [fbSpeakers[newIndex], fbSpeakers[index]];
+    fbRenderSpeakers();
+  }
+
+  function fbUpdateSpeaker(id, field, value) {
+    const speaker = fbSpeakers.find(s => s.id === id);
+    if (speaker) {
+      speaker[field] = value;
+      fbRenderSpeakers();
+    }
+  }
+
+  function fbRenderSpeakers() {
+    if (!fbSpeakersList || !fbEmptyState) return;
+    
+    if (fbSpeakers.length === 0) {
+      fbSpeakersList.innerHTML = '';
+      fbEmptyState.style.display = 'block';
+      return;
+    }
+    
+    fbEmptyState.style.display = 'none';
+    fbSpeakersList.innerHTML = fbSpeakers.map((s, i) => `
+      <div class="speaker-item ${s.side}" data-id="${s.id}">
+        <div class="speaker-header">
+          <div class="row">
+            <span class="speaker-number">#${i + 1}</span>
+          </div>
+          <div class="row">
+            <button class="btn-icon-small" onclick="fbMoveSpeaker(${s.id}, 'up')" ${i === 0 ? 'disabled' : ''} title="Move Up">↑</button>
+            <button class="btn-icon-small" onclick="fbMoveSpeaker(${s.id}, 'down')" ${i === fbSpeakers.length - 1 ? 'disabled' : ''} title="Move Down">↓</button>
+            <button class="btn-icon-small" onclick="fbRemoveSpeaker(${s.id})" title="Remove">×</button>
+          </div>
+        </div>
+        <div class="grid grid-2">
+          <label class="label">
+            <span>English Name</span>
+            <input type="text" class="input" value="${s.role_en || ''}" onchange="fbUpdateSpeaker(${s.id}, 'role_en', this.value)">
+          </label>
+          <label class="label">
+            <span>Korean Name</span>
+            <input type="text" class="input" value="${s.role_ko || ''}" onchange="fbUpdateSpeaker(${s.id}, 'role_ko', this.value)">
+          </label>
+          <label class="label">
+            <span>Side</span>
+            <select class="input" onchange="fbUpdateSpeaker(${s.id}, 'side', this.value)">
+              <option value="prop" ${s.side === 'prop' ? 'selected' : ''}>Proposition/Affirmative</option>
+              <option value="opp" ${s.side === 'opp' ? 'selected' : ''}>Opposition/Negative</option>
+              <option value="neutral" ${s.side === 'neutral' ? 'selected' : ''}>Neutral</option>
+              <option value="prep" ${s.side === 'prep' ? 'selected' : ''}>Prep Time</option>
+            </select>
+          </label>
+          <label class="label">
+            <span>Initials</span>
+            <input type="text" class="input" value="${s.initials || ''}" onchange="fbUpdateSpeaker(${s.id}, 'initials', this.value)" placeholder="e.g., PM, LO">
+          </label>
+          <label class="label">
+            <span>Timer Type</span>
+            <select class="input" onchange="fbUpdateSpeaker(${s.id}, 'timerType', this.value); fbRenderSpeakers();">
+              <option value="main" ${s.timerType === 'main' ? 'selected' : ''}>Main Timer (Speaker Progress)</option>
+              <option value="quick" ${s.timerType === 'quick' ? 'selected' : ''}>Quick Timer (Extra Timers Section)</option>
+              <option value="progress" ${s.timerType === 'progress' ? 'selected' : ''}>Progress Only (No Timer)</option>
+            </select>
+          </label>
+          ${s.timerType === 'quick' ? `
+          <label class="label">
+            <span>Quick Timer Name</span>
+            <select class="input" onchange="fbUpdateSpeaker(${s.id}, 'timerName', this.value)">
+              <option value="cex" ${s.timerName === 'cex' ? 'selected' : ''}>Cross-Ex</option>
+              <option value="reb" ${s.timerName === 'reb' ? 'selected' : ''}>Rebuttal</option>
+              <option value="prep" ${s.timerName === 'prep' ? 'selected' : ''}>Prep</option>
+              <option value="poi" ${s.timerName === 'poi' ? 'selected' : ''}>POI</option>
+            </select>
+          </label>
+          ` : '<div></div>'}
+          <label class="label">
+            <span>
+              <input type="checkbox" ${s.isReply ? 'checked' : ''} onchange="fbUpdateSpeaker(${s.id}, 'isReply', this.checked)">
+              Use Rebuttal Time (instead of Main Time)
+            </span>
+          </label>
+        </div>
+        ${s.timerType === 'main' ? '<span class="timer-type-badge timer-type-main">Main Timer</span>' : ''}
+        ${s.timerType === 'quick' ? `<span class="timer-type-badge timer-type-quick">Quick Timer: ${s.timerName || 'cex'}</span>` : ''}
+        ${s.timerType === 'progress' ? '<span class="timer-type-badge timer-type-progress">Progress Only</span>' : ''}
+      </div>
+    `).join('');
+  }
+
+  function fbExportFormat() {
+    const formatName = fbFormatName.value || 'Custom Format';
+    const formatId = fbFormatId.value || 'CUSTOM';
+    
+    const settings = {
+      main: $('#fbMainTime').value,
+      first: $('#fbFirstBell').value,
+      second: $('#fbSecondBell').value,
+      yellow: $('#fbYellowTime').value,
+      red: $('#fbRedTime').value,
+      grace: $('#fbGraceTime').value,
+      prep: $('#fbPrepTime').value,
+      roundPrep: $('#fbRoundPrepTime').value,
+      cex: $('#fbCexTime').value,
+      reb: $('#fbRebTime').value,
+      poi: $('#fbPoiTime').value,
+      spacing: $('#fbBellSpacing').value
+    };
+    
+    const base = fbSpeakers
+      .filter(s => s.timerType === 'main' || s.timerType === 'progress')
+      .map(s => ({
+        role_en: s.role_en,
+        role_ko: s.role_ko,
+        side: s.side,
+        initials: s.initials,
+        isReply: s.isReply
+      }));
+    
+    const format = {
+      label: formatName,
+      base: base,
+      settings: settings
+    };
+    
+    const exportData = {
+      format: format,
+      formatId: formatId,
+      metadata: {
+        created: new Date().toISOString(),
+        version: '1.0'
+      }
+    };
+    
+    const json = JSON.stringify(exportData, null, 2);
+    fbExportCode.textContent = json;
+    fbExportArea.style.display = 'block';
+    
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${formatId}_format.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    fbShowStatus('Format exported successfully!', 'success');
+  }
+
+  function fbLoadFormatData(data) {
+    if (data.format) {
+      const format = data.format;
+      
+      if (data.formatId) fbFormatId.value = data.formatId;
+      if (format.label) fbFormatName.value = format.label;
+      
+      if (format.settings) {
+        const inputMap = {
+          main: '#fbMainTime',
+          first: '#fbFirstBell',
+          second: '#fbSecondBell',
+          yellow: '#fbYellowTime',
+          red: '#fbRedTime',
+          grace: '#fbGraceTime',
+          prep: '#fbPrepTime',
+          roundPrep: '#fbRoundPrepTime',
+          cex: '#fbCexTime',
+          reb: '#fbRebTime',
+          poi: '#fbPoiTime',
+          spacing: '#fbBellSpacing'
+        };
+        Object.entries(format.settings).forEach(([key, value]) => {
+          const selector = inputMap[key];
+          if (selector) {
+            const input = $(selector);
+            if (input) input.value = value;
+          }
+        });
+      }
+      
+      if (format.base && Array.isArray(format.base)) {
+        fbSpeakers = [];
+        fbSpeakerCounter = 0;
+        format.base.forEach(s => {
+          fbAddSpeaker({
+            id: fbSpeakerCounter++,
+            role_en: s.role_en || '',
+            role_ko: s.role_ko || '',
+            side: s.side || 'prop',
+            initials: s.initials || '',
+            timerType: 'main',
+            isReply: s.isReply || s.role_en?.toLowerCase().includes('reply') || false
+          });
+        });
+        fbRenderSpeakers();
+      }
+    }
+  }
+
+  function fbLoadCurrentFormat() {
+    // Load current format from timer
+    const currentBase = speakers.filter(s => s.side !== 'prep').map(s => ({
+      role_en: s.role_en,
+      role_ko: s.role_ko,
+      side: s.side,
+      initials: s.initials,
+      isReply: s.isReply || s.role_en?.toLowerCase().includes('reply') || false
+    }));
+    
+    fbFormatName.value = currentFormat === 'CUSTOM' ? 'Custom' : (PRESETS[currentFormat]?.label || currentFormat);
+    fbFormatId.value = currentFormat;
+    
+    // Load settings
+    $('#fbMainTime').value = mainInput.value;
+    $('#fbFirstBell').value = firstInput.value;
+    $('#fbSecondBell').value = secondInput.value;
+    $('#fbYellowTime').value = yellowInput.value;
+    $('#fbRedTime').value = redInput.value;
+    $('#fbGraceTime').value = graceInput.value;
+    $('#fbPrepTime').value = prepInput.value;
+    $('#fbRoundPrepTime').value = PRESETS[currentFormat]?.settings?.roundPrep || '0:00';
+    $('#fbCexTime').value = cexInput.value;
+    $('#fbRebTime').value = rebInput.value;
+    $('#fbPoiTime').value = poiInput.value;
+    $('#fbBellSpacing').value = spaceInput.value;
+    
+    // Load speakers
+    fbSpeakers = [];
+    fbSpeakerCounter = 0;
+    currentBase.forEach(s => {
+      fbAddSpeaker({
+        id: fbSpeakerCounter++,
+        role_en: s.role_en,
+        role_ko: s.role_ko,
+        side: s.side,
+        initials: s.initials,
+        timerType: 'main',
+        isReply: s.isReply || false
+      });
+    });
+    fbRenderSpeakers();
+    fbShowStatus('Current format loaded!', 'success');
+  }
+
+  function fbClearAll(silent = false) {
+    // Reset format info
+    if (fbFormatName) fbFormatName.value = 'Custom Format';
+    if (fbFormatId) fbFormatId.value = 'CUSTOM';
+    
+    // Reset timing settings
+    if ($('#fbMainTime')) $('#fbMainTime').value = '3:00';
+    if ($('#fbFirstBell')) $('#fbFirstBell').value = '1:00';
+    if ($('#fbSecondBell')) $('#fbSecondBell').value = '2:00';
+    if ($('#fbYellowTime')) $('#fbYellowTime').value = '1:00';
+    if ($('#fbRedTime')) $('#fbRedTime').value = '0:30';
+    if ($('#fbGraceTime')) $('#fbGraceTime').value = '0:30';
+    if ($('#fbPrepTime')) $('#fbPrepTime').value = '0:00';
+    if ($('#fbRoundPrepTime')) $('#fbRoundPrepTime').value = '0:00';
+    if ($('#fbCexTime')) $('#fbCexTime').value = '1:00';
+    if ($('#fbRebTime')) $('#fbRebTime').value = '3:00';
+    if ($('#fbPoiTime')) $('#fbPoiTime').value = '0:15';
+    if ($('#fbBellSpacing')) $('#fbBellSpacing').value = '250';
+    
+    // Clear speakers
+    fbSpeakers = [];
+    fbSpeakerCounter = 0;
+    fbRenderSpeakers();
+    
+    // Clear export area
+    if (fbExportArea) fbExportArea.style.display = 'none';
+    if (fbExportCode) fbExportCode.value = '';
+    if (fbStatus) {
+      fbStatus.textContent = '';
+      fbStatus.className = 'status-message';
+    }
+    
+    if (!silent) {
+      fbShowStatus('All fields cleared!', 'success');
+    }
+  }
+
+  function fbApplyToTimer() {
+    // Export format and import it into timer
+    const formatName = fbFormatName.value || 'Custom Format';
+    const formatId = fbFormatId.value || 'CUSTOM';
+    
+    const settings = {
+      main: $('#fbMainTime').value,
+      first: $('#fbFirstBell').value,
+      second: $('#fbSecondBell').value,
+      yellow: $('#fbYellowTime').value,
+      red: $('#fbRedTime').value,
+      grace: $('#fbGraceTime').value,
+      prep: $('#fbPrepTime').value,
+      roundPrep: $('#fbRoundPrepTime').value,
+      cex: $('#fbCexTime').value,
+      reb: $('#fbRebTime').value,
+      poi: $('#fbPoiTime').value,
+      spacing: $('#fbBellSpacing').value
+    };
+    
+    const base = fbSpeakers
+      .filter(s => s.timerType === 'main' || s.timerType === 'progress')
+      .map(s => ({
+        role_en: s.role_en,
+        role_ko: s.role_ko,
+        side: s.side,
+        initials: s.initials,
+        isReply: s.isReply
+      }));
+    
+    // Generate format ID if needed
+    let finalFormatId = formatId;
+    if (formatIdExists(finalFormatId) && finalFormatId !== 'CUSTOM') {
+      finalFormatId = generateFormatId(formatName);
+    }
+    
+    // Add as custom format
+    addCustomFormat(finalFormatId, formatName, base, settings);
+    
+    // Switch to the format
+    formatSelect.value = finalFormatId;
+    loadFormat(finalFormatId);
+    
+    fbShowStatus(`Format "${formatName}" applied to timer!`, 'success');
+    
+    // Clear inputs after applying (silently)
+    fbClearAll(true);
+  }
+
+  function fbShowStatus(message, type) {
+    if (!fbStatus) return;
+    fbStatus.textContent = message;
+    fbStatus.className = `status-message ${type}`;
+    setTimeout(() => {
+      fbStatus.className = 'status-message';
+    }, 3000);
+  }
+
+  // Make functions globally accessible for onclick handlers
+  window.fbAddSpeaker = fbAddSpeaker;
+  window.fbRemoveSpeaker = fbRemoveSpeaker;
+  window.fbMoveSpeaker = fbMoveSpeaker;
+  window.fbUpdateSpeaker = fbUpdateSpeaker;
+  window.fbRenderSpeakers = fbRenderSpeakers;
+
+  // Event listeners
+  if (fbAddSpeakerBtn) fbAddSpeakerBtn.onclick = () => fbAddSpeaker();
+  if (fbExportBtn) fbExportBtn.onclick = fbExportFormat;
+  if (fbImportBtn) fbImportBtn.onclick = () => fbImportFile.click();
+  if (fbLoadCurrentBtn) fbLoadCurrentBtn.onclick = fbLoadCurrentFormat;
+  if (fbApplyToTimerBtn) fbApplyToTimerBtn.onclick = fbApplyToTimer;
+  if (fbClearAllBtn) fbClearAllBtn.onclick = fbClearAll;
+  if (fbCopyBtn) fbCopyBtn.onclick = () => {
+    fbExportCode.select();
+    document.execCommand('copy');
+    fbShowStatus('Copied to clipboard!', 'success');
+  };
+  
+  if (fbImportFile) {
+    fbImportFile.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          fbLoadFormatData(data);
+          fbShowStatus('Format imported successfully!', 'success');
+        } catch (err) {
+          fbShowStatus('Error importing format: ' + err.message, 'error');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = null;
+    };
+  }
+
+  // Initial render
+  fbRenderSpeakers();
 
   // ---------- Confirmation Modal ----------
   let confirmCallback = null;
@@ -3197,7 +3965,14 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
   resetBtn.onclick = resetMain;
   singleBtn.onclick = () => ding();
   doubleBtn.onclick = () => { ding(); setTimeout(ding, (+spaceInput.value || 250)); };
-  testContBtn.onclick = () => { if(contBellInterval) return; ding(); contBellInterval=setInterval(ding, (+spaceInput.value || 250)); };
+  testContBtn.onclick = () => { 
+    if(contBellInterval) {
+      stopContinuous();
+    } else {
+      ding(); 
+      contBellInterval=setInterval(ding, (+spaceInput.value || 250)); 
+    }
+  };
   stopBellBtn.onclick = () => {
     stopContinuous();
     if(inGrace) {
@@ -3212,11 +3987,22 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
     }
   };
   
-  langSelect.onchange = () => {
-    setLanguage(langSelect.value);
+  // Language button toggle
+  langBtn.onclick = () => {
+    const currentLang = langSelect ? langSelect.value : 'en';
+    const newLang = currentLang === 'en' ? 'ko' : 'en';
+    if (langSelect) langSelect.value = newLang;
+    setLanguage(newLang);
     // Reload format to get correct language names for prep
-    loadFormat(currentFormat); 
+    loadFormat(currentFormat);
   };
+  // Keep langSelect.onchange for compatibility if it still exists
+  if (langSelect) {
+    langSelect.onchange = () => {
+      setLanguage(langSelect.value);
+      loadFormat(currentFormat);
+    };
+  }
   
   window.addEventListener('keydown', e => {
     // FIX: Don't run shortcuts if user is typing
@@ -3242,6 +4028,12 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
   // ---------- Help Modal Listeners (FIXED) ----------
   helpBtn.onclick = () => helpModal.style.display = 'flex';
   closeHelp.onclick = () => helpModal.style.display = 'none';
+  // Close help modal when clicking outside
+  helpModal.onclick = (e) => {
+    if (e.target === helpModal) {
+      helpModal.style.display = 'none';
+    }
+  };
 
   // ---------- Initialization ----------
   function init() {
@@ -3273,7 +4065,13 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
     }
     
     // Hide panels by default
-    if(settingsPanel) settingsPanel.style.maxHeight = '0px';
+    if(settingsPanel) {
+      settingsPanel.style.maxHeight = '0px';
+      settingsPanel.style.display = 'none'; // Fully hidden when closed
+    }
+    if(settingsCard) {
+      settingsCard.style.display = 'none'; // Hide entire card when closed
+    }
     if(quickTimersPanel) quickTimersPanel.style.maxHeight = '0px';
     if(notesPanel) {
     notesPanel.style.maxHeight = '0px';
@@ -3282,9 +4080,81 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
     notesPanel.style.borderWidth = '0px';
       if(toggleNotesBtn) toggleNotesBtn.classList.add('panel-hidden');
     }
+    if(formatBuilderModal) {
+      formatBuilderModal.style.display = 'none';
+    }
 
     updateButtonStates();
   }
+  
+  // Custom tooltip system - prevent native tooltips and use CSS tooltips with faster delay
+  (function setupCustomTooltips() {
+    // Initialize: copy all title attributes to data-original-title
+    function syncTooltip(el) {
+      if (el.title && el.title !== el.dataset.originalTitle) {
+        el.dataset.originalTitle = el.title;
+      }
+    }
+    
+    function initTooltips() {
+      document.querySelectorAll('[title]').forEach(syncTooltip);
+    }
+    
+    // Run immediately and after DOM is ready
+    initTooltips();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initTooltips);
+    }
+    
+    // Watch for title attribute changes and sync data-original-title
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'title') {
+          syncTooltip(mutation.target);
+        }
+        // Also check child nodes for title changes
+        if (mutation.addedNodes) {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1) { // Element node
+              if (node.hasAttribute && node.hasAttribute('title')) {
+                syncTooltip(node);
+              }
+              node.querySelectorAll && node.querySelectorAll('[title]').forEach(syncTooltip);
+            }
+          });
+        }
+      });
+    });
+    
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['title'],
+      childList: true,
+      subtree: true
+    });
+    
+    // Prevent native tooltips by removing title on hover (but keep data-original-title)
+    document.addEventListener('mouseover', function(e) {
+      const target = e.target.closest('[data-original-title]');
+      if (target && target.dataset.originalTitle) {
+        // Only remove title if it matches data-original-title to avoid interfering with dynamic updates
+        if (target.title === target.dataset.originalTitle) {
+          target.removeAttribute('title');
+        }
+      }
+    }, true);
+    
+    // Restore title on mouseout (for accessibility)
+    document.addEventListener('mouseout', function(e) {
+      const target = e.target.closest('[data-original-title]');
+      if (target && target.dataset.originalTitle && !target.title) {
+        target.title = target.dataset.originalTitle;
+      }
+    }, true);
+    
+    // Expose sync function for manual updates
+    window.syncTooltips = initTooltips;
+  })();
   
   init();
 })();
