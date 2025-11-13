@@ -3695,8 +3695,8 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
     };
     
     const json = JSON.stringify(exportData, null, 2);
-    fbExportCode.textContent = json;
-    fbExportArea.style.display = 'block';
+    if (fbExportArea) fbExportArea.style.display = 'none';
+    if (fbExportCode) fbExportCode.textContent = '';
     
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
