@@ -2828,12 +2828,11 @@ const mirrorSpeakersBtn = $('#toggleMirrorSpeakers');
         {role_en:'DPM', role_ko:'부총리 (DPM)', side:'prop', initials:'DPM'},
         {role_en:'DLO', role_ko:'야당부대표 (DLO)', side:'opp', initials:'DLO'},
         {role_en:'GW', role_ko:'여당 원내총무 (GW)', side:'prop', initials:'GW'},
-        {role_en:'OW', role_ko:'야당 원내총무 (OW)', side:'opp', initials:'OW'},
-        {role_en:'GR', role_ko:'여당 답변 (GR)', side:'prop', initials:'GR'},
-        {role_en:'OR', role_ko:'야당 답변 (OR)', side:'opp', initials:'OR'}
+        {role_en:'OW', role_ko:'야당 원내총무 (OW)', side:'opp', initials:'OW'}
       ],
-      // NOTE: Simson between-speech prep is 1:00. Add a 20:00 round prep at the very beginning via sequence builder.
-      settings: { main:'3:00', first:'1:00', second:'2:00', yellow:'1:00', red:'0:30', grace:'0:30', prep:'1:00', cex:'1:00', reb:'3:00', poi:'0:15', spacing:'250', roundPrep:'20:00' }
+      // 2026 Simson rules: 6 speeches (no Reply speeches; 3rd speaker is the Whip), 3:00 each + 0:30 grace.
+      // Bells at 1:00 (POIs open) and 2:30 (POIs close). 1:00 rebuttal prep between speeches; 20:00 round prep at the start.
+      settings: { main:'3:00', first:'1:00', second:'2:30', yellow:'1:00', red:'0:30', grace:'0:30', prep:'1:00', cex:'1:00', reb:'3:00', poi:'0:15', spacing:'250', roundPrep:'20:00' }
     },
     AP: {
       label: 'Asian Parliamentary',
